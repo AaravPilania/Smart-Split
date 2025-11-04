@@ -225,22 +225,13 @@ const Home = () => {
                   </svg>
                   {isLogin ? "Logging in..." : "Creating account..."}
                 </span>
+              ) : isLogin ? (
+                "Login"
               ) : (
-                isLogin ? "Login" : "Register"
+                "Register"
               )}
             </button>
           </form>
-
-          {/* Sample User Hint */}
-          <div className="mt-4 p-2 bg-pink-500/10 border border-pink-500/30 rounded-lg">
-            <p className="text-xs text-white/70 text-center">
-              <strong className="text-pink-300">Sample User:</strong>
-              <br />
-              arav@porn.com / password
-              <br />
-              <span className="text-pink-200">User ID: 1</span>
-            </p>
-          </div>
         </div>
       </div>
     </div>
