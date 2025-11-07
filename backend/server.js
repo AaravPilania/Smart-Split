@@ -1,44 +1,36 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+
 const { connectDB } = require('./config/database');
 
-// Import routes
+// Route imports
 const authRoutes = require('./routes/authRoutes');
 const groupRoutes = require('./routes/groupRoutes');
 const expenseRoutes = require('./routes/expenseRoutes');
 const groupRequestRoutes = require('./routes/groupRequestRoutes');
 
-// Connect to database
-connectDB();
+// Start DB first, THEN server
+connectDB().then(() => {
+  const app = express();
 
-// Initialize app
-const app = express();
+  // Middleware
+  app.use(cors());
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+  // Routes
+  app.use('/api/auth', authRoutes);
+  app.use('/api/groups', groupRoutes);
+  app.use('/api/expenses', expenseRoutes);
+  app.use('/api/requests', groupRequestRoutes);
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/groups', groupRoutes);
-app.use('/api/expenses', expenseRoutes);
-app.use('/api/requests', groupRequestRoutes);
+  // Health check
+  app.get('/api/health', (_, res) => res.json({ status: "OK" }));
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ message: 'Server is running' });
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`✅ Server running on port ${PORT}`);
+  });
 });
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
-});
-
-// Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+  
