@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
-const { connectDB } = require("./config/database");
+const { connectDB, createPool } = require("./config/database");
 
 // Import routes
 const authRoutes = require("./routes/authRoutes");
@@ -66,26 +66,44 @@ async function startServer() {
     });
   });
 
+  // ✅ Create database pool first (before routes, so models can use it)
+  createPool();
+
   // ✅ API Routes - Register BEFORE starting server
   app.use("/api/auth", authRoutes);
   app.use("/api/groups", groupRoutes);
   app.use("/api/expenses", expenseRoutes);
   app.use("/api/requests", groupRequestRoutes);
 
-  // ✅ Connect DB first
-  try {
-    await connectDB();
-    console.log("✅ MySQL Connected");
-  } catch (err) {
-    console.error("❌ Database connection failed:", err.message);
-    // Don't exit - let server start even if DB fails (for testing)
-  }
-
   // ✅ Start server AFTER routes are registered
   const PORT = process.env.PORT || 8080;
-  app.listen(PORT, "0.0.0.0", () => {
+  const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`✅ Server running on port ${PORT}`);
     console.log(`✅ Environment: ${process.env.NODE_ENV || "development"}`);
+  });
+
+  // ✅ Connect DB after server starts (non-blocking)
+  connectDB().catch((err) => {
+    console.error("❌ Database connection failed:", err.message);
+    console.warn("⚠️  Server started but database is not connected. Some features may not work.");
+  });
+
+  // Handle graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM signal received: closing HTTP server');
+    server.close(() => {
+      console.log('HTTP server closed');
+      const { getPool } = require("./config/database");
+      const pool = getPool();
+      if (pool) {
+        pool.end().then(() => {
+          console.log('Database pool closed');
+          process.exit(0);
+        });
+      } else {
+        process.exit(0);
+      }
+    });
   });
 }
 
