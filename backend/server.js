@@ -13,12 +13,12 @@ const groupRequestRoutes = require("./routes/groupRequestRoutes");
 async function startServer() {
   const app = express();
 
-  // ✅ HEALTH CHECK BEFORE ANYTHING
+  // ✅ Basic health check
   app.get("/", (req, res) => {
     res.send("✅ Backend is running");
   });
 
-  // ✅ FIXED CORS
+  // ✅ CORS FIX
   app.use(
     cors({
       origin: [
@@ -33,7 +33,30 @@ async function startServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // ✅ START SERVER FIRST (Fix #1 + required for Railway)
+  // ✅ Start server first
   const PORT = process.env.PORT || 8080;
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`✅ Server running on port ${
+    console.log(`✅ Server running on port ${PORT}`);
+  });
+
+  // ✅ Connect DB after server starts
+  try {
+    await connectDB();
+    console.log("✅ MySQL Connected");
+  } catch (err) {
+    console.error("❌ Database connection failed:", err.message);
+  }
+
+  // ✅ API Routes
+  app.use("/api/auth", authRoutes);
+  app.use("/api/groups", groupRoutes);
+  app.use("/api/expenses", expenseRoutes);
+  app.use("/api/requests", groupRequestRoutes);
+
+  // ✅ API health check
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "OK" });
+  });
+}
+
+startServer();
