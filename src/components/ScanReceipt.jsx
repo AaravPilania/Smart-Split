@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { FiCamera, FiUpload, FiX, FiCheck, FiPlus } from "react-icons/fi";
 import Tesseract from "tesseract.js";
-
-const API_URL = "http://localhost:5000/api";
+import { API_URL } from "../utils/api";
 
 export default function ScanReceipt({ 
   groups, 

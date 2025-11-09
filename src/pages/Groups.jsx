@@ -2,9 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { FiUsers, FiPlus, FiX, FiUserPlus, FiDollarSign } from "react-icons/fi";
-import { groupAPI } from "../utils/api";
-
-const API_URL = "http://localhost:5000/api";
+import { groupAPI, API_URL } from "../utils/api";
 
 export default function Groups() {
   const [groups, setGroups] = useState([]);

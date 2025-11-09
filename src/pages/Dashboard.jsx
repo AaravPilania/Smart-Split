@@ -4,8 +4,7 @@ import Navbar from "../components/Navbar";
 import StatsCard from "../components/Statscard";
 import { FiTrendingUp, FiTrendingDown, FiPlus, FiClock } from "react-icons/fi";
 import { BsPeopleFill } from "react-icons/bs";
-
-const API_URL = "http://localhost:5000/api";
+import { API_URL } from "../utils/api";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);

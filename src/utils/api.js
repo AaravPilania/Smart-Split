@@ -1,4 +1,5 @@
-const API_URL = "http://localhost:5000/api";
+// Use environment variable or fallback to Railway URL
+export const API_URL = import.meta.env.VITE_API_URL || "https://smart-split-production.up.railway.app/api";
 
 // Helper function for API calls
 async function apiCall(endpoint, options = {}) {
@@ -9,16 +10,30 @@ async function apiCall(endpoint, options = {}) {
         "Content-Type": "application/json",
         ...options.headers,
       },
+      credentials: "include", // Include credentials for CORS
     });
 
-    const data = await response.json();
-
+    // Check if response is ok before trying to parse JSON
     if (!response.ok) {
-      throw new Error(data.message || "API request failed");
+      let errorMessage = "API request failed";
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch {
+        errorMessage = `Server error: ${response.status} ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
 
+    // Parse JSON only if response is ok
+    const data = await response.json();
     return data;
   } catch (error) {
+    // Handle network errors
+    if (error.name === "TypeError" && error.message.includes("fetch")) {
+      console.error(`Network Error (${endpoint}):`, error);
+      throw new Error("Unable to connect to server. Please check your connection.");
+    }
     console.error(`API Error (${endpoint}):`, error);
     throw error;
   }

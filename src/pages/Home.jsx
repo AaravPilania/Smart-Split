@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_URL } from "../utils/api";
 
 const Home = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -9,8 +10,6 @@ const Home = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
-
-  const API_URL = "http://localhost:5000/api";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,11 +27,18 @@ const Home = () => {
           body: JSON.stringify({ email, password }),
         });
 
-        const data = await response.json();
-
         if (!response.ok) {
-          throw new Error(data.message || "Login failed");
+          let errorMessage = "Login failed";
+          try {
+            const data = await response.json();
+            errorMessage = data.message || errorMessage;
+          } catch {
+            errorMessage = `Server error: ${response.status} ${response.statusText}`;
+          }
+          throw new Error(errorMessage);
         }
+
+        const data = await response.json();
 
         // Store user data
         localStorage.setItem("user", JSON.stringify(data.user));
@@ -54,11 +60,18 @@ const Home = () => {
           body: JSON.stringify({ email, password, name }),
         });
 
-        const data = await response.json();
-
         if (!response.ok) {
-          throw new Error(data.message || "Registration failed");
+          let errorMessage = "Registration failed";
+          try {
+            const data = await response.json();
+            errorMessage = data.message || errorMessage;
+          } catch {
+            errorMessage = `Server error: ${response.status} ${response.statusText}`;
+          }
+          throw new Error(errorMessage);
         }
+
+        const data = await response.json();
 
         // Store user data
         localStorage.setItem("user", JSON.stringify(data.user));
@@ -68,7 +81,13 @@ const Home = () => {
         navigate("/dashboard");
       }
     } catch (err) {
-      setError(err.message || "Something went wrong. Please try again.");
+      // Handle network errors (CORS, connection failures, etc.)
+      if (err.name === "TypeError" && err.message.includes("fetch")) {
+        setError("Unable to connect to server. Please check your connection or try again later.");
+      } else {
+        setError(err.message || "Something went wrong. Please try again.");
+      }
+      console.error("Login/Register error:", err);
     } finally {
       setLoading(false);
     }

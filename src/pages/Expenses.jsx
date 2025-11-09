@@ -9,8 +9,7 @@ import {
   FiUser,
   FiDollarSign,
 } from "react-icons/fi";
-
-const API_URL = "http://localhost:5000/api";
+import { API_URL } from "../utils/api";
 
 export default function Expenses() {
   const [expenses, setExpenses] = useState([]);

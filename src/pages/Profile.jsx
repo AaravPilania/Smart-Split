@@ -10,8 +10,7 @@ import {
   FiX,
   FiClock,
 } from "react-icons/fi";
-
-const API_URL = "http://localhost:5000/api";
+import { API_URL } from "../utils/api";
 
 export default function Profile() {
   const [user, setUser] = useState(null);

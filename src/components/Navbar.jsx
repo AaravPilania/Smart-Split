@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FiUser, FiLogOut, FiCamera } from "react-icons/fi";
 import ScanReceipt from "./ScanReceipt";
+import { API_URL } from "../utils/api";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ export default function Navbar() {
   const fetchGroups = async () => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/groups?userId=${userId}`
+        `${API_URL}/groups?userId=${userId}`
       );
       if (response.ok) {
         const data = await response.json();
