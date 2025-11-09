@@ -15,8 +15,15 @@ async function startServer() {
 
   const app = express();
 
-  // Middlewares
-  app.use(cors());
+  // ✅ FIXED CORS
+  app.use(
+    cors({
+      origin: "https://thesmartsplit.netlify.app",
+      methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+      credentials: true,
+    })
+  );
+
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
