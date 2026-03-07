@@ -14,8 +14,10 @@ app.use(cors({
     "https://thesmartsplit.netlify.app"
   ],
   methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"],
   credentials: true
 }));
+app.options("*", cors());
 
 // Body parsing
 app.use(express.json());
