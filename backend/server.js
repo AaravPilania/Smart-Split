@@ -6,12 +6,14 @@ const { connectDB } = require('./config/database');
 const app = express();
 
 // CORS
+const cors = require("cors");
+
 app.use(cors({
   origin: [
     "http://localhost:5173",
     "https://thesmartsplit.netlify.app"
   ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
   credentials: true
 }));
 
