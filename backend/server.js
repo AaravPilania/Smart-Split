@@ -7,9 +7,12 @@ const app = express();
 
 // CORS
 app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true,
+  origin: [
+    "http://localhost:5173",
+    "https://thesmartsplit.netlify.app"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
 }));
 
 // Body parsing
