@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://smart-split-backend-yygp.onrender.com/api";
 
 // Helper function for API calls
 async function apiCall(endpoint, options = {}) {
