@@ -6,18 +6,11 @@ const { connectDB } = require('./config/database');
 const app = express();
 
 // CORS
-const cors = require("cors");
-
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://thesmartsplit.netlify.app"
-  ],
-  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type","Authorization"],
-  credentials: true
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true,
 }));
-app.options("*", cors());
 
 // Body parsing
 app.use(express.json());
@@ -36,14 +29,13 @@ app.get('/api/users/search', async (req, res) => {
     if (!email) {
       return res.status(400).json({ message: 'email query param is required' });
     }
-    const User = require('./models/User');
-    const users = await User.find({ email: new RegExp(email, 'i') }).limit(10).select('_id email name');
-    const formattedUsers = users.map(user => ({
-      id: user._id,
-      email: user.email,
-      name: user.name
-    }));
-    res.json({ users: formattedUsers });
+    const { getPool } = require('./config/database');
+    const pool = getPool();
+    const [rows] = await pool.execute(
+      'SELECT id, email, name FROM users WHERE email LIKE ? LIMIT 10',
+      [`%${email}%`]
+    );
+    res.json({ users: rows });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

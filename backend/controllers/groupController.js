@@ -13,23 +13,7 @@ exports.createGroup = async (req, res) => {
 
     res.status(201).json({
       message: 'Group created successfully',
-      group: {
-        id: group._id,
-        name: group.name,
-        description: group.description,
-        createdBy: {
-          id: group.createdBy._id,
-          name: group.createdBy.name,
-          email: group.createdBy.email
-        },
-        members: group.members.map(member => ({
-          id: member._id,
-          name: member.name,
-          email: member.email
-        })),
-        createdAt: group.createdAt,
-        updatedAt: group.updatedAt
-      }
+      group
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -43,54 +27,46 @@ exports.getGroups = async (req, res) => {
 
     // If 'all' parameter is true, return all groups (for discovery)
     if (all === 'true') {
-      const groups = await Group.find({}).populate('createdBy', 'id name email').populate('members', 'id name email').sort({ createdAt: -1 });
-
-      const formattedGroups = groups.map(group => ({
-        id: group._id,
-        name: group.name,
-        description: group.description,
-        createdBy: {
-          id: group.createdBy._id,
-          name: group.createdBy.name,
-          email: group.createdBy.email
-        },
-        members: group.members.map(member => ({
-          id: member._id,
-          name: member.name,
-          email: member.email
-        })),
-        createdAt: group.createdAt,
-        updatedAt: group.updatedAt
-      }));
-
-      return res.json({ groups: formattedGroups });
+      const { getPool } = require('../config/database');
+      const pool = getPool();
+      const [groups] = await pool.execute(
+        `SELECT g.*, 
+         u.id as creator_id, u.name as creator_name, u.email as creator_email
+         FROM \`groups\` g
+         LEFT JOIN users u ON g.created_by = u.id
+         ORDER BY g.created_at DESC`
+      );
+      
+      // Get members for each group
+      const groupsWithMembers = await Promise.all(
+        groups.map(async (group) => {
+          const members = await Group.getMembers(group.id);
+          return {
+            id: group.id,
+            name: group.name,
+            description: group.description,
+            createdBy: {
+              id: group.created_by,
+              name: group.creator_name,
+              email: group.creator_email
+            },
+            members: members,
+            createdAt: group.created_at,
+            updatedAt: group.updated_at
+          };
+        })
+      );
+      
+      return res.json({ groups: groupsWithMembers });
     }
 
     if (!userId) {
       return res.status(400).json({ message: 'userId is required' });
     }
 
-    const groups = await Group.findByUser(userId);
+    const groups = await Group.findByUser(parseInt(userId));
 
-    const formattedGroups = groups.map(group => ({
-      id: group._id,
-      name: group.name,
-      description: group.description,
-      createdBy: {
-        id: group.createdBy._id,
-        name: group.createdBy.name,
-        email: group.createdBy.email
-      },
-      members: group.members.map(member => ({
-        id: member._id,
-        name: member.name,
-        email: member.email
-      })),
-      createdAt: group.createdAt,
-      updatedAt: group.updatedAt
-    }));
-
-    res.json({ groups: formattedGroups });
+    res.json({ groups });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -99,31 +75,13 @@ exports.getGroups = async (req, res) => {
 // Get single group
 exports.getGroup = async (req, res) => {
   try {
-    const group = await Group.findById(req.params.id);
+    const group = await Group.findById(parseInt(req.params.id));
 
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
 
-    res.json({
-      group: {
-        id: group._id,
-        name: group.name,
-        description: group.description,
-        createdBy: {
-          id: group.createdBy._id,
-          name: group.createdBy.name,
-          email: group.createdBy.email
-        },
-        members: group.members.map(member => ({
-          id: member._id,
-          name: member.name,
-          email: member.email
-        })),
-        createdAt: group.createdAt,
-        updatedAt: group.updatedAt
-      }
-    });
+    res.json({ group });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -133,7 +91,7 @@ exports.getGroup = async (req, res) => {
 exports.addMembers = async (req, res) => {
   try {
     const { memberIds } = req.body;
-    const groupId = req.params.id;
+    const groupId = parseInt(req.params.id);
 
     if (!memberIds || !Array.isArray(memberIds)) {
       return res.status(400).json({ message: 'memberIds must be an array' });
@@ -145,30 +103,14 @@ exports.addMembers = async (req, res) => {
     }
 
     // Add members
-    await Group.addMembers(groupId, memberIds);
+    await Group.addMembers(groupId, memberIds.map(id => parseInt(id)));
 
     // Return updated group
     const updatedGroup = await Group.findById(groupId);
 
     res.json({
       message: 'Members added successfully',
-      group: {
-        id: updatedGroup._id,
-        name: updatedGroup.name,
-        description: updatedGroup.description,
-        createdBy: {
-          id: updatedGroup.createdBy._id,
-          name: updatedGroup.createdBy.name,
-          email: updatedGroup.createdBy.email
-        },
-        members: updatedGroup.members.map(member => ({
-          id: member._id,
-          name: member.name,
-          email: member.email
-        })),
-        createdAt: updatedGroup.createdAt,
-        updatedAt: updatedGroup.updatedAt
-      }
+      group: updatedGroup
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

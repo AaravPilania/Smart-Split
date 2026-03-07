@@ -1,64 +1,89 @@
-const mongoose = require('mongoose');
+const { getPool } = require('../config/database');
 const bcrypt = require('bcryptjs');
 
-const userSchema = new mongoose.Schema({
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    lowercase: true,
-    trim: true
-  },
-  password: {
-    type: String,
-    required: true
-  },
-  name: {
-    type: String,
-    trim: true
+class User {
+  // Create a new user
+  static async create(email, password, name) {
+    const pool = getPool();
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    const [result] = await pool.execute(
+      'INSERT INTO users (email, password, name) VALUES (?, ?, ?)',
+      [email, hashedPassword, name]
+    );
+    
+    return await this.findById(result.insertId);
   }
-}, {
-  timestamps: true
-});
 
-// Hash password before saving
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 10);
-  next();
-});
+  // Find user by ID
+  static async findById(id) {
+    const pool = getPool();
+    const [rows] = await pool.execute(
+      'SELECT id, email, name, created_at, updated_at FROM users WHERE id = ?',
+      [id]
+    );
+    return rows[0] || null;
+  }
 
-// Instance methods
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
-};
+  // Find user by email
+  static async findByEmail(email) {
+    const pool = getPool();
+    const [rows] = await pool.execute(
+      'SELECT * FROM users WHERE email = ?',
+      [email]
+    );
+    return rows[0] || null;
+  }
 
-// Static methods
-userSchema.statics.findByEmail = function(email) {
-  return this.findOne({ email: email.toLowerCase() });
-};
+  // Update user profile
+  static async update(id, updates) {
+    const pool = getPool();
+    const fields = [];
+    const values = [];
 
-userSchema.statics.findById = function(id) {
-  return this.findById(id);
-};
-
-userSchema.statics.create = function(email, password, name) {
-  return this.create({ email, password, name });
-};
-
-userSchema.statics.update = async function(id, updates) {
-  const user = await this.findById(id);
-  if (!user) return null;
-
-  Object.keys(updates).forEach(key => {
-    if (updates[key] !== undefined) {
-      user[key] = updates[key];
+    if (updates.name !== undefined) {
+      fields.push('name = ?');
+      values.push(updates.name);
     }
-  });
 
-  return await user.save();
-};
+    if (updates.email !== undefined) {
+      fields.push('email = ?');
+      values.push(updates.email);
+    }
 
-const User = mongoose.model('User', userSchema);
+    if (updates.password !== undefined) {
+      const hashedPassword = await bcrypt.hash(updates.password, 10);
+      fields.push('password = ?');
+      values.push(hashedPassword);
+    }
+
+    if (fields.length === 0) {
+      return await this.findById(id);
+    }
+
+    values.push(id);
+    await pool.execute(
+      `UPDATE users SET ${fields.join(', ')} WHERE id = ?`,
+      values
+    );
+
+    return await this.findById(id);
+  }
+
+  // Compare password
+  static async comparePassword(candidatePassword, hashedPassword) {
+    return await bcrypt.compare(candidatePassword, hashedPassword);
+  }
+
+  // Get user by ID with password (for login)
+  static async findByIdWithPassword(id) {
+    const pool = getPool();
+    const [rows] = await pool.execute(
+      'SELECT * FROM users WHERE id = ?',
+      [id]
+    );
+    return rows[0] || null;
+  }
+}
 
 module.exports = User;
