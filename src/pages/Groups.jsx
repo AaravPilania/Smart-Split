@@ -2,9 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { FiUsers, FiPlus, FiX, FiUserPlus, FiDollarSign } from "react-icons/fi";
-import { groupAPI } from "../utils/api";
-
-const API_URL = "http://localhost:5000/api";
+import { groupAPI, API_URL, apiFetch } from "../utils/api";
 
 export default function Groups() {
   const [groups, setGroups] = useState([]);
@@ -29,14 +27,14 @@ export default function Groups() {
       navigate("/");
       return;
     }
-    setUserId(parseInt(userIdStr));
-    fetchGroups(parseInt(userIdStr));
+    setUserId(userIdStr);
+    fetchGroups(userIdStr);
   }, [navigate]);
 
   const fetchGroups = async (userId) => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/groups?userId=${userId}`);
+      const response = await apiFetch(`${API_URL}/groups?userId=${userId}`);
       if (!response.ok) throw new Error("Failed to fetch groups");
       const data = await response.json();
       setGroups(data.groups || []);
@@ -55,9 +53,8 @@ export default function Groups() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/groups`, {
+      const response = await apiFetch(`${API_URL}/groups`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: createForm.name,
           description: createForm.description,
@@ -86,10 +83,9 @@ export default function Groups() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/groups/${groupId}/members`, {
+      const response = await apiFetch(`${API_URL}/groups/${groupId}/members`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ memberIds: [parseInt(memberId)] }),
+        body: JSON.stringify({ memberIds: [memberId] }),
       });
 
       const data = await response.json();
@@ -106,9 +102,8 @@ export default function Groups() {
 
   const handleRequestToJoin = async (groupId) => {
     try {
-      const response = await fetch(`${API_URL}/requests/group/${groupId}/request`, {
+      const response = await apiFetch(`${API_URL}/requests/group/${groupId}/request`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
       });
 
@@ -378,12 +373,12 @@ function AllGroupsSection({ userId, onJoinRequest }) {
   const fetchAllGroups = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/groups?all=true`);
+      const response = await apiFetch(`${API_URL}/groups?all=true`);
       if (!response.ok) throw new Error("Failed to fetch groups");
       const data = await response.json();
       
       // Filter out groups where user is already a member
-      const userGroupsResponse = await fetch(`${API_URL}/groups?userId=${userId}`);
+      const userGroupsResponse = await apiFetch(`${API_URL}/groups?userId=${userId}`);
       if (userGroupsResponse.ok) {
         const userGroupsData = await userGroupsResponse.json();
         const userGroupIds = new Set((userGroupsData.groups || []).map(g => g.id));
@@ -401,9 +396,8 @@ function AllGroupsSection({ userId, onJoinRequest }) {
 
   const handleRequestToJoin = async (groupId) => {
     try {
-      const response = await fetch(`${API_URL}/requests/group/${groupId}/request`, {
+      const response = await apiFetch(`${API_URL}/requests/group/${groupId}/request`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
       });
 

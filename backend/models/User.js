@@ -1,89 +1,63 @@
-const { getPool } = require('../config/database');
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-class User {
-  // Create a new user
-  static async create(email, password, name) {
-    const pool = getPool();
-    const hashedPassword = await bcrypt.hash(password, 10);
-    
-    const [result] = await pool.execute(
-      'INSERT INTO users (email, password, name) VALUES (?, ?, ?)',
-      [email, hashedPassword, name]
-    );
-    
-    return await this.findById(result.insertId);
-  }
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  password: { type: String, required: true, select: false }
+}, { timestamps: true });
 
-  // Find user by ID
-  static async findById(id) {
-    const pool = getPool();
-    const [rows] = await pool.execute(
-      'SELECT id, email, name, created_at, updated_at FROM users WHERE id = ?',
-      [id]
-    );
-    return rows[0] || null;
-  }
+const UserModel = mongoose.model('User', userSchema);
 
-  // Find user by email
-  static async findByEmail(email) {
-    const pool = getPool();
-    const [rows] = await pool.execute(
-      'SELECT * FROM users WHERE email = ?',
-      [email]
-    );
-    return rows[0] || null;
-  }
-
-  // Update user profile
-  static async update(id, updates) {
-    const pool = getPool();
-    const fields = [];
-    const values = [];
-
-    if (updates.name !== undefined) {
-      fields.push('name = ?');
-      values.push(updates.name);
-    }
-
-    if (updates.email !== undefined) {
-      fields.push('email = ?');
-      values.push(updates.email);
-    }
-
-    if (updates.password !== undefined) {
-      const hashedPassword = await bcrypt.hash(updates.password, 10);
-      fields.push('password = ?');
-      values.push(hashedPassword);
-    }
-
-    if (fields.length === 0) {
-      return await this.findById(id);
-    }
-
-    values.push(id);
-    await pool.execute(
-      `UPDATE users SET ${fields.join(', ')} WHERE id = ?`,
-      values
-    );
-
-    return await this.findById(id);
-  }
-
-  // Compare password
-  static async comparePassword(candidatePassword, hashedPassword) {
-    return await bcrypt.compare(candidatePassword, hashedPassword);
-  }
-
-  // Get user by ID with password (for login)
-  static async findByIdWithPassword(id) {
-    const pool = getPool();
-    const [rows] = await pool.execute(
-      'SELECT * FROM users WHERE id = ?',
-      [id]
-    );
-    return rows[0] || null;
-  }
+function doc2obj(doc) {
+  if (!doc) return null;
+  const plain = JSON.parse(JSON.stringify(
+    doc.toObject ? doc.toObject({ virtuals: true }) : doc
+  ));
+  if (!plain.id && plain._id) plain.id = plain._id;
+  return plain;
 }
 
-module.exports = User;
+module.exports = {
+  async create({ email, password, name }) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await UserModel.create({
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      name: name ? name.trim() : ''
+    });
+    return { _id: user._id.toString(), id: user._id.toString(), email: user.email, name: user.name };
+  },
+
+  async findById(id) {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    return doc2obj(await UserModel.findById(id).select('-password'));
+  },
+
+  async findByEmail(email, includePassword = false) {
+    const query = UserModel.findOne({ email: email.toLowerCase().trim() });
+    if (includePassword) query.select('+password');
+    return doc2obj(await query);
+  },
+
+  async search(emailPattern, limit = 10) {
+    const users = await UserModel
+      .find({ email: { $regex: emailPattern, $options: 'i' } }, 'name email')
+      .limit(limit);
+    return users.map(doc2obj);
+  },
+
+  async updateById(id, updates) {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    const setFields = {};
+    if (updates.name !== undefined) setFields.name = updates.name.trim();
+    if (updates.email !== undefined) setFields.email = updates.email.toLowerCase().trim();
+    if (updates.password !== undefined) setFields.password = await bcrypt.hash(updates.password, 10);
+    await UserModel.findByIdAndUpdate(id, { $set: setFields });
+    return this.findById(id);
+  },
+
+  async comparePassword(candidatePassword, hashedPassword) {
+    return bcrypt.compare(candidatePassword, hashedPassword);
+  }
+};

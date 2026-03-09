@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_URL, setAuthToken } from "../utils/api";
 
 const Home = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -9,8 +10,6 @@ const Home = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
-
-  const API_URL = "http://localhost:5000/api";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,6 +34,7 @@ const Home = () => {
         }
 
         // Store user data
+        setAuthToken(data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("userId", data.user.id);
 
@@ -60,7 +60,8 @@ const Home = () => {
           throw new Error(data.message || "Registration failed");
         }
 
-        // Store user data
+        // Store user data (after signup)
+        setAuthToken(data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("userId", data.user.id);
 

@@ -1,75 +1,65 @@
 const mongoose = require('mongoose');
 
 const groupRequestSchema = new mongoose.Schema({
-  group: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Group',
-    required: true
+  group: { type: mongoose.Schema.Types.ObjectId, ref: 'Group', required: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  respondedAt: { type: Date, default: null }
+}, { timestamps: true });
+
+const GroupRequestModel = mongoose.model('GroupRequest', groupRequestSchema);
+
+const POPULATE_REQUEST = [
+  { path: 'user', select: 'name email' },
+  { path: 'group', select: 'name description createdBy' }
+];
+
+function doc2obj(doc) {
+  if (!doc) return null;
+  const plain = JSON.parse(JSON.stringify(
+    doc.toObject ? doc.toObject({ virtuals: true }) : doc
+  ));
+  if (!plain.id && plain._id) plain.id = plain._id;
+  return plain;
+}
+
+module.exports = {
+  async createRequest(groupId, userId) {
+    const request = await GroupRequestModel.create({ group: groupId, user: userId });
+    return doc2obj(request);
   },
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+
+  async findOne(filter) {
+    return doc2obj(await GroupRequestModel.findOne(filter));
   },
-  status: {
-    type: String,
-    enum: ['pending', 'approved', 'rejected'],
-    default: 'pending'
+
+  async findByGroup(groupId) {
+    if (!mongoose.Types.ObjectId.isValid(groupId)) return [];
+    const requests = await GroupRequestModel.find({ group: groupId, status: 'pending' }).populate(POPULATE_REQUEST).sort({ createdAt: -1 });
+    return requests.map(doc2obj);
   },
-  respondedAt: {
-    type: Date
+
+  async findByUser(userId) {
+    if (!mongoose.Types.ObjectId.isValid(userId)) return [];
+    const requests = await GroupRequestModel.find({ user: userId }).populate(POPULATE_REQUEST).sort({ createdAt: -1 });
+    return requests.map(doc2obj);
+  },
+
+  async approveRequest(requestId) {
+    if (!mongoose.Types.ObjectId.isValid(requestId)) return null;
+    const request = await GroupRequestModel.findOne({ _id: requestId, status: 'pending' });
+    if (!request) return null;
+    await GroupRequestModel.findByIdAndUpdate(requestId, { $set: { status: 'approved', respondedAt: new Date() } });
+    const Group = require('./Group');
+    await Group.addMember(request.group.toString(), request.user.toString());
+    return { ...doc2obj(request), status: 'approved' };
+  },
+
+  async rejectRequest(requestId) {
+    if (!mongoose.Types.ObjectId.isValid(requestId)) return null;
+    const request = await GroupRequestModel.findOne({ _id: requestId, status: 'pending' });
+    if (!request) return null;
+    await GroupRequestModel.findByIdAndUpdate(requestId, { $set: { status: 'rejected', respondedAt: new Date() } });
+    return { ...doc2obj(request), status: 'rejected' };
   }
-}, {
-  timestamps: true
-});
-
-// Ensure unique pending request per user per group
-groupRequestSchema.index({ group: 1, user: 1, status: 1 }, { unique: true, partialFilterExpression: { status: 'pending' } });
-
-// Static methods
-groupRequestSchema.statics.createRequest = async function(groupId, userId) {
-  return await this.create({ group: groupId, user: userId });
 };
-
-groupRequestSchema.statics.findByGroup = async function(groupId) {
-  return await this.find({ group: groupId, status: 'pending' })
-    .populate('user', 'id name email')
-    .populate('group', 'id name')
-    .sort({ createdAt: -1 });
-};
-
-groupRequestSchema.statics.findByUser = async function(userId) {
-  return await this.find({ user: userId })
-    .populate('group', 'id name description createdBy')
-    .sort({ createdAt: -1 });
-};
-
-groupRequestSchema.statics.approveRequest = async function(requestId) {
-  const request = await this.findById(requestId);
-  if (!request || request.status !== 'pending') return null;
-
-  request.status = 'approved';
-  request.respondedAt = new Date();
-  await request.save();
-
-  // Add user to group
-  const Group = mongoose.model('Group');
-  await Group.addMember(request.group, request.user);
-
-  return request;
-};
-
-groupRequestSchema.statics.rejectRequest = async function(requestId) {
-  const request = await this.findById(requestId);
-  if (!request || request.status !== 'pending') return null;
-
-  request.status = 'rejected';
-  request.respondedAt = new Date();
-  await request.save();
-
-  return request;
-};
-
-const GroupRequest = mongoose.model('GroupRequest', groupRequestSchema);
-
-module.exports = GroupRequest;

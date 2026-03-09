@@ -4,12 +4,13 @@ import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FiUser, FiLogOut, FiCamera } from "react-icons/fi";
 import ScanReceipt from "./ScanReceipt";
+import { API_URL, apiFetch, setAuthToken } from "../utils/api";
 
 export default function Navbar() {
   const navigate = useNavigate();
   const [showScanModal, setShowScanModal] = useState(false);
   const [groups, setGroups] = useState([]);
-  const userId = parseInt(localStorage.getItem("userId"));
+  const userId = localStorage.getItem("userId");
   const [avatar, setAvatar] = useState(null);
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export default function Navbar() {
   }, []);
 
   const handleLogout = () => {
+    setAuthToken(null);
     localStorage.removeItem("user");
     localStorage.removeItem("userId");
     navigate("/");
@@ -40,8 +42,8 @@ export default function Navbar() {
 
   const fetchGroups = async () => {
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/groups?userId=${userId}`
+      const response = await apiFetch(
+        `${API_URL}/groups?userId=${userId}`
       );
       if (response.ok) {
         const data = await response.json();

@@ -10,8 +10,7 @@ import {
   FiX,
   FiClock,
 } from "react-icons/fi";
-
-const API_URL = "http://localhost:5000/api";
+import { API_URL, apiFetch } from "../utils/api";
 
 export default function Profile() {
   const [user, setUser] = useState(null);
@@ -33,14 +32,14 @@ export default function Profile() {
       navigate("/");
       return;
     }
-    fetchProfile(parseInt(userIdStr));
-    fetchGroups(parseInt(userIdStr));
-    fetchPendingRequests(parseInt(userIdStr));
+    fetchProfile(userIdStr);
+    fetchGroups(userIdStr);
+    fetchPendingRequests(userIdStr);
   }, [navigate]);
 
   const fetchProfile = async (userId) => {
     try {
-      const response = await fetch(`${API_URL}/auth/profile/${userId}`);
+    const response = await apiFetch(`${API_URL}/auth/profile/${userId}`);
       if (!response.ok) throw new Error("Failed to fetch profile");
       const data = await response.json();
       setUser(data.user);
@@ -78,7 +77,7 @@ export default function Profile() {
 
   const fetchGroups = async (userId) => {
     try {
-      const response = await fetch(`${API_URL}/groups?userId=${userId}`);
+      const response = await apiFetch(`${API_URL}/groups?userId=${userId}`);
       if (!response.ok) throw new Error("Failed to fetch groups");
       const data = await response.json();
       setGroups(data.groups || []);
@@ -89,7 +88,7 @@ export default function Profile() {
 
   const fetchPendingRequests = async (userId) => {
     try {
-      const response = await fetch(`${API_URL}/requests/user/${userId}/requests`);
+      const response = await apiFetch(`${API_URL}/requests/user/${userId}/requests`);
       if (!response.ok) throw new Error("Failed to fetch requests");
       const data = await response.json();
       // Filter only pending requests
@@ -103,7 +102,7 @@ export default function Profile() {
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
-    const userId = parseInt(localStorage.getItem("userId"));
+    const userId = localStorage.getItem("userId");
 
     try {
       const updates = {};
@@ -116,9 +115,8 @@ export default function Profile() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/auth/profile/${userId}`, {
+      const response = await apiFetch(`${API_URL}/auth/profile/${userId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
       });
 
@@ -137,18 +135,15 @@ export default function Profile() {
 
   const handleApproveRequest = async (requestId) => {
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_URL}/requests/request/${requestId}/approve`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        }
+        { method: "POST" }
       );
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Failed to approve");
 
-      const userId = parseInt(localStorage.getItem("userId"));
+      const userId = localStorage.getItem("userId");
       fetchPendingRequests(userId);
       fetchGroups(userId);
       alert("Request approved! You've been added to the group.");
@@ -159,18 +154,15 @@ export default function Profile() {
 
   const handleRejectRequest = async (requestId) => {
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_URL}/requests/request/${requestId}/reject`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        }
+        { method: "POST" }
       );
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Failed to reject");
 
-      const userId = parseInt(localStorage.getItem("userId"));
+      const userId = localStorage.getItem("userId");
       fetchPendingRequests(userId);
       alert("Request rejected");
     } catch (error) {

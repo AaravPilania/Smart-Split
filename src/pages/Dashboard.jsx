@@ -4,8 +4,7 @@ import Navbar from "../components/Navbar";
 import StatsCard from "../components/Statscard";
 import { FiTrendingUp, FiTrendingDown, FiPlus, FiClock } from "react-icons/fi";
 import { BsPeopleFill } from "react-icons/bs";
-
-const API_URL = "http://localhost:5000/api";
+import { API_URL, apiFetch } from "../utils/api";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -30,7 +29,7 @@ export default function Dashboard() {
     }
 
     setUser(JSON.parse(userData));
-    fetchDashboardData(parseInt(userId));
+    fetchDashboardData(userId);
   }, [navigate]);
 
   const fetchDashboardData = async (userId) => {
@@ -38,7 +37,7 @@ export default function Dashboard() {
       setLoading(true);
 
       // Fetch user's groups
-      const groupsResponse = await fetch(`${API_URL}/groups?userId=${userId}`);
+      const groupsResponse = await apiFetch(`${API_URL}/groups?userId=${userId}`);
       if (!groupsResponse.ok) throw new Error("Failed to fetch groups");
       const groupsData = await groupsResponse.json();
       const userGroups = groupsData.groups || [];
@@ -54,7 +53,7 @@ export default function Dashboard() {
       for (const group of userGroups) {
         try {
           // Fetch expenses
-          const expensesResponse = await fetch(
+          const expensesResponse = await apiFetch(
             `${API_URL}/expenses/group/${group.id}`
           );
           if (expensesResponse.ok) {
@@ -68,7 +67,7 @@ export default function Dashboard() {
           }
 
           // Fetch balances
-          const balancesResponse = await fetch(
+          const balancesResponse = await apiFetch(
             `${API_URL}/expenses/group/${group.id}/balances`
           );
           if (balancesResponse.ok) {
@@ -86,7 +85,7 @@ export default function Dashboard() {
           }
 
           // Fetch settlements
-          const settlementsResponse = await fetch(
+          const settlementsResponse = await apiFetch(
             `${API_URL}/expenses/group/${group.id}/settlements`
           );
           if (settlementsResponse.ok) {

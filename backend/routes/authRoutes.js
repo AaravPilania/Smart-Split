@@ -1,17 +1,14 @@
 const express = require('express');
 const router = express.Router();
+const auth = require('../middleware/auth');
 const { signup, login, getProfile, updateProfile } = require('../controllers/authController');
 
-// Signup
+// Public routes
 router.post('/signup', signup);
-
-// Login
 router.post('/login', login);
 
-// Get user profile
-router.get('/profile/:userId', getProfile);
-
-// Update user profile
-router.put('/profile/:userId', updateProfile);
+// Protected routes
+router.get('/profile/:userId', auth, getProfile);
+router.put('/profile/:userId', auth, updateProfile);
 
 module.exports = router;

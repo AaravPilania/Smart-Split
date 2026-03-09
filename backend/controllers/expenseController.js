@@ -6,7 +6,7 @@ const User = require('../models/User');
 exports.addExpense = async (req, res) => {
   try {
     const { title, amount, paidBy, splitBetween } = req.body;
-    const groupId = parseInt(req.params.groupId);
+    const groupId = req.params.groupId;
 
     // Validate group exists
     const group = await Group.findById(groupId);
@@ -21,7 +21,7 @@ exports.addExpense = async (req, res) => {
     }
 
     // Create expense
-    const expense = await Expense.create(title, amount, groupId, paidBy, splitBetween);
+    const expense = await Expense.createExpense(title, amount, groupId, paidBy, splitBetween);
 
     res.status(201).json({
       message: 'Expense added successfully',
@@ -35,7 +35,7 @@ exports.addExpense = async (req, res) => {
 // Get expenses for a group
 exports.getExpenses = async (req, res) => {
   try {
-    const groupId = parseInt(req.params.groupId);
+    const groupId = req.params.groupId;
 
     // Validate group exists
     const group = await Group.findById(groupId);
@@ -54,10 +54,10 @@ exports.getExpenses = async (req, res) => {
 // Get balances for a group
 exports.getBalances = async (req, res) => {
   try {
-    const groupId = parseInt(req.params.groupId);
+    const groupId = req.params.groupId;
 
     // Validate group exists
-    const group = await Group.findById(groupId);
+    const group = await Group.findByIdPopulated(groupId);
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
@@ -67,40 +67,39 @@ exports.getBalances = async (req, res) => {
 
     // Calculate balances
     const balances = {};
-    
+
     // Initialize balances for all members
     group.members.forEach(member => {
-      balances[member.id] = 0;
+      const memberId = member._id.toString();
+      balances[memberId] = { user: member, balance: 0 };
     });
 
     // Calculate: positive = paid more than share, negative = owes
     expenses.forEach(expense => {
-      const paidById = expense.paidBy.id;
-      
+      const paidById = expense.paidBy._id.toString();
+
       // Person who paid gets credited with full amount
-      balances[paidById] = (balances[paidById] || 0) + expense.amount;
+      if (balances[paidById]) {
+        balances[paidById].balance += expense.amount;
+      }
 
       // Each person in split gets debited their share
       expense.splitBetween.forEach(split => {
-        const userId = split.user.id;
-        balances[userId] = (balances[userId] || 0) - split.amount;
+        const userId = split.user._id.toString();
+        if (balances[userId]) {
+          balances[userId].balance -= split.amount;
+        }
       });
     });
 
-    // Get user details for balances
-    const balanceDetails = await Promise.all(
-      Object.keys(balances).map(async (userId) => {
-        const user = await User.findById(parseInt(userId));
-        return {
-          user: {
-            id: parseInt(userId),
-            name: user?.name || 'Unknown',
-            email: user?.email || 'Unknown'
-          },
-          balance: parseFloat(balances[userId].toFixed(2))
-        };
-      })
-    );
+    const balanceDetails = Object.values(balances).map(entry => ({
+      user: {
+        id: entry.user._id,
+        name: entry.user.name,
+        email: entry.user.email
+      },
+      balance: parseFloat(entry.balance.toFixed(2))
+    }));
 
     res.json({ balances: balanceDetails });
   } catch (error) {
@@ -111,29 +110,33 @@ exports.getBalances = async (req, res) => {
 // Get who owes whom
 exports.getSettlements = async (req, res) => {
   try {
-    const groupId = parseInt(req.params.groupId);
+    const groupId = req.params.groupId;
 
     // Validate group exists
-    const group = await Group.findById(groupId);
+    const group = await Group.findByIdPopulated(groupId);
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
     }
 
     // Get balances
     const expenses = await Expense.findUnsettledByGroup(groupId);
-    const balances = {};
+    const balanceMap = {};
 
     group.members.forEach(member => {
-      balances[member.id] = 0;
+      balanceMap[member._id.toString()] = { user: member, balance: 0 };
     });
 
     expenses.forEach(expense => {
-      const paidById = expense.paidBy.id;
-      balances[paidById] = (balances[paidById] || 0) + expense.amount;
+      const paidById = expense.paidBy._id.toString();
+      if (balanceMap[paidById]) {
+        balanceMap[paidById].balance += expense.amount;
+      }
 
       expense.splitBetween.forEach(split => {
-        const userId = split.user.id;
-        balances[userId] = (balances[userId] || 0) - split.amount;
+        const userId = split.user._id.toString();
+        if (balanceMap[userId]) {
+          balanceMap[userId].balance -= split.amount;
+        }
       });
     });
 
@@ -142,13 +145,12 @@ exports.getSettlements = async (req, res) => {
     const creditors = [];
     const debtors = [];
 
-    // Separate creditors (positive balance) and debtors (negative balance)
-    Object.keys(balances).forEach(userId => {
-      const balance = parseFloat(balances[userId].toFixed(2));
+    Object.values(balanceMap).forEach(entry => {
+      const balance = parseFloat(entry.balance.toFixed(2));
       if (balance > 0.01) {
-        creditors.push({ userId: parseInt(userId), balance });
+        creditors.push({ user: entry.user, balance });
       } else if (balance < -0.01) {
-        debtors.push({ userId: parseInt(userId), balance: Math.abs(balance) });
+        debtors.push({ user: entry.user, balance: Math.abs(balance) });
       }
     });
 
@@ -165,19 +167,16 @@ exports.getSettlements = async (req, res) => {
 
       const amount = Math.min(creditor.balance, debtor.balance);
 
-      const creditorUser = await User.findById(creditor.userId);
-      const debtorUser = await User.findById(debtor.userId);
-
       settlements.push({
         from: {
-          id: debtor.userId,
-          name: debtorUser?.name || 'Unknown',
-          email: debtorUser?.email || 'Unknown'
+          id: debtor.user._id,
+          name: debtor.user.name,
+          email: debtor.user.email
         },
         to: {
-          id: creditor.userId,
-          name: creditorUser?.name || 'Unknown',
-          email: creditorUser?.email || 'Unknown'
+          id: creditor.user._id,
+          name: creditor.user.name,
+          email: creditor.user.email
         },
         amount: parseFloat(amount.toFixed(2))
       });
@@ -198,7 +197,7 @@ exports.getSettlements = async (req, res) => {
 // Mark expense as settled
 exports.settleExpense = async (req, res) => {
   try {
-    const expenseId = parseInt(req.params.expenseId);
+    const expenseId = req.params.expenseId;
     const { settledBy, amount } = req.body;
 
     if (!settledBy) {

@@ -9,8 +9,7 @@ import {
   FiUser,
   FiDollarSign,
 } from "react-icons/fi";
-
-const API_URL = "http://localhost:5000/api";
+import { API_URL, apiFetch } from "../utils/api";
 
 export default function Expenses() {
   const [expenses, setExpenses] = useState([]);
@@ -35,7 +34,7 @@ export default function Expenses() {
       navigate("/");
       return;
     }
-    const id = parseInt(userIdStr);
+    const id = userIdStr;
     setUserId(id);
     setCreateForm((prev) => ({ ...prev, paidBy: id }));
     fetchGroups(id);
@@ -43,7 +42,7 @@ export default function Expenses() {
     // Check if group is specified in URL
     const groupParam = searchParams.get("group");
     if (groupParam) {
-      setSelectedGroupId(parseInt(groupParam));
+      setSelectedGroupId(groupParam);
     }
   }, [navigate, searchParams]);
 
@@ -58,7 +57,7 @@ export default function Expenses() {
 
   const fetchGroups = async (userId) => {
     try {
-      const response = await fetch(`${API_URL}/groups?userId=${userId}`);
+      const response = await apiFetch(`${API_URL}/groups?userId=${userId}`);
       if (!response.ok) throw new Error("Failed to fetch groups");
       const data = await response.json();
       setGroups(data.groups || []);
@@ -73,7 +72,7 @@ export default function Expenses() {
   const fetchExpenses = async (groupId) => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/expenses/group/${groupId}`);
+      const response = await apiFetch(`${API_URL}/expenses/group/${groupId}`);
       if (!response.ok) throw new Error("Failed to fetch expenses");
       const data = await response.json();
       setExpenses(data.expenses || []);
@@ -109,15 +108,14 @@ export default function Expenses() {
 
     try {
       const splitBetween = createForm.splits.map((split) => ({
-        user: parseInt(split.userId),
+        user: split.userId,
         amount: parseFloat(split.amount),
       }));
 
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_URL}/expenses/group/${selectedGroupId}`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             title: createForm.title,
             amount: amount,

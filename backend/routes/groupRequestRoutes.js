@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const auth = require('../middleware/auth');
 const {
   createRequest,
   getGroupRequests,
@@ -8,20 +9,10 @@ const {
   rejectRequest
 } = require('../controllers/groupRequestController');
 
-// Create group request
-router.post('/group/:groupId/request', createRequest);
-
-// Get requests for a group
-router.get('/group/:groupId/requests', getGroupRequests);
-
-// Get requests for a user
-router.get('/user/:userId/requests', getUserRequests);
-
-// Approve request
-router.post('/request/:requestId/approve', approveRequest);
-
-// Reject request
-router.post('/request/:requestId/reject', rejectRequest);
+router.post('/group/:groupId/request', auth, createRequest);
+router.get('/group/:groupId/requests', auth, getGroupRequests);
+router.get('/user/:userId/requests', auth, getUserRequests);
+router.post('/request/:requestId/approve', auth, approveRequest);
+router.post('/request/:requestId/reject', auth, rejectRequest);
 
 module.exports = router;
-

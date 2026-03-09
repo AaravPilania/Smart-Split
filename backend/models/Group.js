@@ -1,154 +1,74 @@
-const { getPool } = require('../config/database');
+const mongoose = require('mongoose');
 
-class Group {
-  // Create a new group
-  static async create(name, description, createdBy) {
-    const pool = getPool();
-    
-    // Insert group
-    const [result] = await pool.execute(
-      'INSERT INTO `groups` (name, description, created_by) VALUES (?, ?, ?)',
-      [name, description, createdBy]
-    );
-    
-    const groupId = result.insertId;
-    
-    // Add creator as member
-    await this.addMember(groupId, createdBy);
-    
-    return await this.findById(groupId);
-  }
+const groupSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
+  description: { type: String, default: '', trim: true },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+}, { timestamps: true });
 
-  // Find group by ID
-  static async findById(id) {
-    const pool = getPool();
-    const [groups] = await pool.execute(
-      `SELECT g.*, 
-       u.id as creator_id, u.name as creator_name, u.email as creator_email
-       FROM \`groups\` g
-       LEFT JOIN users u ON g.created_by = u.id
-       WHERE g.id = ?`,
-      [id]
-    );
-    
-    if (groups.length === 0) return null;
-    
-    const group = groups[0];
-    
-    // Get members
-    const members = await this.getMembers(id);
-    group.members = members;
-    
-    // Format response
-    return {
-      id: group.id,
-      name: group.name,
-      description: group.description,
-      createdBy: {
-        id: group.created_by,
-        name: group.creator_name,
-        email: group.creator_email
-      },
-      members: members,
-      createdAt: group.created_at,
-      updatedAt: group.updated_at
-    };
-  }
+const GroupModel = mongoose.model('Group', groupSchema);
 
-  // Get all groups for a user
-  static async findByUser(userId) {
-    const pool = getPool();
-    const [groups] = await pool.execute(
-      `SELECT DISTINCT g.*, 
-       u.id as creator_id, u.name as creator_name, u.email as creator_email
-       FROM \`groups\` g
-       LEFT JOIN users u ON g.created_by = u.id
-       INNER JOIN group_members gm ON g.id = gm.group_id
-       WHERE gm.user_id = ?
-       ORDER BY g.created_at DESC`,
-      [userId]
-    );
-    
-    // Get members for each group
-    const groupsWithMembers = await Promise.all(
-      groups.map(async (group) => {
-        const members = await this.getMembers(group.id);
-        return {
-          id: group.id,
-          name: group.name,
-          description: group.description,
-          createdBy: {
-            id: group.created_by,
-            name: group.creator_name,
-            email: group.creator_email
-          },
-          members: members,
-          createdAt: group.created_at,
-          updatedAt: group.updated_at
-        };
-      })
-    );
-    
-    return groupsWithMembers;
-  }
+const POPULATE_GROUP = [
+  { path: 'createdBy', select: 'name email' },
+  { path: 'members', select: 'name email' }
+];
 
-  // Get members of a group
-  static async getMembers(groupId) {
-    const pool = getPool();
-    const [members] = await pool.execute(
-      `SELECT u.id, u.name, u.email 
-       FROM group_members gm
-       INNER JOIN users u ON gm.user_id = u.id
-       WHERE gm.group_id = ?`,
-      [groupId]
-    );
-    return members;
-  }
-
-  // Check if user is a member of the group
-  static async isMember(groupId, userId) {
-    const pool = getPool();
-    const [rows] = await pool.execute(
-      'SELECT id FROM group_members WHERE group_id = ? AND user_id = ?',
-      [groupId, userId]
-    );
-    return rows.length > 0;
-  }
-
-  // Add member to group
-  static async addMember(groupId, userId) {
-    const pool = getPool();
-    
-    // Check if already a member
-    const isMember = await this.isMember(groupId, userId);
-    if (isMember) {
-      return false;
-    }
-    
-    await pool.execute(
-      'INSERT INTO group_members (group_id, user_id) VALUES (?, ?)',
-      [groupId, userId]
-    );
-    
-    return true;
-  }
-
-  // Add multiple members to group
-  static async addMembers(groupId, userIds) {
-    const pool = getPool();
-    
-    for (const userId of userIds) {
-      const isMember = await this.isMember(groupId, userId);
-      if (!isMember) {
-        await pool.execute(
-          'INSERT INTO group_members (group_id, user_id) VALUES (?, ?)',
-          [groupId, userId]
-        );
-      }
-    }
-    
-    return true;
-  }
+function doc2obj(doc) {
+  if (!doc) return null;
+  const plain = JSON.parse(JSON.stringify(
+    doc.toObject ? doc.toObject({ virtuals: true }) : doc
+  ));
+  if (!plain.id && plain._id) plain.id = plain._id;
+  return plain;
 }
 
-module.exports = Group;
+module.exports = {
+  async createGroup(name, description, createdById) {
+    const group = await GroupModel.create({
+      name: name.trim(),
+      description: description ? description.trim() : '',
+      createdBy: createdById,
+      members: [createdById]
+    });
+    return this.findByIdPopulated(group._id.toString());
+  },
+
+  async findById(id) {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    return doc2obj(await GroupModel.findById(id));
+  },
+
+  async findByIdPopulated(id) {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    return doc2obj(await GroupModel.findById(id).populate(POPULATE_GROUP));
+  },
+
+  async findByUser(userId) {
+    if (!mongoose.Types.ObjectId.isValid(userId)) return [];
+    const groups = await GroupModel.find({ members: userId }).populate(POPULATE_GROUP).sort({ createdAt: -1 });
+    return groups.map(doc2obj);
+  },
+
+  async findAll() {
+    const groups = await GroupModel.find().populate(POPULATE_GROUP).sort({ createdAt: -1 });
+    return groups.map(doc2obj);
+  },
+
+  async isMember(groupId, userId) {
+    if (!mongoose.Types.ObjectId.isValid(groupId) || !mongoose.Types.ObjectId.isValid(userId)) return false;
+    return !!(await GroupModel.findOne({ _id: groupId, members: userId }));
+  },
+
+  async addMember(groupId, userId) {
+    if (!mongoose.Types.ObjectId.isValid(groupId)) return null;
+    await GroupModel.findByIdAndUpdate(groupId, { $addToSet: { members: userId } });
+    return this.findByIdPopulated(groupId);
+  },
+
+  async addMembers(groupId, userIds) {
+    if (!mongoose.Types.ObjectId.isValid(groupId)) return null;
+    await GroupModel.findByIdAndUpdate(groupId, { $addToSet: { members: { $each: userIds } } });
+    return this.findByIdPopulated(groupId);
+  }
+};

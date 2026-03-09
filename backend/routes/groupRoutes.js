@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const auth = require('../middleware/auth');
 const {
   createGroup,
   getGroups,
@@ -7,16 +8,9 @@ const {
   addMembers
 } = require('../controllers/groupController');
 
-// Create group
-router.post('/', createGroup);
-
-// Get all groups (requires userId query param)
-router.get('/', getGroups);
-
-// Get single group
-router.get('/:id', getGroup);
-
-// Add members to group
-router.post('/:id/members', addMembers);
+router.post('/', auth, createGroup);
+router.get('/', auth, getGroups);
+router.get('/:id', auth, getGroup);
+router.post('/:id/members', auth, addMembers);
 
 module.exports = router;
