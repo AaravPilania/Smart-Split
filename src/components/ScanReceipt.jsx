@@ -68,6 +68,15 @@ export default function ScanReceipt({
     };
   }, [imageUrl]);
 
+  const applyStream = (stream) => {
+    streamRef.current = stream;
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(() => {});
+    }
+    if (mode !== "camera") setMode("camera");
+  };
+
   const startCamera = async (facing = facingMode) => {
     // Stop any existing stream first
     if (streamRef.current) {
@@ -75,39 +84,26 @@ export default function ScanReceipt({
       streamRef.current = null;
     }
     if (videoRef.current) videoRef.current.srcObject = null;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-        audio: false,
-      });
-      streamRef.current = stream;
-      if (mode === "camera") {
-        // mode won't change so useEffect won't fire — attach directly
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play().catch(() => {});
-        }
-      } else {
-        setMode("camera"); // useEffect will attach stream after render
-      }
-    } catch (error) {
-      // Try exact constraint as fallback
+
+    // Try constraints in order: exact → ideal → plain → any video
+    const attempts = [
+      { facingMode: { exact: facing } },
+      { facingMode: facing },
+      { facingMode: { ideal: facing } },
+      true, // last resort: any camera
+    ];
+
+    for (const videoConstraint of attempts) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facing },
+          video: videoConstraint,
           audio: false,
         });
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play().catch(() => {});
-        }
-        if (mode !== "camera") setMode("camera");
-      } catch (err) {
-        alert("Unable to access camera. Please allow camera permission and try again.");
-        console.error("Camera error:", err);
-      }
+        applyStream(stream);
+        return;
+      } catch (_) { /* try next */ }
     }
+    alert("Unable to access camera. Please allow camera permission and try again.");
   };
 
   const flipCamera = async () => {
