@@ -383,7 +383,34 @@ export default function ScanReceipt({
           </button>
         </div>
 
-        {!image ? (
+        {/* Camera View — shown whenever camera stream is active */}
+        {mode === "camera" && !imageUrl && (
+          <div className="relative">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              className="w-full rounded-lg"
+            />
+            <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
+              <button
+                onClick={stopCamera}
+                className="px-6 py-3 bg-red-500 text-white rounded-lg font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={capturePhoto}
+                className="px-6 py-3 bg-green-500 text-white rounded-lg font-semibold"
+              >
+                <FiCheck className="inline mr-2" />
+                Capture
+              </button>
+            </div>
+          </div>
+        )}
+
+        {mode !== "camera" && !image ? (
           <>
           {/* Initial Mode Selection */}
           <div className="space-y-4">
@@ -414,33 +441,6 @@ export default function ScanReceipt({
           </>
         ) : (
           <div className="space-y-4">
-            {/* Camera View */}
-            {mode === "camera" && !imageUrl && (
-              <div className="relative">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  className="w-full rounded-lg"
-                />
-                <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
-                  <button
-                    onClick={stopCamera}
-                    className="px-6 py-3 bg-red-500 text-white rounded-lg font-semibold"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={capturePhoto}
-                    className="px-6 py-3 bg-green-500 text-white rounded-lg font-semibold"
-                  >
-                    <FiCheck className="inline mr-2" />
-                    Capture
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* Image Preview */}
             {imageUrl && (
               <div className="space-y-4">
