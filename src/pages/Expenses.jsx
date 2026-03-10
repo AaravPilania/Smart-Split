@@ -13,7 +13,7 @@ import {
 } from "react-icons/fi";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
-import { detectCategory, getCategoryInfo } from "../utils/categories";
+import { CATEGORIES, detectCategory, getCategoryInfo } from "../utils/categories";
 import { downloadExpensesCSV } from "../utils/export";
 
 export default function Expenses() {
@@ -31,7 +31,8 @@ export default function Expenses() {
     title: "",
     amount: "",
     paidBy: null,
-    splits: [], // [{userId, amount}]
+    splits: [],
+    category: "other",
   });
 
   useEffect(() => {
@@ -139,6 +140,7 @@ export default function Expenses() {
         amount: "",
         paidBy: userId,
         splits: [],
+        category: "other",
       });
       setShowCreateModal(false);
       fetchExpenses(selectedGroupId);
@@ -388,13 +390,46 @@ export default function Expenses() {
                 <input
                   type="text"
                   value={createForm.title}
-                  onChange={(e) =>
-                    setCreateForm({ ...createForm, title: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const t = e.target.value;
+                    const aiCat = detectCategory(t);
+                    setCreateForm({ ...createForm, title: t, category: aiCat });
+                  }}
                   className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
                   placeholder="e.g., Dinner, Groceries"
                   required
                 />
+                {/* AI category suggestion pill */}
+                {createForm.title.length > 2 && (() => {
+                  const cat = getCategoryInfo(createForm.category);
+                  return (
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <span className="text-[11px] text-gray-400 dark:text-gray-500">AI suggestion:</span>
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${cat.badge}`}>{cat.icon} {cat.label}</span>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Category picker */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.key}
+                      type="button"
+                      onClick={() => setCreateForm({ ...createForm, category: cat.key })}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
+                        createForm.category === cat.key
+                          ? cat.badge + " border-current scale-105"
+                          : "border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-400"
+                      }`}
+                    >
+                      {cat.icon} {cat.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="mb-4">
@@ -443,13 +478,31 @@ export default function Expenses() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Split Between *
                   </label>
-                  <button
-                    type="button"
-                    onClick={addSplitRow}
-                    className={`text-sm ${theme.text} flex items-center gap-1`}
-                  >
-                    <FiPlus /> Add Person
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!selectedGroup?.members?.length || !createForm.amount) return;
+                        const amt = parseFloat(createForm.amount);
+                        const members = selectedGroup.members;
+                        const each = parseFloat((amt / members.length).toFixed(2));
+                        const splits = members.map((m, i) => ({
+                          userId: m.id,
+                          amount: i === members.length - 1
+                            ? parseFloat((amt - each * (members.length - 1)).toFixed(2)).toString()
+                            : each.toString(),
+                        }));
+                        setCreateForm({ ...createForm, splits });
+                      }}
+                      className={`text-xs px-2 py-1 rounded-lg border ${theme.border} ${theme.text} hover:${theme.bgLight} transition flex items-center gap-1`}
+                      title="Split evenly between all members"
+                    >
+                      ✨ Smart Even Split
+                    </button>
+                    <button type="button" onClick={addSplitRow} className={`text-sm ${theme.text} flex items-center gap-1`}>
+                      <FiPlus /> Add Person
+                    </button>
+                  </div>
                 </div>
 
                 {createForm.splits.map((split, index) => (

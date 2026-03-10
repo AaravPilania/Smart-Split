@@ -475,29 +475,7 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Display Settings */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 sm:p-6 border dark:border-gray-700 mt-6">
-          <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">Display Settings</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Customize how the app looks</p>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-gray-700 dark:text-gray-200">Dark Mode</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Switch between light and dark theme</p>
-            </div>
-            <button
-              onClick={toggleDarkMode}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl border font-medium text-sm transition ${
-                isDark
-                  ? "bg-gray-700 border-gray-600 text-yellow-300 hover:bg-gray-600"
-                  : "bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              {isDark ? <FiSun className="text-lg" /> : <FiMoon className="text-lg" />}
-              {isDark ? "Light Mode" : "Dark Mode"}
-            </button>
-          </div>
-        </div>
-
+        {/* Display Settings — dark mode is in the top navbar */}
         {/* Accent Color */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 sm:p-6 border dark:border-gray-700 mt-6">
           <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">Accent Color</h3>

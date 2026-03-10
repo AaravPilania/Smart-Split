@@ -18,7 +18,7 @@ export default function Balances() {
   const [loading, setLoading] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState({});
   const [settling, setSettling] = useState(null);
-  const [reminderCopied, setReminderCopied] = useState(null);
+  const [reminderSent, setReminderSent] = useState(null);
   const navigate = useNavigate();
   const userId = getUserId();
   const { theme, isDark } = useTheme();
@@ -66,13 +66,21 @@ export default function Balances() {
     }
   };
 
-  const handleRemind = (settlement, groupName) => {
-    const msg = `Hey ${settlement.from.name}! 👋 You owe ${settlement.to.name} ₹${settlement.amount.toFixed(2)} for "${groupName}". Please settle up on Smart Split!`;
-    navigator.clipboard.writeText(msg).then(() => {
-      const key = `${settlement.from.id}-${settlement.to.id}-${groupName}`;
-      setReminderCopied(key);
-      setTimeout(() => setReminderCopied(null), 2000);
-    });
+  const handleRemind = async (settlement, groupId, groupName) => {
+    const key = `${settlement.from.id}-${settlement.to.id}-${groupName}`;
+    const msg = `Hey ${settlement.from.name}! You owe ${settlement.to.name} ${settlement.amount.toFixed(2)} in "${groupName}". Please settle up on Smart Split!`;
+    try {
+      await apiFetch(`${API_URL}/notifications`, {
+        method: "POST",
+        body: JSON.stringify({ to: settlement.from.id, message: msg, groupId, amount: settlement.amount }),
+      });
+      setReminderSent(key);
+      setTimeout(() => setReminderSent(null), 3000);
+    } catch {
+      navigator.clipboard.writeText(msg).catch(() => {});
+      setReminderSent(key);
+      setTimeout(() => setReminderSent(null), 2000);
+    }
   };
 
   const handleSettleUp = async (group) => {
@@ -332,17 +340,14 @@ export default function Balances() {
                             {/* Action buttons */}
                             <div className="flex gap-2 sm:flex-shrink-0">
                               <button
-                                onClick={() => handleRemind(s, group.name)}
+                                onClick={() => handleRemind(s, group.id, group.name)}
                                 className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                               >
-                                {reminderCopied === reminderKey ? (
-                                  <FiCheck className="text-green-500" size={13} />
+                                {reminderSent === `${s.from.id}-${s.to.id}-${group.name}` ? (
+                                  <><FiCheck className="text-green-500" size={13} /> Sent!</>
                                 ) : (
-                                  <FiBell size={13} />
+                                  <><FiBell size={13} /> Remind</>
                                 )}
-                                {reminderCopied === reminderKey
-                                  ? "Copied!"
-                                  : "Remind..."}
                               </button>
                               <button
                                 onClick={() => handleSettleUp(group)}
