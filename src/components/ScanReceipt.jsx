@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { FiCamera, FiUpload, FiX, FiCheck, FiPlus } from "react-icons/fi";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { FiCamera, FiUpload, FiX, FiCheck, FiPlus, FiRefreshCw } from "react-icons/fi";
 import Tesseract from "tesseract.js";
 import { apiFetch } from "../utils/api";
 
@@ -28,6 +28,15 @@ export default function ScanReceipt({
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
+  const [facingMode, setFacingMode] = useState("environment");
+
+  // Attach stream to video element whenever camera mode is active
+  useEffect(() => {
+    if (mode === "camera" && streamRef.current && videoRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [mode]);
 
   useEffect(() => {
     if (selectedGroupId) {
@@ -50,38 +59,52 @@ export default function ScanReceipt({
     };
   }, [imageUrl]);
 
-  const startCamera = async () => {
+  const startCamera = async (facing = facingMode) => {
+    // Stop any existing stream first
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" }, // Use back camera on mobile
+        video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false,
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      setMode("camera");
+      setMode("camera"); // triggers useEffect above to attach srcObject
     } catch (error) {
-      alert("Unable to access camera. Please check permissions.");
+      alert("Unable to access camera. Please allow camera permission and try again.");
       console.error("Camera error:", error);
     }
   };
 
-  const capturePhoto = () => {
-    if (videoRef.current) {
-      const canvas = document.createElement("canvas");
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(videoRef.current, 0, 0);
-      
-      canvas.toBlob((blob) => {
-        const url = URL.createObjectURL(blob);
-        setImage(blob);
-        setImageUrl(url);
-        stopCamera();
-      }, "image/jpeg");
-    }
+  const flipCamera = () => {
+    const next = facingMode === "environment" ? "user" : "environment";
+    setFacingMode(next);
+    startCamera(next);
   };
+
+  const capturePhoto = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || video.videoWidth === 0) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    // Mirror front camera capture
+    if (facingMode === "user") {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.drawImage(video, 0, 0);
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      setImage(blob);
+      setImageUrl(url);
+      stopCamera();
+    }, "image/jpeg", 0.95);
+  }, [facingMode]);
 
   const stopCamera = () => {
     if (streamRef.current) {
@@ -371,6 +394,53 @@ export default function ScanReceipt({
   };
 
   return (
+    <>
+      {/* ── Fullscreen Camera UI ── */}
+      {mode === "camera" && (
+        <div className="fixed inset-0 z-[60] bg-black flex flex-col">
+          {/* Video feed */}
+          <div className="flex-1 relative overflow-hidden">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className={`absolute inset-0 w-full h-full object-cover ${facingMode === "user" ? "scale-x-[-1]" : ""}`}
+            />
+            {/* Receipt guide overlay */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="border-2 border-white/60 rounded-xl w-[85%] h-[65%] shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]" />
+            </div>
+            {/* Top bar */}
+            <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center">
+              <button
+                onClick={stopCamera}
+                className="bg-black/50 text-white p-2 rounded-full"
+              >
+                <FiX className="text-xl" />
+              </button>
+              <span className="text-white/80 text-sm font-medium">Position receipt inside the frame</span>
+              <button
+                onClick={flipCamera}
+                className="bg-black/50 text-white p-2 rounded-full"
+              >
+                <FiRefreshCw className="text-xl" />
+              </button>
+            </div>
+          </div>
+          {/* Bottom shutter bar */}
+          <div className="bg-black h-32 flex items-center justify-center">
+            <button
+              onClick={capturePhoto}
+              className="w-18 h-18 rounded-full border-4 border-white flex items-center justify-center active:scale-95 transition-transform"
+              style={{ width: 72, height: 72 }}
+            >
+              <div className="w-14 h-14 rounded-full bg-white" />
+            </button>
+          </div>
+        </div>
+      )}
+
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
       <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full p-4 sm:p-6 my-8 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
@@ -382,33 +452,6 @@ export default function ScanReceipt({
             <FiX className="text-xl" />
           </button>
         </div>
-
-        {/* Camera View — shown whenever camera stream is active */}
-        {mode === "camera" && !imageUrl && (
-          <div className="relative">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              className="w-full rounded-lg"
-            />
-            <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
-              <button
-                onClick={stopCamera}
-                className="px-6 py-3 bg-red-500 text-white rounded-lg font-semibold"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={capturePhoto}
-                className="px-6 py-3 bg-green-500 text-white rounded-lg font-semibold"
-              >
-                <FiCheck className="inline mr-2" />
-                Capture
-              </button>
-            </div>
-          </div>
-        )}
 
         {mode !== "camera" && !image ? (
           <>
@@ -724,6 +767,7 @@ export default function ScanReceipt({
         )}
       </div>
     </div>
+    </>
   );
 }
 
