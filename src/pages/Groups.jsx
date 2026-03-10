@@ -137,14 +137,14 @@ export default function Groups() {
         {/* Page Header */}
         <div className="flex justify-between items-center mb-6 sm:mb-8">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Your Groups</h2>
-            <p className="text-gray-400 text-sm mt-0.5">Manage your expense groups</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">Your Groups</h2>
+            <p className="text-gray-500 text-sm sm:text-base">Manage your expense groups</p>
           </div>
 
           {/* Create Group Button */}
           <button
             onClick={() => setShowCreateModal(true)}
-            className="bg-gradient-to-r from-pink-500 to-orange-400 text-white px-5 py-2.5 rounded-xl shadow-md shadow-pink-200 flex items-center gap-2 hover:shadow-lg hover:shadow-pink-300 transition font-semibold text-sm"
+            className="bg-gradient-to-r from-pink-500 to-orange-400 text-white px-5 py-2.5 rounded-lg shadow-md flex items-center gap-2 hover:shadow-lg transition"
           >
             <FiPlus /> Create Group
           </button>
@@ -152,14 +152,14 @@ export default function Groups() {
 
         {/* Groups List */}
         {groups.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-14 flex flex-col items-center justify-center">
-            <div className="h-16 w-16 rounded-2xl bg-pink-50 flex items-center justify-center mb-4">
-              <FiUsers className="text-pink-400 text-2xl" />
+          <div className="bg-white rounded-2xl border shadow-sm p-14 flex flex-col items-center justify-center">
+            <div className="text-gray-400 text-5xl mb-3">
+              <FiUsers />
             </div>
-            <h3 className="text-gray-800 font-semibold text-lg mb-1">
+            <h3 className="text-gray-700 font-semibold text-lg mb-1">
               No groups yet
             </h3>
-            <p className="text-gray-400 text-sm">
+            <p className="text-gray-500 text-sm">
               Create your first group to start splitting expenses
             </p>
           </div>
@@ -168,7 +168,7 @@ export default function Groups() {
             {groups.map((group) => (
               <div
                 key={group.id}
-                className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition"
+                className="bg-white rounded-xl shadow-md p-6 border hover:shadow-lg transition"
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
@@ -241,9 +241,9 @@ export default function Groups() {
       {/* Create Group Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl shadow-gray-200/80 max-w-md w-full p-6">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-900">Create Group</h3>
+              <h3 className="text-xl font-bold text-gray-800">Create Group</h3>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -310,9 +310,9 @@ export default function Groups() {
       {/* Add Member Modal */}
       {showAddMemberModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl shadow-gray-200/80 max-w-md w-full p-6">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-900">Add Member</h3>
+              <h3 className="text-xl font-bold text-gray-800">Add Member</h3>
               <button
                 onClick={() => setShowAddMemberModal(null)}
                 className="text-gray-400 hover:text-gray-600"
@@ -415,13 +415,13 @@ function AllGroupsSection({ userId, onJoinRequest }) {
 
   if (!showAll) {
     return (
-      <div className="mt-8 flex justify-center">
+      <div className="mt-8 text-center">
         <button
           onClick={() => {
             setShowAll(true);
             fetchAllGroups();
           }}
-          className="text-pink-600 hover:text-pink-700 font-semibold text-sm flex items-center gap-1"
+          className="text-pink-600 hover:text-pink-700 font-semibold"
         >
           Browse All Groups to Join →
         </button>
@@ -446,7 +446,7 @@ function AllGroupsSection({ userId, onJoinRequest }) {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500 mx-auto"></div>
         </div>
       ) : allGroups.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-400">
+        <div className="bg-white rounded-xl p-8 text-center text-gray-500">
           No other groups available to join
         </div>
       ) : (
@@ -454,7 +454,7 @@ function AllGroupsSection({ userId, onJoinRequest }) {
           {allGroups.map((group) => (
             <div
               key={group.id}
-              className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition"
+              className="bg-white rounded-xl shadow-md p-6 border hover:shadow-lg transition"
             >
               <h3 className="text-xl font-bold text-gray-800 mb-2">
                 {group.name}

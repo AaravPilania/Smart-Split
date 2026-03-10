@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_URL, setAuthData } from "../utils/api";
-import { FiMail, FiLock, FiUser, FiArrowRight } from "react-icons/fi";
 
 const Home = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -74,194 +73,198 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* ── LEFT HERO PANEL (desktop only) ── */}
-      <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-pink-600 via-rose-500 to-orange-400 relative overflow-hidden flex-col justify-between p-12">
-        {/* decorative blobs */}
-        <span className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-white/10 blur-3xl" />
-        <span className="absolute bottom-0 right-0 w-80 h-80 rounded-full bg-orange-300/20 blur-2xl" />
+    <div className="relative min-h-screen w-full flex items-center justify-center px-4 sm:px-6 overflow-hidden">
+      {/* 🔥 Background Video */}
+      <video
+        className="absolute top-0 left-0 w-full h-full object-cover -z-10"
+        src="/topo.mp4"
+        autoPlay
+        loop
+        muted
+        playsInline
+        aria-hidden
+        preload="auto"
+      />
 
-        {/* Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
-            <span className="text-white font-extrabold text-lg">S</span>
-          </div>
-          <span className="text-white font-bold text-xl tracking-tight">Smart Split</span>
-        </div>
+      {/* Dark overlay for readability */}
+      <div className="absolute inset-0 bg-black/20 -z-5"></div>
 
-        {/* Headline */}
-        <div className="relative z-10">
-          <h1 className="text-5xl xl:text-6xl font-extrabold text-white leading-tight">
-            Split bills,<br />stay friends.
+      {/* Center Content */}
+      <div className="w-full max-w-5xl mx-auto bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-5 sm:p-8 md:p-10 shadow-2xl flex flex-col md:flex-row gap-6 md:gap-12 items-start">
+        {/* LEFT HERO — hidden on small screens to avoid overflow */}
+        <div className="hidden md:flex flex-1 text-white flex-col">
+          <h1 className="text-5xl md:text-6xl font-extrabold leading-tight bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-orange-400">
+            Split bills,
+            <br />
+            stay friends
           </h1>
-          <p className="mt-4 text-white/80 text-lg max-w-sm">
-            Track shared expenses, settle balances, and keep group finances effortless.
+
+          <p className="text-lg mt-4 text-white/80 max-w-xl">
+            Keep track of shared expenses and settle up with ease.
+            <br />
+            Perfect for roommates, trips, and group activities.
           </p>
 
-          {/* Feature rows */}
-          <div className="mt-10 flex flex-col gap-4">
-            {[
-              { icon: "🧾", title: "Track Expenses", sub: "Log and categorize shared costs instantly" },
-              { icon: "👥", title: "Group Splits", sub: "Fair splits for any group size" },
-              { icon: "📊", title: "Live Balances", sub: "See exactly who owes what" },
-              { icon: "⚡", title: "Quick Settle", sub: "Mark debts paid in one tap" },
-            ].map(({ icon, title, sub }) => (
-              <div key={title} className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0 text-lg">
-                  {icon}
-                </div>
-                <div>
-                  <p className="text-white font-semibold text-sm">{title}</p>
-                  <p className="text-white/65 text-xs">{sub}</p>
-                </div>
-              </div>
-            ))}
+          {/* FEATURES */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-8">
+            <Feature icon="🧾" title="Track Expenses" sub="Keep it organized" />
+            <Feature icon="👥" title="Split Easy" sub="Fair & automated" />
+            <Feature icon="📊" title="View Balances" sub="See who owes what" />
+            <Feature icon="⚡" title="Quick Settle" sub="Mark as paid" />
           </div>
         </div>
 
-        {/* Bottom tagline */}
-        <p className="relative z-10 text-white/50 text-xs">
-          © {new Date().getFullYear()} Smart Split · Made with ♥
-        </p>
-      </div>
-
-      {/* ── RIGHT AUTH PANEL ── */}
-      <div className="flex-1 lg:flex-none lg:w-[480px] flex items-center justify-center bg-gray-50 lg:bg-white min-h-screen p-6">
-        {/* Mobile logo */}
-        <div className="absolute top-6 left-0 right-0 flex justify-center lg:hidden">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center">
-              <span className="text-white font-extrabold text-sm">S</span>
-            </div>
-            <span className="font-bold text-gray-800">Smart Split</span>
-          </div>
+        {/* Mobile-only compact heading above the card */}
+        <div className="md:hidden w-full text-center text-white">
+          <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-orange-400">
+            Smart Split
+          </h1>
+          <p className="text-sm text-white/70 mt-1">Split bills, stay friends</p>
         </div>
 
-        <div className="w-full max-w-sm">
-          {/* Card */}
-          <div className="bg-white rounded-3xl shadow-2xl shadow-gray-200/80 border border-gray-100 p-8">
-            <h2 className="text-2xl font-bold text-gray-900">
-              {isLogin ? "Welcome back" : "Create account"}
-            </h2>
-            <p className="text-sm text-gray-500 mt-1 mb-6">
-              {isLogin
-                ? "Sign in to manage your shared expenses"
-                : "Join Smart Split and simplify group bills"}
-            </p>
+        {/* RIGHT LOGIN CARD */}
+        <div className="w-full md:w-80 bg-white/20 backdrop-blur-lg border border-white/25 p-5 sm:p-6 rounded-2xl shadow-xl flex-shrink-0">
+          <h2 className="text-2xl font-semibold text-pink-600 mb-1">
+            Welcome to Smart Split
+          </h2>
+          <p className="text-sm text-white/85 mb-4">
+            {isLogin
+              ? "Sign in to your account"
+              : "Create a new account to get started"}
+          </p>
 
-            {/* Tab switcher */}
-            <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
-              <button
-                onClick={() => { setIsLogin(true); setError(""); }}
-                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
-                  isLogin
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                Sign In
-              </button>
-              <button
-                onClick={() => { setIsLogin(false); setError(""); }}
-                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
-                  !isLogin
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                Register
-              </button>
+          {/* Tabs */}
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <button
+              onClick={() => {
+                setIsLogin(true);
+                setError("");
+              }}
+              className={`py-2 rounded-lg font-semibold transition-all ${
+                isLogin
+                  ? "bg-white text-pink-600 shadow-md"
+                  : "bg-white/50 text-gray-700 hover:bg-white/70"
+              }`}
+            >
+              Login
+            </button>
+            <button
+              onClick={() => {
+                setIsLogin(false);
+                setError("");
+              }}
+              className={`py-2 rounded-lg font-semibold transition-all ${
+                !isLogin
+                  ? "bg-white text-pink-600 shadow-md"
+                  : "bg-white/50 text-gray-700 hover:bg-white/70"
+              }`}
+            >
+              Register
+            </button>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-sm">
+              {error}
             </div>
+          )}
 
-            {/* Error */}
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-start gap-2">
-                <span className="mt-0.5">⚠</span>
-                <span>{error}</span>
-              </div>
+          {/* Form */}
+          <form onSubmit={handleSubmit}>
+            {!isLogin && (
+              <input
+                type="text"
+                placeholder="Your Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-3 py-2 mb-3 rounded-lg bg-white/90 text-black focus:outline-none focus:ring-2 focus:ring-pink-400 placeholder-gray-500"
+                required
+              />
+            )}
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-3 py-2 mb-3 rounded-lg bg-white/90 text-black focus:outline-none focus:ring-2 focus:ring-pink-400 placeholder-gray-500"
+              required
+            />
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-3 py-2 mb-3 rounded-lg bg-white/90 text-black focus:outline-none focus:ring-2 focus:ring-pink-400 placeholder-gray-500"
+              required
+              minLength={6}
+            />
+
+            {isLogin && (
+              <label className="flex items-center gap-2 mb-4 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 accent-pink-500 rounded"
+                />
+                <span className="text-sm text-white/80">Remember me</span>
+              </label>
             )}
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-              {!isLogin && (
-                <div className="relative">
-                  <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <input
-                    type="text"
-                    placeholder="Full name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent transition"
-                    required
-                  />
-                </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-2.5 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-lg font-semibold shadow-lg transition-all hover:from-pink-600 hover:to-orange-500 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed ${
+                loading ? "cursor-wait" : ""
+              }`}
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg
+                    className="animate-spin h-4 w-4"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  {isLogin ? "Logging in..." : "Creating account..."}
+                </span>
+              ) : (
+                isLogin ? "Login" : "Register"
               )}
-              <div className="relative">
-                <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <input
-                  type="email"
-                  placeholder="Email address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent transition"
-                  required
-                />
-              </div>
-              <div className="relative">
-                <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <input
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent transition"
-                  required
-                  minLength={6}
-                />
-              </div>
+            </button>
+          </form>
 
-              {isLogin && (
-                <label className="flex items-center gap-2 cursor-pointer select-none mt-1">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 accent-pink-500 rounded"
-                  />
-                  <span className="text-sm text-gray-500">Remember me</span>
-                </label>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="mt-2 w-full py-3 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-xl font-semibold text-sm shadow-lg shadow-pink-200 hover:shadow-pink-300 hover:from-pink-600 hover:to-orange-500 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    {isLogin ? "Signing in…" : "Creating account…"}
-                  </>
-                ) : (
-                  <>
-                    {isLogin ? "Sign In" : "Create Account"}
-                    <FiArrowRight className="h-4 w-4" />
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-
-          <p className="text-center text-xs text-gray-400 mt-6">
-            By continuing you agree to our Terms & Privacy Policy
-          </p>
+          
         </div>
       </div>
     </div>
   );
 };
+
+const Feature = ({ icon, title, sub }) => (
+  <div className="flex items-center gap-3 text-white/90">
+    <span className="text-2xl">{icon}</span>
+    <p>
+      <strong>{title}</strong>
+      <br />
+      <span className="text-sm">{sub}</span>
+    </p>
+  </div>
+);
 
 export default Home;

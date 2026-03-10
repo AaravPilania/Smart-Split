@@ -196,35 +196,33 @@ export default function Profile() {
               <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center text-xl flex-shrink-0">{user.name?.[0] || <FiUser />}</div>
             )}
             <div className="min-w-0">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">Profile</h2>
-              <p className="text-gray-400 text-sm">Manage your account and memberships</p>
+              <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-1">Profile Settings</h2>
+              <p className="text-gray-600 text-sm sm:text-base">Manage your account and group memberships</p>
             </div>
           </div>
         </div>
 
         {/* User ID Display */}
-        <div className="bg-gradient-to-br from-pink-500 via-rose-500 to-orange-400 rounded-2xl shadow-lg shadow-pink-200 p-5 sm:p-6 mb-6 text-white relative overflow-hidden">
-          <span className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-white/10" />
-          <span className="absolute bottom-0 left-1/2 w-40 h-20 rounded-full bg-white/5 blur-xl" />
-          <div className="relative flex items-start justify-between gap-3">
+        <div className="bg-gradient-to-r from-pink-500 to-orange-400 rounded-xl shadow-lg p-4 sm:p-6 mb-6 text-white">
+          <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold uppercase tracking-wider opacity-80 mb-1">Your User ID</p>
-              <p className="text-sm sm:text-base font-bold break-all font-mono bg-white/15 rounded-xl px-3 py-2 mt-1">{user.id}</p>
-              <p className="text-xs opacity-70 mt-2">
-                Share this with others so they can add you to groups
+              <p className="text-sm opacity-90 mb-1">Your User ID</p>
+              <p className="text-base sm:text-2xl font-bold break-all font-mono">{user.id}</p>
+              <p className="text-xs sm:text-sm opacity-80 mt-2">
+                Share this ID with others so they can add you to groups
               </p>
             </div>
-            <div className="bg-white/20 rounded-xl p-3 flex-shrink-0">
-              <FiUser className="text-2xl" />
+            <div className="bg-white/20 rounded-full p-3 flex-shrink-0">
+              <FiUser className="text-2xl sm:text-4xl" />
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Profile Information */}
-          <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 border border-gray-100">
+          <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-gray-900">Profile Information</h3>
+              <h3 className="text-xl font-bold text-gray-800">Profile Information</h3>
               {!editing && (
                 <button
                   onClick={() => setEditing(true)}
@@ -327,9 +325,9 @@ export default function Profile() {
           </div>
 
           {/* Group Memberships */}
-          <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <FiUsers className="text-pink-500" /> Your Groups ({groups.length})
+          <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border">
+            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <FiUsers /> Your Groups ({groups.length})
             </h3>
 
             {groups.length === 0 ? (
@@ -356,8 +354,8 @@ export default function Profile() {
         </div>
 
         {/* Avatar Selection */}
-        <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 border border-gray-100 mt-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Profile Picture</h3>
+        <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border mt-6">
+          <h3 className="text-xl font-bold text-gray-800 mb-4">Profile Picture</h3>
           <p className="text-sm text-gray-600 mb-3">Choose an abstract avatar</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {avatarOptions.map((opt, idx) => (
@@ -383,9 +381,9 @@ export default function Profile() {
 
         {/* Pending Requests */}
         {pendingRequests.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 border border-gray-100 mt-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <FiClock className="text-amber-400" /> Pending Group Requests ({pendingRequests.length})
+          <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border mt-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <FiClock /> Pending Group Requests ({pendingRequests.length})
             </h3>
             <p className="text-sm text-gray-600 mb-4">
               You've requested to join these groups. Wait for approval.
@@ -420,9 +418,9 @@ export default function Profile() {
         )}
 
         {/* Incoming Requests (requests to join groups you're admin of) */}
-        <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6 border border-gray-100 mt-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <FiUsers className="text-pink-500" /> Incoming Requests
+        <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border mt-6">
+          <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <FiUsers /> Incoming Requests
           </h3>
           <IncomingRequestsComponent userId={user.id} />
         </div>

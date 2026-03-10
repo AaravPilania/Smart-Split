@@ -208,8 +208,8 @@ export default function Expenses() {
         {/* Page Header */}
         <div className="flex justify-between items-center mb-6 sm:mb-8 gap-3">
           <div className="min-w-0">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">All Expenses</h2>
-            <p className="text-gray-400 text-sm mt-0.5">Track and manage your spending</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">All Expenses</h2>
+            <p className="text-gray-500 text-sm sm:text-base">Track and manage your spending</p>
           </div>
           <button
             onClick={() => {
@@ -219,7 +219,7 @@ export default function Expenses() {
               }
               setShowCreateModal(true);
             }}
-            className="bg-gradient-to-r from-pink-500 to-orange-400 text-white px-5 py-2.5 rounded-xl shadow-md shadow-pink-200 flex items-center gap-2 hover:shadow-lg hover:shadow-pink-300 transition font-semibold text-sm disabled:opacity-50"
+            className="bg-gradient-to-r from-pink-500 to-orange-400 text-white px-5 py-2.5 rounded-lg shadow-md flex items-center gap-2 hover:shadow-lg transition"
             disabled={!selectedGroupId}
           >
             <FiPlus /> Add Expense
@@ -238,7 +238,7 @@ export default function Expenses() {
               setSelectedGroupId(groupId);
               fetchExpenses(groupId);
             }}
-            className="w-full max-w-md px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-400"
+            className="w-full max-w-md px-4 py-3 rounded-xl border bg-white text-gray-700 font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-400"
           >
             <option value="">Select a group...</option>
             {groups.map((group) => (
@@ -262,26 +262,26 @@ export default function Expenses() {
 
         {/* Expenses List */}
         {!selectedGroupId ? (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-14 flex flex-col items-center justify-center min-h-[250px]">
-            <div className="h-16 w-16 rounded-2xl bg-pink-50 flex items-center justify-center mb-4">
-              <FiFile className="text-pink-400 text-2xl" />
+          <div className="bg-white rounded-2xl border shadow-md p-14 flex flex-col items-center justify-center min-h-[250px]">
+            <div className="text-gray-400 text-5xl mb-4">
+              <FiFile />
             </div>
-            <h3 className="text-gray-800 font-semibold text-lg mb-1">
+            <h3 className="text-gray-700 font-semibold text-lg mb-1">
               Select a group
             </h3>
-            <p className="text-gray-400 text-sm">
+            <p className="text-gray-500 text-sm">
               Choose a group from the dropdown above to view expenses
             </p>
           </div>
         ) : expenses.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-14 flex flex-col items-center justify-center min-h-[250px]">
-            <div className="h-16 w-16 rounded-2xl bg-pink-50 flex items-center justify-center mb-4">
-              <FiFile className="text-pink-400 text-2xl" />
+          <div className="bg-white rounded-2xl border shadow-md p-14 flex flex-col items-center justify-center min-h-[250px]">
+            <div className="text-gray-400 text-5xl mb-4">
+              <FiFile />
             </div>
-            <h3 className="text-gray-800 font-semibold text-lg mb-1">
+            <h3 className="text-gray-700 font-semibold text-lg mb-1">
               No expenses found
             </h3>
-            <p className="text-gray-400 text-sm">
+            <p className="text-gray-500 text-sm">
               Start adding expenses to track your spending
             </p>
           </div>
@@ -290,7 +290,7 @@ export default function Expenses() {
             {expenses.map((expense) => (
               <div
                 key={expense.id}
-                className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition"
+                className="bg-white rounded-xl shadow-md p-6 border hover:shadow-lg transition"
               >
               <div className="flex justify-between items-start mb-3 gap-2">
                   <div className="flex-1 min-w-0">
@@ -347,9 +347,9 @@ export default function Expenses() {
       {/* Create Expense Modal */}
       {showCreateModal && selectedGroup && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl shadow-gray-200/80 max-w-2xl w-full p-6 my-8">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 my-8">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-900">
+              <h3 className="text-xl font-bold text-gray-800">
                 Add Expense - {selectedGroup.name}
               </h3>
               <button
