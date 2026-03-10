@@ -30,13 +30,22 @@ export default function ScanReceipt({
   const fileInputRef = useRef(null);
   const [facingMode, setFacingMode] = useState("environment");
 
-  // Attach stream to video element whenever camera mode is active
-  useEffect(() => {
-    if (mode === "camera" && streamRef.current && videoRef.current) {
+  // Attach stream to video element — called after stream acquired OR when video mounts
+  const attachStream = useCallback(() => {
+    if (streamRef.current && videoRef.current) {
       videoRef.current.srcObject = streamRef.current;
       videoRef.current.play().catch(() => {});
     }
-  }, [mode]);
+  }, []);
+
+  // When camera mode activates and video element mounts, attach stream
+  useEffect(() => {
+    if (mode === "camera") {
+      // Small timeout ensures the video element is in the DOM
+      const t = setTimeout(attachStream, 50);
+      return () => clearTimeout(t);
+    }
+  }, [mode, attachStream]);
 
   useEffect(() => {
     if (selectedGroupId) {
@@ -65,23 +74,46 @@ export default function ScanReceipt({
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
+    if (videoRef.current) videoRef.current.srcObject = null;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        video: { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
       });
       streamRef.current = stream;
-      setMode("camera"); // triggers useEffect above to attach srcObject
+      if (mode === "camera") {
+        // mode won't change so useEffect won't fire — attach directly
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
+        }
+      } else {
+        setMode("camera"); // useEffect will attach stream after render
+      }
     } catch (error) {
-      alert("Unable to access camera. Please allow camera permission and try again.");
-      console.error("Camera error:", error);
+      // Try exact constraint as fallback
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: facing },
+          audio: false,
+        });
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
+        }
+        if (mode !== "camera") setMode("camera");
+      } catch (err) {
+        alert("Unable to access camera. Please allow camera permission and try again.");
+        console.error("Camera error:", err);
+      }
     }
   };
 
-  const flipCamera = () => {
+  const flipCamera = async () => {
     const next = facingMode === "environment" ? "user" : "environment";
     setFacingMode(next);
-    startCamera(next);
+    await startCamera(next);
   };
 
   const capturePhoto = useCallback(() => {
@@ -241,6 +273,43 @@ export default function ScanReceipt({
     };
   };
 
+  // Preprocess image for better OCR (especially handwriting)
+  const preprocessImage = (imageSource) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        // Upscale small images for better OCR
+        const scale = Math.max(1, Math.min(3, 2000 / Math.max(img.width, img.height)));
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d");
+        // White background
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        // Boost contrast and convert to grayscale for handwriting
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const d = imageData.data;
+        for (let i = 0; i < d.length; i += 4) {
+          // Grayscale
+          const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+          // High contrast: darken darks, brighten brights
+          const contrast = Math.min(255, Math.max(0, (gray - 128) * 1.8 + 128));
+          d[i] = d[i + 1] = d[i + 2] = contrast;
+        }
+        ctx.putImageData(imageData, 0, 0);
+        canvas.toBlob((blob) => resolve(blob || imageSource), "image/png");
+      };
+      img.onerror = () => resolve(imageSource);
+      if (imageSource instanceof Blob) {
+        img.src = URL.createObjectURL(imageSource);
+      } else {
+        img.src = imageSource;
+      }
+    });
+  };
+
   const scanReceipt = async () => {
     if (!image) {
       alert("Please take a photo or upload an image first");
@@ -255,13 +324,16 @@ export default function ScanReceipt({
     try {
       setScanning(true);
 
-      // Use Tesseract.js for OCR
-      const { data } = await Tesseract.recognize(image, "eng", {
-        logger: (m) => {
-          if (m.status === "recognizing text") {
-            // Can show progress here if needed
-          }
-        },
+      // Preprocess for better OCR (especially handwriting)
+      const processedImage = await preprocessImage(image);
+
+      // Run OCR with settings tuned for both printed and handwritten text
+      const { data } = await Tesseract.recognize(processedImage, "eng", {
+        logger: () => {},
+        tessedit_pageseg_mode: "6",       // Assume a single uniform block of text
+        tessedit_ocr_engine_mode: "1",    // Neural net LSTM only (better for handwriting)
+        preserve_interword_spaces: "1",
+        tessedit_char_whitelist: "",       // Allow all characters
       });
 
       const extracted = extractExpenseData(data.text);
@@ -401,7 +473,7 @@ export default function ScanReceipt({
           {/* Video feed */}
           <div className="flex-1 relative overflow-hidden">
             <video
-              ref={videoRef}
+              ref={(el) => { videoRef.current = el; if (el && streamRef.current) { el.srcObject = streamRef.current; el.play().catch(() => {}); } }}
               autoPlay
               playsInline
               muted
