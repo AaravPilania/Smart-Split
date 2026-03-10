@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import BottomNav from "../components/BottomNav";
 import {
   FiFile,
   FiPlus,
@@ -203,12 +204,12 @@ export default function Expenses() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      <div className="max-w-6xl mx-auto py-10 px-6">
+      <div className="max-w-6xl mx-auto py-4 sm:py-8 px-4 sm:px-6 pb-24 md:pb-10">
         {/* Page Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h2 className="text-3xl font-bold text-gray-800">All Expenses</h2>
-            <p className="text-gray-500">Track and manage your spending</p>
+        <div className="flex justify-between items-center mb-6 sm:mb-8 gap-3">
+          <div className="min-w-0">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">All Expenses</h2>
+            <p className="text-gray-500 text-sm sm:text-base">Track and manage your spending</p>
           </div>
           <button
             onClick={() => {
@@ -291,10 +292,10 @@ export default function Expenses() {
                 key={expense.id}
                 className="bg-white rounded-xl shadow-md p-6 border hover:shadow-lg transition"
               >
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-bold text-gray-800">
+              <div className="flex justify-between items-start mb-3 gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <h3 className="text-lg font-bold text-gray-800 truncate">
                         {expense.title}
                       </h3>
                       {expense.settled && (
@@ -311,8 +312,8 @@ export default function Expenses() {
                       {formatDate(expense.createdAt || expense.created_at)}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-gray-900">
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-xl font-bold text-gray-900">
                       {formatCurrency(parseFloat(expense.amount || 0))}
                     </p>
                     <p className="text-sm text-gray-500">
@@ -402,7 +403,7 @@ export default function Expenses() {
                   onChange={(e) =>
                     setCreateForm({
                       ...createForm,
-                      paidBy: parseInt(e.target.value),
+                      paidBy: e.target.value,
                     })
                   }
                   className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
@@ -432,13 +433,13 @@ export default function Expenses() {
                 </div>
 
                 {createForm.splits.map((split, index) => (
-                  <div key={index} className="flex gap-2 mb-2">
+                  <div key={index} className="flex gap-1.5 mb-2">
                     <select
                       value={split.userId || ""}
                       onChange={(e) =>
                         updateSplit(index, "userId", e.target.value)
                       }
-                      className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      className="flex-1 min-w-0 px-2 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
                       required
                     >
                       <option value="">Select member...</option>
@@ -455,7 +456,7 @@ export default function Expenses() {
                       onChange={(e) =>
                         updateSplit(index, "amount", e.target.value)
                       }
-                      className="w-32 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      className="w-24 sm:w-28 px-2 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
                       placeholder="Amount"
                       required
                     />
@@ -515,6 +516,7 @@ export default function Expenses() {
           </div>
         </div>
       )}
+      <BottomNav />
     </div>
   );
 }

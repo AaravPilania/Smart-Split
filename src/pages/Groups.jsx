@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import BottomNav from "../components/BottomNav";
 import { FiUsers, FiPlus, FiX, FiUserPlus, FiDollarSign } from "react-icons/fi";
 import { groupAPI, API_URL, apiFetch, getUserId } from "../utils/api";
 
@@ -132,12 +133,12 @@ export default function Groups() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      <div className="max-w-6xl mx-auto py-10 px-6">
+      <div className="max-w-6xl mx-auto py-4 sm:py-8 px-4 sm:px-6 pb-24 md:pb-10">
         {/* Page Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-6 sm:mb-8">
           <div>
-            <h2 className="text-3xl font-bold text-gray-800">Your Groups</h2>
-            <p className="text-gray-500">Manage your expense groups</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">Your Groups</h2>
+            <p className="text-gray-500 text-sm sm:text-base">Manage your expense groups</p>
           </div>
 
           {/* Create Group Button */}
@@ -188,14 +189,13 @@ export default function Groups() {
                     <FiUsers className="text-pink-500" />
                     <span>{group.members?.length || 0} members</span>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5">
                     {group.members?.slice(0, 3).map((member) => (
                       <span
                         key={member.id}
                         className="px-2 py-1 bg-pink-100 text-pink-700 rounded-full text-xs"
-                        title={`ID: ${member.id}`}
                       >
-                        {member.name} (ID: {member.id})
+                        {member.name}
                       </span>
                     ))}
                     {group.members?.length > 3 && (
@@ -360,6 +360,7 @@ export default function Groups() {
           </div>
         </div>
       )}
+      <BottomNav />
     </div>
   );
 }

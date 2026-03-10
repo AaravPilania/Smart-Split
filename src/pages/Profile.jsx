@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import BottomNav from "../components/BottomNav";
 import {
   FiUser,
   FiMail,
@@ -185,34 +186,34 @@ export default function Profile() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6">
+      <div className="max-w-4xl mx-auto py-4 sm:py-8 px-4 sm:px-6 pb-24 md:pb-10">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex items-center gap-3">
             {avatar ? (
-              <img src={avatar} alt="avatar" className="h-12 w-12 rounded-full border" />
+              <img src={avatar} alt="avatar" className="h-10 w-10 sm:h-12 sm:w-12 rounded-full border flex-shrink-0" />
             ) : (
-              <div className="h-12 w-12 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center text-xl">{user.name?.[0] || <FiUser />}</div>
+              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center text-xl flex-shrink-0">{user.name?.[0] || <FiUser />}</div>
             )}
-            <div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-1">Profile Settings</h2>
-              <p className="text-gray-600">Manage your account and group memberships</p>
+            <div className="min-w-0">
+              <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-1">Profile Settings</h2>
+              <p className="text-gray-600 text-sm sm:text-base">Manage your account and group memberships</p>
             </div>
           </div>
         </div>
 
         {/* User ID Display */}
-        <div className="bg-gradient-to-r from-pink-500 to-orange-400 rounded-xl shadow-lg p-6 mb-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
+        <div className="bg-gradient-to-r from-pink-500 to-orange-400 rounded-xl shadow-lg p-4 sm:p-6 mb-6 text-white">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
               <p className="text-sm opacity-90 mb-1">Your User ID</p>
-              <p className="text-3xl font-bold">{user.id}</p>
-              <p className="text-sm opacity-80 mt-2">
-                Share this ID with others so they can add you to groups or send requests
+              <p className="text-base sm:text-2xl font-bold break-all font-mono">{user.id}</p>
+              <p className="text-xs sm:text-sm opacity-80 mt-2">
+                Share this ID with others so they can add you to groups
               </p>
             </div>
-            <div className="bg-white/20 rounded-full p-4">
-              <FiUser className="text-4xl" />
+            <div className="bg-white/20 rounded-full p-3 flex-shrink-0">
+              <FiUser className="text-2xl sm:text-4xl" />
             </div>
           </div>
         </div>
@@ -424,6 +425,7 @@ export default function Profile() {
           <IncomingRequestsComponent userId={user.id} />
         </div>
       </div>
+      <BottomNav />
     </div>
   );
 }

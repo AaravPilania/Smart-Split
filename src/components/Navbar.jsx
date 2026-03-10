@@ -131,9 +131,8 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile layout (below md): 2x2 grid */}
-        <div className="md:hidden max-w-6xl mx-auto grid grid-cols-2 grid-rows-2 gap-x-6 gap-y-2 items-center">
-          {/* Row 1, Col 1: Brand */}
+        {/* Mobile layout (below md): single row — logo left, scan button right */}
+        <div className="md:hidden flex items-center justify-between">
           <Link
             to="/dashboard"
             className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition"
@@ -141,47 +140,16 @@ export default function Navbar() {
             <div className="bg-gradient-to-br from-pink-500 to-orange-400 text-white rounded-lg h-8 w-8 flex items-center justify-center text-lg font-bold shadow-md">
               ⚡
             </div>
-            <h1 className="text-xl font-semibold text-gray-700 whitespace-nowrap">Smart Split</h1>
+            <h1 className="text-lg font-semibold text-gray-700 whitespace-nowrap">Smart Split</h1>
           </Link>
 
-          {/* Row 1, Col 2: Scan Receipt */}
-          <div className="justify-self-end w-48 sm:w-56">
-            <button
-              onClick={handleScanClick}
-              className="w-full bg-gradient-to-r from-pink-500 to-orange-400 text-white px-4 py-2.5 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 ease-out flex items-center justify-center gap-2"
-            >
-              <FiCamera />
-              <span>Scan Receipt</span>
-            </button>
-          </div>
-
-          {/* Row 2, Col 1: Tagline */}
-          <p className="text-sm font-bold bg-gradient-to-r from-pink-500 to-orange-400 text-transparent bg-clip-text leading-snug">Split bills, keep the chill.</p>
-
-          {/* Row 2, Col 2: Profile + Logout */}
-          <div className="justify-self-end w-48 sm:w-56">
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => navigate("/profile")}
-                className="px-3 py-2 rounded-lg text-pink-600 hover:bg-pink-50 transition-all duration-300 ease-out flex items-center justify-center gap-2 border"
-                title="Profile Settings"
-              >
-                {avatar ? (
-                  <img src={avatar} alt="avatar" className="h-5 w-5 rounded-full border" />
-                ) : (
-                  <FiUser className="text-lg" />
-                )}
-                <span className="text-sm">Profile</span>
-              </button>
-              <button
-                onClick={handleLogout}
-                className="px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-all duration-300 ease-out flex items-center justify-center gap-2 border"
-              >
-                <FiLogOut />
-                <span className="text-sm">Logout</span>
-              </button>
-            </div>
-          </div>
+          <button
+            onClick={handleScanClick}
+            className="bg-gradient-to-r from-pink-500 to-orange-400 text-white px-3 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 ease-out flex items-center gap-1.5 text-sm"
+          >
+            <FiCamera size={16} />
+            <span>Scan</span>
+          </button>
         </div>
       </div>
 

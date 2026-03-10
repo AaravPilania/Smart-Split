@@ -73,7 +73,7 @@ const Home = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center px-6 overflow-hidden">
+    <div className="relative min-h-screen w-full flex items-center justify-center px-4 sm:px-6 overflow-hidden">
       {/* 🔥 Background Video */}
       <video
         className="absolute top-0 left-0 w-full h-full object-cover -z-10"
@@ -90,9 +90,9 @@ const Home = () => {
       <div className="absolute inset-0 bg-black/20 -z-5"></div>
 
       {/* Center Content */}
-      <div className="w-full max-w-5xl mx-auto bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 sm:p-8 md:p-10 shadow-2xl flex flex-col md:flex-row gap-8 md:gap-12 items-start">
-        {/* LEFT HERO */}
-        <div className="flex-1 text-white">
+      <div className="w-full max-w-5xl mx-auto bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-5 sm:p-8 md:p-10 shadow-2xl flex flex-col md:flex-row gap-6 md:gap-12 items-start">
+        {/* LEFT HERO — hidden on small screens to avoid overflow */}
+        <div className="hidden md:flex flex-1 text-white flex-col">
           <h1 className="text-5xl md:text-6xl font-extrabold leading-tight bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-orange-400">
             Split bills,
             <br />
@@ -114,8 +114,16 @@ const Home = () => {
           </div>
         </div>
 
+        {/* Mobile-only compact heading above the card */}
+        <div className="md:hidden w-full text-center text-white">
+          <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-orange-400">
+            Smart Split
+          </h1>
+          <p className="text-sm text-white/70 mt-1">Split bills, stay friends</p>
+        </div>
+
         {/* RIGHT LOGIN CARD */}
-        <div className="w-full md:w-80 bg-white/20 backdrop-blur-lg border border-white/25 p-6 rounded-2xl shadow-xl flex-shrink-0">
+        <div className="w-full md:w-80 bg-white/20 backdrop-blur-lg border border-white/25 p-5 sm:p-6 rounded-2xl shadow-xl flex-shrink-0">
           <h2 className="text-2xl font-semibold text-pink-600 mb-1">
             Welcome to Smart Split
           </h2>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import BottomNav from "../components/BottomNav";
 import StatsCard from "../components/Statscard";
 import { FiTrendingUp, FiTrendingDown, FiPlus, FiClock } from "react-icons/fi";
 import { BsPeopleFill } from "react-icons/bs";
@@ -160,20 +161,21 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gradient-to-r from-pink-300 via-pink-200 to-orange-200">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto mt-10 px-6">
+      <div className="max-w-7xl mx-auto mt-4 sm:mt-10 px-4 sm:px-6 pb-24 md:pb-10">
         {/* Header */}
-        <div className="flex justify-between items-start mb-8">
-          <div>
-            <h2 className="text-4xl font-bold text-gray-900 mb-1">
+        <div className="flex justify-between items-start mb-6 sm:mb-8">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-1">
               Welcome back, {user.name || "User"}!
             </h2>
-            <p className="text-gray-700 mb-2 text-lg font-semibold">
+            <p className="text-gray-700 mb-2 text-base sm:text-lg font-semibold">
               Here's your expense overview
             </p>
             <p className="text-sm text-gray-500">
-              Your User ID: <span className="font-mono font-semibold text-pink-600">{user.id}</span>
-              {" "}(Share this with others to add you to groups)
+              Your User ID:
             </p>
+            <p className="font-mono font-semibold text-pink-600 text-xs break-all mt-0.5">{user.id}</p>
+            <p className="text-xs text-gray-400 mt-0.5">(Share this to be added to groups)</p>
           </div>
         </div>
 
@@ -236,7 +238,7 @@ export default function Dashboard() {
             </div>
 
             {/* Bottom sections */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pb-24">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
               {/* Recent Expenses */}
               <div className="bg-white rounded-xl shadow-lg p-6 border">
                 <h3 className="font-bold text-lg mb-1 text-gray-800">
@@ -359,6 +361,7 @@ export default function Dashboard() {
           </>
         )}
       </div>
+      <BottomNav />
     </div>
   );
 }
