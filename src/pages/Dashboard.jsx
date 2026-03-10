@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
+  const [retryIn, setRetryIn] = useState(null);
   const [stats, setStats] = useState({
     totalExpenses: 0,
     youOwe: 0,
@@ -25,6 +26,18 @@ export default function Dashboard() {
   const [avatar, setAvatar] = useState(localStorage.getItem("selectedAvatar") || "");
   const navigate = useNavigate();
   const { theme, isDark } = useTheme();
+
+  // Auto-retry countdown when server is unreachable
+  useEffect(() => {
+    if (retryIn === null) return;
+    if (retryIn === 0) {
+      const uid = getUserId();
+      if (uid) fetchDashboardData(uid);
+      return;
+    }
+    const t = setTimeout(() => setRetryIn(r => r - 1), 1000);
+    return () => clearTimeout(t);
+  }, [retryIn]);
 
   useEffect(() => {
     const onAvatarChanged = () => setAvatar(localStorage.getItem("selectedAvatar") || "");
@@ -50,6 +63,7 @@ export default function Dashboard() {
   }, [navigate]);
 
   const fetchDashboardData = async (userId) => {
+    setRetryIn(null);
     try {
       setLoading(true);
 
@@ -166,6 +180,8 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
       setFetchError(true);
+      // Auto-retry countdown: tick every second, retry when it hits 0
+      setRetryIn(45);
     } finally {
       setLoading(false);
     }
@@ -240,9 +256,14 @@ export default function Dashboard() {
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-8 max-w-sm w-full text-center shadow">
               <div className="text-4xl mb-3">⚠️</div>
               <h3 className="text-lg font-bold text-red-700 dark:text-red-400 mb-2">Server Unreachable</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                 Your data is <span className="font-semibold text-green-600 dark:text-green-400">safe in the cloud</span> — the server is temporarily offline. This usually resolves in 30–60 seconds.
               </p>
+              {retryIn !== null && (
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
+                  Auto-retrying in <span className="font-semibold text-gray-600 dark:text-gray-300">{retryIn}s</span>…
+                </p>
+              )}
               <button
                 onClick={() => { const uid = getUserId(); if (uid) fetchDashboardData(uid); }}
                 className="w-full py-2.5 rounded-xl text-white font-semibold shadow hover:opacity-90 transition"
