@@ -101,6 +101,19 @@ connectDB()
     app.listen(PORT, () => {
       console.log(`✅ Server running on http://localhost:${PORT}`);
       console.log(`   Health check: http://localhost:${PORT}/api/health`);
+
+      // ── Keep-alive self-ping ──────────────────────────────────────────────
+      // Render free tier spins down after ~15 min of inactivity.
+      // We ping our own /api/health every 14 minutes to stay awake.
+      const SELF_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+      setInterval(async () => {
+        try {
+          const res = await fetch(`${SELF_URL}/api/health`);
+          console.log(`[keep-alive] ping → ${res.status}`);
+        } catch (e) {
+          console.warn('[keep-alive] ping failed:', e.message);
+        }
+      }, 14 * 60 * 1000); // every 14 minutes
     });
   })
   .catch((err) => {

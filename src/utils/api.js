@@ -54,14 +54,54 @@ export function apiFetch(url, options = {}) {
   });
 }
 
+/**
+ * Pings the backend health endpoint.
+ * Returns true if reachable, false otherwise.
+ */
+export async function pingServer() {
+  try {
+    const res = await fetch(`${API_URL}/health`, { signal: AbortSignal.timeout(5000) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Waits for the backend to become reachable — handles Render cold-start.
+ * Polls /api/health every 3 seconds for up to 60 seconds.
+ * Fires a custom event so the UI can show/hide a "waking up" banner.
+ */
+export async function wakeUpServer() {
+  const alive = await pingServer();
+  if (alive) return true;
+
+  window.dispatchEvent(new CustomEvent('server-waking', { detail: { waking: true } }));
+  for (let i = 0; i < 19; i++) {
+    await new Promise(r => setTimeout(r, 3000));
+    const ok = await pingServer();
+    if (ok) {
+      window.dispatchEvent(new CustomEvent('server-waking', { detail: { waking: false } }));
+      return true;
+    }
+  }
+  window.dispatchEvent(new CustomEvent('server-waking', { detail: { waking: false } }));
+  return false;
+}
+
 // Convenience wrapper used by the API objects below
-async function apiCall(endpoint, options = {}) {
+async function apiCall(endpoint, options = {}, _retry = 1) {
   try {
     const response = await apiFetch(`${API_URL}${endpoint}`, options);
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || 'API request failed');
     return data;
   } catch (error) {
+    // Network error (server cold-starting) → retry once after 3 s
+    if (_retry > 0 && (error instanceof TypeError || error.message === 'Failed to fetch')) {
+      await new Promise(r => setTimeout(r, 3000));
+      return apiCall(endpoint, options, _retry - 1);
+    }
     console.error(`API Error (${endpoint}):`, error);
     throw error;
   }
