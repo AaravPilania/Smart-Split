@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { FiCamera, FiUpload, FiX, FiCheck, FiPlus } from "react-icons/fi";
 import Tesseract from "tesseract.js";
+import { apiFetch } from "../utils/api";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -320,7 +321,7 @@ export default function ScanReceipt({
 
     try {
 
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_URL}/expenses/group/${selectedGroupId}`,
         {
           method: "POST",
