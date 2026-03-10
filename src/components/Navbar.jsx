@@ -131,7 +131,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile layout (below md): single row — logo left, scan button right */}
+        {/* Mobile layout (below md): logo left, actions right */}
         <div className="md:hidden flex items-center justify-between">
           <Link
             to="/dashboard"
@@ -143,13 +143,35 @@ export default function Navbar() {
             <h1 className="text-lg font-semibold text-gray-700 whitespace-nowrap">Smart Split</h1>
           </Link>
 
-          <button
-            onClick={handleScanClick}
-            className="bg-gradient-to-r from-pink-500 to-orange-400 text-white px-3 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 ease-out flex items-center gap-1.5 text-sm"
-          >
-            <FiCamera size={16} />
-            <span>Scan</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleScanClick}
+              className="bg-gradient-to-r from-pink-500 to-orange-400 text-white px-3 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 ease-out flex items-center gap-1.5 text-sm"
+            >
+              <FiCamera size={16} />
+              <span>Scan</span>
+            </button>
+
+            <button
+              onClick={() => navigate("/profile")}
+              className="p-2 rounded-lg text-pink-600 hover:bg-pink-50 transition"
+              title="Profile"
+            >
+              {avatar ? (
+                <img src={avatar} alt="avatar" className="h-7 w-7 rounded-full border border-pink-300 object-cover" />
+              ) : (
+                <FiUser size={20} />
+              )}
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition"
+              title="Logout"
+            >
+              <FiLogOut size={20} />
+            </button>
+          </div>
         </div>
       </div>
 
