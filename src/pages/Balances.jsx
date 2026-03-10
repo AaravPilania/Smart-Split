@@ -112,10 +112,10 @@ export default function Balances() {
 
   const allSettlements = groupBalances.flatMap((g) => g.settlements);
   const totalOwed = allSettlements
-    .filter((s) => s.from.id === userId)
+    .filter((s) => s.from.id?.toString() === userId?.toString())
     .reduce((sum, s) => sum + s.amount, 0);
   const totalOwedToYou = allSettlements
-    .filter((s) => s.to.id === userId)
+    .filter((s) => s.to.id?.toString() === userId?.toString())
     .reduce((sum, s) => sum + s.amount, 0);
 
   return (
@@ -196,10 +196,10 @@ export default function Balances() {
             {groupBalances.map(({ group, settlements }) => {
               const isExpanded = expandedGroups[group.id];
               const groupTotalOwed = settlements
-                .filter((s) => s.from.id === userId)
+                .filter((s) => s.from.id?.toString() === userId?.toString())
                 .reduce((sum, s) => sum + s.amount, 0);
               const groupTotalOwedToYou = settlements
-                .filter((s) => s.to.id === userId)
+                .filter((s) => s.to.id?.toString() === userId?.toString())
                 .reduce((sum, s) => sum + s.amount, 0);
 
               return (
@@ -209,7 +209,7 @@ export default function Balances() {
                 >
                   {/* Group header — clickable to expand/collapse */}
                   <button
-                    className="w-full flex justify-between items-center p-4 sm:p-5 hover:bg-gray-50 dark:hover:bg-gray-750 transition text-left"
+                    className="w-full flex justify-between items-center p-4 sm:p-5 hover:bg-gray-50 dark:hover:bg-gray-700 transition text-left"
                     onClick={() =>
                       setExpandedGroups((prev) => ({
                         ...prev,
@@ -277,8 +277,8 @@ export default function Balances() {
                   {isExpanded && (
                     <div className="border-t dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
                       {settlements.map((s, idx) => {
-                        const isFromMe = s.from.id === userId;
-                        const isToMe = s.to.id === userId;
+                        const isFromMe = s.from.id?.toString() === userId?.toString();
+                        const isToMe = s.to.id?.toString() === userId?.toString();
                         const reminderKey = `${s.from.id}-${s.to.id}-${group.name}`;
 
                         return (

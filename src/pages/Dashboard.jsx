@@ -329,9 +329,7 @@ export default function Dashboard() {
                           className="w-full rounded-t-lg transition-all duration-700"
                           style={{
                             height: `${Math.max(pct, 3)}%`,
-                            ...(m.isCurrent
-                              ? getGradientStyle(theme)
-                              : { backgroundColor: isDark ? "#374151" : "#d1d5db" }),
+                            background: `linear-gradient(to top, ${theme.gradFrom}${m.isCurrent ? "ff" : "55"}, ${theme.gradTo}${m.isCurrent ? "ff" : "44"})`,
                           }}
                         />
                         <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium">
