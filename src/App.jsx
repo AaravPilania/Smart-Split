@@ -4,6 +4,7 @@ import Home from "./pages/Home";
 import Groups from "./pages/Groups";
 import Expenses from "./pages/Expenses";
 import Profile from "./pages/Profile";
+import Balances from "./pages/Balances";
 import { getToken } from "./utils/api";
 
 // Redirects to / if not logged in
@@ -25,6 +26,7 @@ function App() {
         <Route path="/groups" element={<ProtectedRoute element={<Groups />} />} />
         <Route path="/expenses" element={<ProtectedRoute element={<Expenses />} />} />
         <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
+        <Route path="/balances" element={<ProtectedRoute element={<Balances />} />} />
       </Routes>
     </BrowserRouter>
   );

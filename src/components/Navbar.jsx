@@ -60,14 +60,33 @@ export default function Navbar() {
     setShowScanModal(true);
   };
 
-  const navItemClasses =
-    "relative px-3 py-2 rounded-lg font-medium text-gray-700 dark:text-gray-200 overflow-hidden transition-all duration-300 ease-out";
-
-  const hoverBg =
-    "absolute inset-0 bg-gradient-to-r from-pink-500 via-rose-500 to-orange-400 rounded-lg opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300 ease-out";
-
-  const hoverText =
-    "relative z-10 transition-colors duration-300 group-hover:text-white";
+  // Theme-aware nav link with gradient hover
+  function NavItem({ to, children }) {
+    const [hovered, setHovered] = useState(false);
+    return (
+      <Link
+        to={to}
+        className="relative px-3 py-2 rounded-lg font-medium overflow-hidden transition-all duration-300 ease-out"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        <span
+          className="relative z-10 transition-colors duration-300"
+          style={{ color: hovered ? "white" : undefined }}
+        >
+          {children}
+        </span>
+        <span
+          className="absolute inset-0 rounded-lg transition-all duration-300"
+          style={{
+            ...getGradientStyle(theme),
+            opacity: hovered ? 1 : 0,
+            transform: hovered ? "scale(1)" : "scale(0.95)",
+          }}
+        />
+      </Link>
+    );
+  }
 
   return (
     <>
@@ -87,20 +106,9 @@ export default function Navbar() {
 
           {/* Right items */}
           <div className="flex items-center gap-4 font-medium">
-            <Link className={`group ${navItemClasses}`} to="/dashboard">
-              <span className={hoverText}>Dashboard</span>
-              <span className={hoverBg}></span>
-            </Link>
-
-            <Link className={`group ${navItemClasses}`} to="/groups">
-              <span className={hoverText}>Groups</span>
-              <span className={hoverBg}></span>
-            </Link>
-
-            <Link className={`group ${navItemClasses}`} to="/expenses">
-              <span className={hoverText}>Expenses</span>
-              <span className={hoverBg}></span>
-            </Link>
+            <NavItem to="/dashboard">Dashboard</NavItem>
+            <NavItem to="/groups">Groups</NavItem>
+            <NavItem to="/expenses">Expenses</NavItem>
 
             <button
               onClick={handleScanClick}

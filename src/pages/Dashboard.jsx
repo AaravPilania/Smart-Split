@@ -20,6 +20,7 @@ export default function Dashboard() {
   const [settlements, setSettlements] = useState([]);
   const [groups, setGroups] = useState([]);
   const [groupSpending, setGroupSpending] = useState([]);
+  const [monthlyChartData, setMonthlyChartData] = useState([]);
   const [avatar, setAvatar] = useState(localStorage.getItem("selectedAvatar") || "");
   const navigate = useNavigate();
   const { theme, isDark } = useTheme();
@@ -136,6 +137,30 @@ export default function Dashboard() {
         owedToYou: owedToUserTotal,
       });
       setGroupSpending(perGroupSpending.sort((a, b) => b.amount - a.amount).slice(0, 6));
+
+      // Monthly chart — last 6 months
+      const now = new Date();
+      const monthBuckets = {};
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        monthBuckets[key] = {
+          label: d.toLocaleDateString("en-US", { month: "short" }),
+          amount: 0,
+          userShare: 0,
+          isCurrent: i === 0,
+        };
+      }
+      allExpenses.forEach((exp) => {
+        const d = new Date(exp.createdAt || exp.created_at);
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        if (monthBuckets[key]) {
+          monthBuckets[key].amount += parseFloat(exp.amount || 0);
+          const userSplit = exp.splitBetween?.find((s) => s.user?.id === userId);
+          if (userSplit) monthBuckets[key].userShare += parseFloat(userSplit.amount || 0);
+        }
+      });
+      setMonthlyChartData(Object.values(monthBuckets));
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
@@ -288,6 +313,52 @@ export default function Dashboard() {
               </div>
             )}
 
+            {/* Monthly Expense Chart */}
+            {monthlyChartData.some((m) => m.amount > 0) && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border dark:border-gray-700 mt-8 mb-8">
+                <h3 className="font-bold text-lg mb-1 text-gray-800 dark:text-white">Monthly Expenses</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">Last 6 months spending</p>
+                {/* Vertical bars */}
+                <div className="flex items-end gap-2 sm:gap-3" style={{ height: "120px" }}>
+                  {monthlyChartData.map((m, i) => {
+                    const max = Math.max(...monthlyChartData.map((x) => x.amount), 1);
+                    const pct = (m.amount / max) * 100;
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center h-full justify-end gap-1.5">
+                        <div
+                          className="w-full rounded-t-lg transition-all duration-700"
+                          style={{
+                            height: `${Math.max(pct, 3)}%`,
+                            ...(m.isCurrent
+                              ? getGradientStyle(theme)
+                              : { backgroundColor: isDark ? "#374151" : "#d1d5db" }),
+                          }}
+                        />
+                        <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium">
+                          {m.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Stats row */}
+                <div className="mt-5 grid grid-cols-2 gap-4 pt-4 border-t dark:border-gray-700">
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total spent this month</p>
+                    <p className="text-xl font-bold" style={{ color: theme.gradFrom }}>
+                      {formatCurrency(monthlyChartData.at(-1)?.amount || 0)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Your share this month</p>
+                    <p className="text-xl font-bold" style={{ color: theme.gradFrom }}>
+                      {formatCurrency(monthlyChartData.at(-1)?.userShare || 0)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Bottom sections */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
               {/* Recent Expenses */}
@@ -351,9 +422,17 @@ export default function Dashboard() {
 
               {/* Outstanding Balances */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border dark:border-gray-700">
-                <h3 className="font-bold text-lg mb-1 text-gray-800 dark:text-white">
-                  Outstanding Balances
-                </h3>
+                <div className="flex justify-between items-center mb-1">
+                  <h3 className="font-bold text-lg text-gray-800 dark:text-white">
+                    Outstanding Balances
+                  </h3>
+                  <button
+                    onClick={() => navigate("/balances")}
+                    className={`text-sm font-semibold ${theme.text} hover:underline`}
+                  >
+                    View All →
+                  </button>
+                </div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Who owes whom</p>
 
                 {settlements.length === 0 ? (

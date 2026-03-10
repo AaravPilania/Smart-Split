@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { FiHome, FiUsers, FiDollarSign, FiUser } from "react-icons/fi";
+import { FiHome, FiUsers, FiDollarSign, FiUser, FiBarChart2 } from "react-icons/fi";
 import { useTheme } from "../utils/theme";
 
 export default function BottomNav() {
@@ -7,10 +7,11 @@ export default function BottomNav() {
   const { theme } = useTheme();
 
   const tabs = [
-    { to: "/dashboard", icon: <FiHome size={22} />, label: "Home" },
-    { to: "/groups", icon: <FiUsers size={22} />, label: "Groups" },
-    { to: "/expenses", icon: <FiDollarSign size={22} />, label: "Expenses" },
-    { to: "/profile", icon: <FiUser size={22} />, label: "Profile" },
+    { to: "/dashboard", icon: <FiHome size={20} />, label: "Home" },
+    { to: "/groups", icon: <FiUsers size={20} />, label: "Groups" },
+    { to: "/expenses", icon: <FiDollarSign size={20} />, label: "Expenses" },
+    { to: "/balances", icon: <FiBarChart2 size={20} />, label: "Balances" },
+    { to: "/profile", icon: <FiUser size={20} />, label: "Profile" },
   ];
 
   return (
