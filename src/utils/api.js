@@ -61,7 +61,8 @@ export function apiFetch(url, options = {}) {
 export async function pingServer() {
   try {
     const res = await fetch(`${API_URL}/health`, { signal: AbortSignal.timeout(5000) });
-    return res.ok;
+    // 429 = rate-limited but server IS running; treat as alive
+    return res.ok || res.status === 429;
   } catch {
     return false;
   }

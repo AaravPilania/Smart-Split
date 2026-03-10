@@ -12,10 +12,15 @@ const app = express();
 // Security headers
 app.use(helmet());
 
+// ── Health check (BEFORE rate limiter so keep-alive pings never get throttled) ─
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Server is running' });
+});
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: 300,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many requests, please try again later.' }
@@ -76,11 +81,6 @@ app.get('/api/users/search', auth, async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-});
-
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Server is running' });
 });
 
 // 404 handler
