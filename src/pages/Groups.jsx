@@ -327,7 +327,7 @@ export default function Groups() {
                   Member User ID
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   value={addMemberForm.memberEmail}
                   onChange={(e) =>
                     setAddMemberForm({ memberEmail: e.target.value })
