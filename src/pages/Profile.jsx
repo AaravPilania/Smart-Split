@@ -10,8 +10,22 @@ import {
   FiCheck,
   FiX,
   FiClock,
+  FiUpload,
+  FiCopy,
+  FiChevronDown,
+  FiChevronUp,
 } from "react-icons/fi";
+import { QRCodeSVG } from "qrcode.react";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
+
+const ACCENT_PRESETS = [
+  { label: "Pink",   from: "#ec4899", to: "#f97316", key: "pink" },
+  { label: "Violet", from: "#8b5cf6", to: "#ec4899", key: "violet" },
+  { label: "Ocean",  from: "#0ea5e9", to: "#6366f1", key: "ocean" },
+  { label: "Emerald",from: "#10b981", to: "#0ea5e9", key: "emerald" },
+  { label: "Sunset", from: "#f59e0b", to: "#ef4444", key: "sunset" },
+  { label: "Night",  from: "#1e293b", to: "#475569", key: "night" },
+];
 
 export default function Profile() {
   const [user, setUser] = useState(null);
@@ -25,7 +39,38 @@ export default function Profile() {
     password: "",
   });
   const [avatar, setAvatar] = useState(localStorage.getItem("selectedAvatar") || "");
+  const [accentKey, setAccentKey] = useState(localStorage.getItem("accentColor") || "pink");
+  const [idExpanded, setIdExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showQR, setShowQR] = useState(false);
   const navigate = useNavigate();
+
+  const accent = ACCENT_PRESETS.find((p) => p.key === accentKey) || ACCENT_PRESETS[0];
+  const saveAccent = (key) => {
+    setAccentKey(key);
+    localStorage.setItem("accentColor", key);
+  };
+
+  const truncateId = (id) => {
+    if (!id || id.length <= 12) return id;
+    return `${id.slice(0, 6)}...${id.slice(-4)}`;
+  };
+
+  const copyId = () => {
+    navigator.clipboard.writeText(user.id).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => saveAvatar(ev.target.result);
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     const userIdStr = getUserId();
@@ -203,14 +248,52 @@ export default function Profile() {
         </div>
 
         {/* User ID Display */}
-        <div className="bg-gradient-to-r from-pink-500 to-orange-400 rounded-xl shadow-lg p-4 sm:p-6 mb-6 text-white">
+        <div
+          className="rounded-xl shadow-lg p-4 sm:p-6 mb-6 text-white"
+          style={{ background: `linear-gradient(to right, ${accent.from}, ${accent.to})` }}
+        >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <p className="text-sm opacity-90 mb-1">Your User ID</p>
-              <p className="text-base sm:text-2xl font-bold break-all font-mono">{user.id}</p>
-              <p className="text-xs sm:text-sm opacity-80 mt-2">
-                Share this ID with others so they can add you to groups
+              <p className="text-sm opacity-90 mb-2">Your User ID</p>
+              {/* Truncated / expanded ID */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-bold font-mono text-base sm:text-lg break-all">
+                  {idExpanded ? user.id : truncateId(user.id)}
+                </p>
+                <button
+                  onClick={() => setIdExpanded((v) => !v)}
+                  className="opacity-70 hover:opacity-100 transition"
+                  title={idExpanded ? "Collapse" : "Show full ID"}
+                >
+                  {idExpanded ? <FiChevronUp /> : <FiChevronDown />}
+                </button>
+              </div>
+              <p className="text-xs opacity-70 mt-1">
+                Share this ID so others can add you to groups
               </p>
+              {/* Actions */}
+              <div className="flex gap-2 mt-3 flex-wrap">
+                <button
+                  onClick={copyId}
+                  className="flex items-center gap-1.5 text-xs font-semibold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition"
+                >
+                  {copied ? <FiCheck className="text-green-300" /> : <FiCopy />}
+                  {copied ? "Copied!" : "Copy ID"}
+                </button>
+                <button
+                  onClick={() => setShowQR((v) => !v)}
+                  className="flex items-center gap-1.5 text-xs font-semibold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition"
+                >
+                  {showQR ? "Hide QR" : "Show QR"}
+                </button>
+              </div>
+              {/* QR Code */}
+              {showQR && (
+                <div className="mt-4 inline-block bg-white p-3 rounded-xl shadow">
+                  <QRCodeSVG value={user.id} size={120} />
+                  <p className="text-center text-xs text-gray-500 mt-1">Scan to share ID</p>
+                </div>
+              )}
             </div>
             <div className="bg-white/20 rounded-full p-3 flex-shrink-0">
               <FiUser className="text-2xl sm:text-4xl" />
@@ -355,27 +438,60 @@ export default function Profile() {
 
         {/* Avatar Selection */}
         <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border mt-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">Profile Picture</h3>
-          <p className="text-sm text-gray-600 mb-3">Choose an abstract avatar</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <h3 className="text-xl font-bold text-gray-800 mb-1">Profile Picture</h3>
+          <p className="text-sm text-gray-500 mb-4">Choose an abstract avatar or upload your own photo</p>
+
+          {/* Upload button */}
+          <label className="inline-flex items-center gap-2 cursor-pointer bg-gradient-to-r from-pink-500 to-orange-400 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow hover:opacity-90 transition mb-4">
+            <FiUpload />
+            Upload Photo
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
+          </label>
+
+          {/* Abstract presets */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {avatarOptions.map((opt, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => saveAvatar(opt)}
-                className={`p-1 rounded-xl border ${avatar === opt ? "border-pink-500" : "border-transparent"} hover:border-pink-300`}
+                className={`p-1 rounded-xl border-2 transition ${avatar === opt ? "border-pink-500 scale-105" : "border-transparent hover:border-pink-300"}`}
                 title="Select avatar"
               >
-                <img src={opt} alt={`avatar ${idx+1}`} className="h-16 w-16 rounded-lg" />
+                <img src={opt} alt={`avatar ${idx+1}`} className="h-16 w-16 rounded-lg object-cover" />
               </button>
             ))}
             <button
               type="button"
               onClick={() => saveAvatar("")}
-              className="p-3 rounded-xl border hover:border-gray-300 text-sm text-gray-600"
+              className="p-3 rounded-xl border-2 border-transparent hover:border-gray-300 text-sm text-gray-500 flex flex-col items-center justify-center gap-1"
             >
-              Remove avatar
+              <span className="text-xl">✕</span>
+              Remove
             </button>
+          </div>
+        </div>
+
+        {/* Accent Color */}
+        <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border mt-6">
+          <h3 className="text-xl font-bold text-gray-800 mb-1">Profile Theme Color</h3>
+          <p className="text-sm text-gray-500 mb-4">Changes the color of your User ID banner</p>
+          <div className="flex gap-3 flex-wrap">
+            {ACCENT_PRESETS.map((preset) => (
+              <button
+                key={preset.key}
+                type="button"
+                onClick={() => saveAccent(preset.key)}
+                title={preset.label}
+                className={`h-10 w-10 rounded-full border-4 transition ${accentKey === preset.key ? "border-gray-800 scale-110" : "border-transparent hover:scale-105"}`}
+                style={{ background: `linear-gradient(135deg, ${preset.from}, ${preset.to})` }}
+              />
+            ))}
           </div>
         </div>
 
@@ -530,9 +646,17 @@ function IncomingRequestsComponent({ userId }) {
 
   if (requests.length === 0) {
     return (
-      <p className="text-gray-500 text-center py-4">
-        No pending requests for your groups
-      </p>
+      <div className="flex flex-col items-center justify-center py-8 text-center gap-3">
+        <svg className="h-16 w-16 text-gray-200" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="32" cy="32" r="30" fill="currentColor" />
+          <path d="M20 32h24M32 20v24" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.5" />
+          <circle cx="32" cy="22" r="4" fill="white" opacity="0.6" />
+          <circle cx="22" cy="38" r="4" fill="white" opacity="0.6" />
+          <circle cx="42" cy="38" r="4" fill="white" opacity="0.6" />
+        </svg>
+        <p className="text-gray-600 font-medium">All caught up!</p>
+        <p className="text-gray-400 text-sm max-w-xs">No pending join requests for your groups. When someone requests to join, you'll see it here.</p>
+      </div>
     );
   }
 

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
 import StatsCard from "../components/Statscard";
-import { FiTrendingUp, FiTrendingDown, FiPlus, FiClock } from "react-icons/fi";
+import { FiTrendingUp, FiTrendingDown, FiPlus, FiClock, FiUser } from "react-icons/fi";
 import { BsPeopleFill } from "react-icons/bs";
 import { API_URL, apiFetch, getUser, getUserId } from "../utils/api";
 
@@ -18,7 +18,18 @@ export default function Dashboard() {
   const [recentExpenses, setRecentExpenses] = useState([]);
   const [settlements, setSettlements] = useState([]);
   const [groups, setGroups] = useState([]);
+  const [avatar, setAvatar] = useState(localStorage.getItem("selectedAvatar") || "");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const onAvatarChanged = () => setAvatar(localStorage.getItem("selectedAvatar") || "");
+    window.addEventListener("avatar-changed", onAvatarChanged);
+    window.addEventListener("storage", onAvatarChanged);
+    return () => {
+      window.removeEventListener("avatar-changed", onAvatarChanged);
+      window.removeEventListener("storage", onAvatarChanged);
+    };
+  }, []);
 
   useEffect(() => {
     const userData = getUser();
@@ -164,18 +175,26 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto mt-4 sm:mt-10 px-4 sm:px-6 pb-24 md:pb-10">
         {/* Header */}
         <div className="flex justify-between items-start mb-6 sm:mb-8">
-          <div className="min-w-0 flex-1">
-            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-1">
-              Welcome back, {user.name || "User"}!
-            </h2>
-            <p className="text-gray-700 mb-2 text-base sm:text-lg font-semibold">
-              Here's your expense overview
-            </p>
-            <p className="text-sm text-gray-500">
-              Your User ID:
-            </p>
-            <p className="font-mono font-semibold text-pink-600 text-xs break-all mt-0.5">{user.id}</p>
-            <p className="text-xs text-gray-400 mt-0.5">(Share this to be added to groups)</p>
+          <div className="flex items-center gap-4 min-w-0 flex-1">
+            {/* Avatar */}
+            {avatar ? (
+              <img src={avatar} alt="avatar" className="h-14 w-14 rounded-full border-2 border-pink-300 shadow flex-shrink-0 object-cover" />
+            ) : (
+              <div className="h-14 w-14 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center text-2xl font-bold flex-shrink-0 border-2 border-pink-200 shadow">
+                {user.name?.[0]?.toUpperCase() || <FiUser />}
+              </div>
+            )}
+            <div className="min-w-0">
+              <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-1">
+                Welcome back, {user.name || "User"}!
+              </h2>
+              <p className="text-gray-700 mb-1 text-base sm:text-lg font-semibold">
+                Here's your expense overview
+              </p>
+              <p className="font-mono text-pink-600 text-xs">
+                ID: {user.id?.slice(0,6)}...{user.id?.slice(-4)}
+              </p>
+            </div>
           </div>
         </div>
 
