@@ -9,3 +9,13 @@ body {
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
 }
+
+/* Dark mode base background */
+.dark body {
+  background-color: rgb(3 7 18); /* gray-950 */
+}
+
+/* Dark mode colour-scheme so browser scrollbars + inputs match */
+.dark {
+  color-scheme: dark;
+}

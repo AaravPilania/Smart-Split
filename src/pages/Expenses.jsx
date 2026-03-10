@@ -12,6 +12,8 @@ import {
 } from "react-icons/fi";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
+import { detectCategory, getCategoryInfo } from "../utils/categories";
+import { downloadExpensesCSV } from "../utils/export";
 
 export default function Expenses() {
   const [expenses, setExpenses] = useState([]);
@@ -22,7 +24,7 @@ export default function Expenses() {
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
 
   const [createForm, setCreateForm] = useState({
     title: "",
@@ -191,7 +193,7 @@ export default function Expenses() {
 
   if (loading && expenses.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         <Navbar />
         <div className="flex items-center justify-center h-96">
           <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${theme.spinner}`}></div>
@@ -203,35 +205,48 @@ export default function Expenses() {
   const selectedGroup = getSelectedGroup();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Navbar />
 
       <div className="max-w-6xl mx-auto py-4 sm:py-8 px-4 sm:px-6 pb-24 md:pb-10">
         {/* Page Header */}
         <div className="flex justify-between items-center mb-6 sm:mb-8 gap-3">
           <div className="min-w-0">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">All Expenses</h2>
-            <p className="text-gray-500 text-sm sm:text-base">Track and manage your spending</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">All Expenses</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">Track and manage your spending</p>
           </div>
-          <button
-            onClick={() => {
-              if (!selectedGroupId) {
-                alert("Please select a group first");
-                return;
-              }
-              setShowCreateModal(true);
-            }}
-            className="text-white px-5 py-2.5 rounded-lg shadow-md flex items-center gap-2 hover:shadow-lg transition disabled:opacity-50"
-            style={getGradientStyle(theme)}
-            disabled={!selectedGroupId}
-          >
-            <FiPlus /> Add Expense
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const group = groups.find((g) => g.id === selectedGroupId);
+                downloadExpensesCSV(expenses, group?.name || "expenses");
+              }}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+              disabled={!expenses.length}
+              title="Export as CSV"
+            >
+              ⬇️ Export CSV
+            </button>
+            <button
+              onClick={() => {
+                if (!selectedGroupId) {
+                  alert("Please select a group first");
+                  return;
+                }
+                setShowCreateModal(true);
+              }}
+              className="text-white px-5 py-2.5 rounded-lg shadow-md flex items-center gap-2 hover:shadow-lg transition disabled:opacity-50"
+              style={getGradientStyle(theme)}
+              disabled={!selectedGroupId}
+            >
+              <FiPlus /> Add Expense
+            </button>
+          </div>
         </div>
 
         {/* Group Filter */}
         <div className="mb-6">
-          <label className="block mb-2 text-gray-600 font-semibold text-sm">
+          <label className="block mb-2 text-gray-600 dark:text-gray-300 font-semibold text-sm">
             Select Group
           </label>
           <select
@@ -241,7 +256,7 @@ export default function Expenses() {
               setSelectedGroupId(groupId);
               fetchExpenses(groupId);
             }}
-            className="w-full max-w-md px-4 py-3 rounded-xl border bg-white text-gray-700 font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-400"
+            className="w-full max-w-md px-4 py-3 rounded-xl border dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-white font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-400"
           >
             <option value="">Select a group...</option>
             {groups.map((group) => (
@@ -265,26 +280,26 @@ export default function Expenses() {
 
         {/* Expenses List */}
         {!selectedGroupId ? (
-          <div className="bg-white rounded-2xl border shadow-md p-14 flex flex-col items-center justify-center min-h-[250px]">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-md p-14 flex flex-col items-center justify-center min-h-[250px]">
             <div className="text-gray-400 text-5xl mb-4">
               <FiFile />
             </div>
-            <h3 className="text-gray-700 font-semibold text-lg mb-1">
+            <h3 className="text-gray-700 dark:text-white font-semibold text-lg mb-1">
               Select a group
             </h3>
-            <p className="text-gray-500 text-sm">
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
               Choose a group from the dropdown above to view expenses
             </p>
           </div>
         ) : expenses.length === 0 ? (
-          <div className="bg-white rounded-2xl border shadow-md p-14 flex flex-col items-center justify-center min-h-[250px]">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-md p-14 flex flex-col items-center justify-center min-h-[250px]">
             <div className="text-gray-400 text-5xl mb-4">
               <FiFile />
             </div>
-            <h3 className="text-gray-700 font-semibold text-lg mb-1">
+            <h3 className="text-gray-700 dark:text-white font-semibold text-lg mb-1">
               No expenses found
             </h3>
-            <p className="text-gray-500 text-sm">
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
               Start adding expenses to track your spending
             </p>
           </div>
@@ -293,40 +308,41 @@ export default function Expenses() {
             {expenses.map((expense) => (
               <div
                 key={expense.id}
-                className="bg-white rounded-xl shadow-md p-6 border hover:shadow-lg transition"
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border dark:border-gray-700 hover:shadow-lg transition"
               >
               <div className="flex justify-between items-start mb-3 gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h3 className="text-lg font-bold text-gray-800 truncate">
+                      <h3 className="text-lg font-bold text-gray-800 dark:text-white truncate">
                         {expense.title}
                       </h3>
+                      {(() => { const cat = getCategoryInfo(detectCategory(expense.title)); return <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cat.badge}`}>{cat.icon} {cat.label}</span>; })()}
                       {expense.settled && (
-                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">
+                        <span className="px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded text-xs font-semibold">
                           <FiCheck className="inline mr-1" />
                           Settled
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-500 mb-1">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
                       {expense.group?.name || "Unknown Group"}
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
                       {formatDate(expense.createdAt || expense.created_at)}
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-xl font-bold text-gray-900">
+                    <p className="text-xl font-bold text-gray-900 dark:text-white">
                       {formatCurrency(parseFloat(expense.amount || 0))}
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       Paid by {expense.paidBy?.name || "Unknown"}
                     </p>
                   </div>
                 </div>
 
-                <div className="border-t pt-4">
-                  <p className="text-sm font-medium text-gray-700 mb-2">
+                <div className="border-t dark:border-gray-700 pt-4">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Split between:
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -350,14 +366,14 @@ export default function Expenses() {
       {/* Create Expense Modal */}
       {showCreateModal && selectedGroup && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 my-8">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full p-6 my-8">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-800">
+              <h3 className="text-xl font-bold text-gray-800 dark:text-white">
                 Add Expense - {selectedGroup.name}
               </h3>
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
               >
                 <FiX className="text-xl" />
               </button>
@@ -365,7 +381,7 @@ export default function Expenses() {
 
             <form onSubmit={handleCreateExpense}>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Expense Title *
                 </label>
                 <input
@@ -374,14 +390,14 @@ export default function Expenses() {
                   onChange={(e) =>
                     setCreateForm({ ...createForm, title: e.target.value })
                   }
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
                   placeholder="e.g., Dinner, Groceries"
                   required
                 />
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Total Amount *
                 </label>
                 <input
@@ -391,14 +407,14 @@ export default function Expenses() {
                   onChange={(e) =>
                     setCreateForm({ ...createForm, amount: e.target.value })
                   }
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
                   placeholder="0.00"
                   required
                 />
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Paid By *
                 </label>
                 <select
@@ -409,7 +425,7 @@ export default function Expenses() {
                       paidBy: e.target.value,
                     })
                   }
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
                   required
                 >
                   <option value="">Select member...</option>
@@ -423,7 +439,7 @@ export default function Expenses() {
 
               <div className="mb-4">
                 <div className="flex justify-between items-center mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Split Between *
                   </label>
                   <button
@@ -442,7 +458,7 @@ export default function Expenses() {
                       onChange={(e) =>
                         updateSplit(index, "userId", e.target.value)
                       }
-                      className="flex-1 min-w-0 px-2 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
+                      className="flex-1 min-w-0 px-2 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
                       required
                     >
                       <option value="">Select member...</option>
@@ -459,7 +475,7 @@ export default function Expenses() {
                       onChange={(e) =>
                         updateSplit(index, "amount", e.target.value)
                       }
-                      className="w-24 sm:w-28 px-2 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
+                      className="w-24 sm:w-28 px-2 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
                       placeholder="Amount"
                       required
                     />
@@ -474,7 +490,7 @@ export default function Expenses() {
                 ))}
 
                 {createForm.splits.length === 0 && (
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     Click "Add Person" to split the expense
                   </p>
                 )}
@@ -504,7 +520,7 @@ export default function Expenses() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50"
+                  className="flex-1 px-4 py-2 border dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   Cancel
                 </button>

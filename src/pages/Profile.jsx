@@ -14,10 +14,12 @@ import {
   FiCopy,
   FiChevronDown,
   FiChevronUp,
+  FiSun,
+  FiMoon,
 } from "react-icons/fi";
 import { QRCodeSVG } from "qrcode.react";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
-import { ACCENT_PRESETS, getGradientStyle, useTheme } from "../utils/theme";
+import { ACCENT_PRESETS, getGradientStyle, useTheme, toggleDarkMode } from "../utils/theme";
 
 export default function Profile() {
   const [user, setUser] = useState(null);
@@ -31,7 +33,7 @@ export default function Profile() {
     password: "",
   });
   const [avatar, setAvatar] = useState(localStorage.getItem("selectedAvatar") || "");
-  const { theme, accentKey } = useTheme();
+  const { theme, accentKey, isDark } = useTheme();
   const [localAccentKey, setLocalAccentKey] = useState(localStorage.getItem("accentColor") || "pink");
   const [idExpanded, setIdExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -211,7 +213,7 @@ export default function Profile() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         <Navbar />
         <div className="flex items-center justify-center h-96">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
@@ -221,7 +223,7 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Navbar />
 
       <div className="max-w-4xl mx-auto py-4 sm:py-8 px-4 sm:px-6 pb-24 md:pb-10">
@@ -234,8 +236,8 @@ export default function Profile() {
               <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center text-xl flex-shrink-0">{user.name?.[0] || <FiUser />}</div>
             )}
             <div className="min-w-0">
-              <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-1">Profile Settings</h2>
-              <p className="text-gray-600 text-sm sm:text-base">Manage your account and group memberships</p>
+              <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-1">Profile Settings</h2>
+              <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">Manage your account and group memberships</p>
             </div>
           </div>
         </div>
@@ -296,9 +298,9 @@ export default function Profile() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Profile Information */}
-          <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 sm:p-6 border dark:border-gray-700">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-800">Profile Information</h3>
+              <h3 className="text-xl font-bold text-gray-800 dark:text-white">Profile Information</h3>
               {!editing && (
                 <button
                   onClick={() => setEditing(true)}
@@ -313,7 +315,7 @@ export default function Profile() {
               <form onSubmit={handleUpdateProfile}>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Name
                     </label>
                     <input
@@ -322,12 +324,12 @@ export default function Profile() {
                       onChange={(e) =>
                         setFormData({ ...formData, name: e.target.value })
                       }
-                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Email
                     </label>
                     <input
@@ -336,12 +338,12 @@ export default function Profile() {
                       onChange={(e) =>
                         setFormData({ ...formData, email: e.target.value })
                       }
-                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       New Password (leave blank to keep current)
                     </label>
                     <input
@@ -350,7 +352,7 @@ export default function Profile() {
                       onChange={(e) =>
                         setFormData({ ...formData, password: e.target.value })
                       }
-                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
                       placeholder="••••••••"
                     />
                   </div>
@@ -366,7 +368,7 @@ export default function Profile() {
                           password: "",
                         });
                       }}
-                      className="flex-1 px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50"
+                      className="flex-1 px-4 py-2 border dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
                       Cancel
                     </button>
@@ -384,16 +386,16 @@ export default function Profile() {
                 <div className="flex items-center gap-3">
                   <FiUser className="text-gray-400" />
                   <div>
-                    <p className="text-sm text-gray-500">Name</p>
-                    <p className="font-semibold text-gray-800">{user.name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Name</p>
+                    <p className="font-semibold text-gray-800 dark:text-white">{user.name}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <FiMail className="text-gray-400" />
                   <div>
-                    <p className="text-sm text-gray-500">Email</p>
-                    <p className="font-semibold text-gray-800">{user.email}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
+                    <p className="font-semibold text-gray-800 dark:text-white">{user.email}</p>
                   </div>
                 </div>
               </div>
@@ -401,13 +403,13 @@ export default function Profile() {
           </div>
 
           {/* Group Memberships */}
-          <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border">
-            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 sm:p-6 border dark:border-gray-700">
+            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
               <FiUsers /> Your Groups ({groups.length})
             </h3>
 
             {groups.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">
+              <p className="text-gray-500 dark:text-gray-400 text-center py-8">
                 You're not a member of any groups yet
               </p>
             ) : (
@@ -415,11 +417,11 @@ export default function Profile() {
                 {groups.map((group) => (
                   <div
                     key={group.id}
-                    className="p-3 bg-gray-50 rounded-lg border hover:bg-gray-100 transition cursor-pointer"
+                    className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition cursor-pointer"
                     onClick={() => navigate(`/groups`)}
                   >
-                    <p className="font-semibold text-gray-800">{group.name}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="font-semibold text-gray-800 dark:text-white">{group.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       {group.members?.length || 0} members
                     </p>
                   </div>
@@ -430,9 +432,9 @@ export default function Profile() {
         </div>
 
         {/* Avatar Selection */}
-        <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border mt-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-1">Profile Picture</h3>
-          <p className="text-sm text-gray-500 mb-4">Choose an abstract avatar or upload your own photo</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 sm:p-6 border dark:border-gray-700 mt-6">
+          <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">Profile Picture</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Choose an abstract avatar or upload your own photo</p>
 
           {/* Upload button */}
           <label className="inline-flex items-center gap-2 cursor-pointer bg-gradient-to-r from-pink-500 to-orange-400 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow hover:opacity-90 transition mb-4">
@@ -462,7 +464,7 @@ export default function Profile() {
             <button
               type="button"
               onClick={() => saveAvatar("")}
-              className="p-3 rounded-xl border-2 border-transparent hover:border-gray-300 text-sm text-gray-500 flex flex-col items-center justify-center gap-1"
+              className="p-3 rounded-xl border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600 text-sm text-gray-500 dark:text-gray-400 flex flex-col items-center justify-center gap-1"
             >
               <span className="text-xl">✕</span>
               Remove
@@ -470,10 +472,33 @@ export default function Profile() {
           </div>
         </div>
 
+        {/* Display Settings */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 sm:p-6 border dark:border-gray-700 mt-6">
+          <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">Display Settings</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Customize how the app looks</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-gray-700 dark:text-gray-200">Dark Mode</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Switch between light and dark theme</p>
+            </div>
+            <button
+              onClick={toggleDarkMode}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl border font-medium text-sm transition ${
+                isDark
+                  ? "bg-gray-700 border-gray-600 text-yellow-300 hover:bg-gray-600"
+                  : "bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {isDark ? <FiSun className="text-lg" /> : <FiMoon className="text-lg" />}
+              {isDark ? "Light Mode" : "Dark Mode"}
+            </button>
+          </div>
+        </div>
+
         {/* Accent Color */}
-        <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border mt-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-1">Profile Theme Color</h3>
-          <p className="text-sm text-gray-500 mb-4">Changes the color of your User ID banner</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 sm:p-6 border dark:border-gray-700 mt-6">
+          <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">Accent Color</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Changes the accent color throughout the entire app</p>
           <div className="flex gap-3 flex-wrap">
             {Object.values(ACCENT_PRESETS).map((preset) => (
               <button
@@ -481,7 +506,7 @@ export default function Profile() {
                 type="button"
                 onClick={() => saveAccent(preset.key)}
                 title={preset.label}
-                className={`h-10 w-10 rounded-full border-4 transition ${localAccentKey === preset.key ? "border-gray-800 scale-110" : "border-transparent hover:scale-105"}`}
+                className={`h-10 w-10 rounded-full border-4 transition ${localAccentKey === preset.key ? "border-gray-800 dark:border-white scale-110" : "border-transparent hover:scale-105"}`}
                 style={{ background: `linear-gradient(135deg, ${preset.gradFrom}, ${preset.gradTo})` }}
               />
             ))}
@@ -490,11 +515,11 @@ export default function Profile() {
 
         {/* Pending Requests */}
         {pendingRequests.length > 0 && (
-          <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border mt-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 sm:p-6 border dark:border-gray-700 mt-6">
+            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
               <FiClock /> Pending Group Requests ({pendingRequests.length})
             </h3>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               You've requested to join these groups. Wait for approval.
             </p>
             <div className="space-y-3">
@@ -505,13 +530,13 @@ export default function Profile() {
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-semibold text-gray-800">
+                      <p className="font-semibold text-gray-800 dark:text-white">
                         {request.group_name}
                       </p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
                         Created by {request.creator_name}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         Requested{" "}
                         {new Date(request.created_at).toLocaleDateString()}
                       </p>
@@ -527,8 +552,8 @@ export default function Profile() {
         )}
 
         {/* Incoming Requests (requests to join groups you're admin of) */}
-        <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border mt-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 sm:p-6 border dark:border-gray-700 mt-6">
+          <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
             <FiUsers /> Incoming Requests
           </h3>
           <IncomingRequestsComponent userId={user.id} />

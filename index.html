@@ -8,6 +8,14 @@
     <meta name="theme-color" content="#F888B0" />
     <meta name="description" content="Split bills, stay friends" />
     <title>Smart Split - Split Bills, Stay Friends</title>
+    <script>
+      // Apply dark mode before React hydrates to prevent FOUC
+      (function() {
+        if (localStorage.getItem('darkMode') === 'true') {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

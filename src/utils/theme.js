@@ -99,27 +99,42 @@ export const getGradientStyle = (theme, direction = "to right") => ({
   background: `linear-gradient(${direction}, ${theme.gradFrom}, ${theme.gradTo})`,
 });
 
-export const getPageBgStyle = (theme) => ({
-  background: `linear-gradient(135deg, ${theme.gradFrom}18 0%, ${theme.gradTo}10 50%, #f9fafb 100%)`,
-});
+export const getPageBgStyle = (theme, isDark = false) => {
+  if (isDark) return { background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)" };
+  return { background: `linear-gradient(135deg, ${theme.gradFrom}18 0%, ${theme.gradTo}10 50%, #f9fafb 100%)` };
+};
+
+export function toggleDarkMode() {
+  const isDark = localStorage.getItem("darkMode") === "true";
+  const next = !isDark;
+  document.documentElement.classList.toggle("dark", next);
+  localStorage.setItem("darkMode", next ? "true" : "false");
+  window.dispatchEvent(new Event("darkmode-changed"));
+}
 
 export function useTheme() {
   const [accentKey, setAccentKey] = useState(
     () => localStorage.getItem("accentColor") || "pink"
   );
+  const [isDark, setIsDark] = useState(
+    () => localStorage.getItem("darkMode") === "true"
+  );
 
   useEffect(() => {
     const handler = () => {
       setAccentKey(localStorage.getItem("accentColor") || "pink");
+      setIsDark(localStorage.getItem("darkMode") === "true");
     };
     window.addEventListener("theme-changed", handler);
+    window.addEventListener("darkmode-changed", handler);
     window.addEventListener("storage", handler);
     return () => {
       window.removeEventListener("theme-changed", handler);
+      window.removeEventListener("darkmode-changed", handler);
       window.removeEventListener("storage", handler);
     };
   }, []);
 
   const theme = ACCENT_PRESETS[accentKey] || ACCENT_PRESETS.pink;
-  return { theme, accentKey };
+  return { theme, accentKey, isDark };
 }

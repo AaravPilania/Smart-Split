@@ -19,9 +19,10 @@ export default function Dashboard() {
   const [recentExpenses, setRecentExpenses] = useState([]);
   const [settlements, setSettlements] = useState([]);
   const [groups, setGroups] = useState([]);
+  const [groupSpending, setGroupSpending] = useState([]);
   const [avatar, setAvatar] = useState(localStorage.getItem("selectedAvatar") || "");
   const navigate = useNavigate();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
 
   useEffect(() => {
     const onAvatarChanged = () => setAvatar(localStorage.getItem("selectedAvatar") || "");
@@ -63,6 +64,7 @@ export default function Dashboard() {
       let userOweTotal = 0;
       let owedToUserTotal = 0;
       let allSettlements = [];
+      const perGroupSpending = [];
 
       for (const group of userGroups) {
         try {
@@ -74,10 +76,9 @@ export default function Dashboard() {
             const expensesData = await expensesResponse.json();
             const groupExpenses = expensesData.expenses || [];
             allExpenses = [...allExpenses, ...groupExpenses];
-            totalExpensesAmount += groupExpenses.reduce(
-              (sum, exp) => sum + parseFloat(exp.amount || 0),
-              0
-            );
+            const groupTotal = groupExpenses.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0);
+            totalExpensesAmount += groupTotal;
+            if (groupTotal > 0) perGroupSpending.push({ name: group.name, amount: groupTotal });
           }
 
           // Fetch balances
@@ -134,6 +135,7 @@ export default function Dashboard() {
         youOwe: userOweTotal,
         owedToYou: owedToUserTotal,
       });
+      setGroupSpending(perGroupSpending.sort((a, b) => b.amount - a.amount).slice(0, 6));
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
@@ -161,7 +163,7 @@ export default function Dashboard() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={getPageBgStyle(theme)}>
+      <div className="min-h-screen flex items-center justify-center" style={getPageBgStyle(theme, isDark)}>
         <div className="text-center">
           <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${theme.spinner} mx-auto`}></div>
           <p className="mt-4 text-gray-600">Loading...</p>
@@ -171,7 +173,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen" style={getPageBgStyle(theme)}>
+    <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
       <Navbar />
 
       <div className="max-w-7xl mx-auto mt-4 sm:mt-10 px-4 sm:px-6 pb-24 md:pb-10">
@@ -187,10 +189,10 @@ export default function Dashboard() {
               </div>
             )}
             <div className="min-w-0">
-              <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-1">
+              <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-1">
                 Welcome back, {user.name || "User"}!
               </h2>
-              <p className="text-gray-700 mb-1 text-base sm:text-lg font-semibold">
+              <p className="text-gray-700 dark:text-gray-300 mb-1 text-base sm:text-lg font-semibold">
                 Here's your expense overview
               </p>
               <p className={`font-mono ${theme.text} text-xs`}>
@@ -203,7 +205,7 @@ export default function Dashboard() {
         {loading ? (
           <div className="text-center py-20">
             <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${theme.spinner} mx-auto`}></div>
-            <p className="mt-4 text-gray-600">Loading your data...</p>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading your data...</p>
           </div>
         ) : (
           <>
@@ -253,26 +255,53 @@ export default function Dashboard() {
               {/* Manage Groups */}
               <button
                 onClick={() => navigate("/groups")}
-                className="bg-white rounded-xl shadow-lg p-6 flex items-center justify-center cursor-pointer hover:shadow-2xl transition text-orange-600 text-lg font-semibold border hover:border-orange-400"
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 flex items-center justify-center cursor-pointer hover:shadow-2xl transition text-orange-600 text-lg font-semibold border dark:border-gray-700 hover:border-orange-400"
               >
                 <BsPeopleFill className="mr-2" /> Manage Groups
               </button>
             </div>
 
+            {/* Spending by Group chart */}
+            {groupSpending.length > 0 && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border dark:border-gray-700 mt-8">
+                <h3 className="font-bold text-lg mb-1 text-gray-800 dark:text-white">Spending by Group</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">Total across all expenses</p>
+                <div className="space-y-4">
+                  {groupSpending.map((g, i) => {
+                    const pct = (g.amount / groupSpending[0].amount) * 100;
+                    return (
+                      <div key={i}>
+                        <div className="flex justify-between text-sm mb-1.5">
+                          <span className="text-gray-700 dark:text-gray-300 font-medium truncate">{g.name}</span>
+                          <span className="text-gray-500 dark:text-gray-400 ml-3 flex-shrink-0 font-semibold">{formatCurrency(g.amount)}</span>
+                        </div>
+                        <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-700"
+                            style={{ width: `${pct}%`, ...getGradientStyle(theme) }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Bottom sections */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
               {/* Recent Expenses */}
-              <div className="bg-white rounded-xl shadow-lg p-6 border">
-                <h3 className="font-bold text-lg mb-1 text-gray-800">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border dark:border-gray-700">
+                <h3 className="font-bold text-lg mb-1 text-gray-800 dark:text-white">
                   Recent Expenses
                 </h3>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                   Your latest transactions
                 </p>
 
                 {recentExpenses.length === 0 ? (
                   <div className="text-center mt-10 py-8">
-                    <p className="text-gray-600">
+                    <p className="text-gray-600 dark:text-gray-400">
                       No expenses yet. Add your first one!
                     </p>
                   </div>
@@ -281,19 +310,19 @@ export default function Dashboard() {
                     {recentExpenses.map((expense) => (
                       <div
                         key={expense.id}
-                        className="border-b border-gray-100 pb-3 last:border-0 last:pb-0"
+                        className="border-b border-gray-100 dark:border-gray-700 pb-3 last:border-0 last:pb-0"
                       >
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <p className="font-semibold text-gray-800">
+                            <p className="font-semibold text-gray-800 dark:text-white">
                               {expense.title}
                             </p>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
                               {expense.group?.name || "Unknown Group"}
                             </p>
                             <div className="flex items-center gap-2 mt-1">
                               <FiClock className="text-gray-400 text-xs" />
-                              <span className="text-xs text-gray-400">
+                              <span className="text-xs text-gray-400 dark:text-gray-500">
                                 {formatDate(
                                   expense.createdAt || expense.created_at
                                 )}
@@ -301,10 +330,10 @@ export default function Dashboard() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold text-gray-900">
+                            <p className="font-bold text-gray-900 dark:text-white">
                               {formatCurrency(parseFloat(expense.amount || 0))}
                             </p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
                               Paid by {expense.paidBy?.name || "Unknown"}
                             </p>
                             {expense.settled && (
@@ -321,15 +350,15 @@ export default function Dashboard() {
               </div>
 
               {/* Outstanding Balances */}
-              <div className="bg-white rounded-xl shadow-lg p-6 border">
-                <h3 className="font-bold text-lg mb-1 text-gray-800">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border dark:border-gray-700">
+                <h3 className="font-bold text-lg mb-1 text-gray-800 dark:text-white">
                   Outstanding Balances
                 </h3>
-                <p className="text-sm text-gray-500 mb-4">Who owes whom</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Who owes whom</p>
 
                 {settlements.length === 0 ? (
                   <div className="text-center mt-10 py-8">
-                    <p className="text-gray-600">All settled up! 🎉</p>
+                    <p className="text-gray-600 dark:text-gray-400">All settled up! 🎉</p>
                   </div>
                 ) : (
                   <div className="space-y-3">

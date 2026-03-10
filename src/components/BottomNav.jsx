@@ -15,7 +15,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 flex"
+      className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 z-50 flex transition-colors duration-200"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {tabs.map(({ to, icon, label }) => {
@@ -25,10 +25,10 @@ export default function BottomNav() {
             key={to}
             to={to}
             className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-0.5 text-xs font-medium transition-colors ${
-              active ? theme.text : "text-gray-400"
+              active ? theme.text : "text-gray-400 dark:text-gray-600"
             }`}
           >
-            <span className={active ? theme.text : "text-gray-400"}>
+            <span className={active ? theme.text : "text-gray-400 dark:text-gray-600"}>
               {icon}
             </span>
             {label}

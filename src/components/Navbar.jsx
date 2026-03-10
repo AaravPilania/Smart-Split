@@ -2,14 +2,14 @@
 import { useState } from "react";
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FiUser, FiLogOut, FiCamera } from "react-icons/fi";
+import { FiUser, FiLogOut, FiCamera, FiSun, FiMoon } from "react-icons/fi";
 import ScanReceipt from "./ScanReceipt";
 import { API_URL, apiFetch, clearAuth, getUserId } from "../utils/api";
-import { useTheme, getGradientStyle } from "../utils/theme";
+import { useTheme, getGradientStyle, toggleDarkMode } from "../utils/theme";
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const [showScanModal, setShowScanModal] = useState(false);
   const [groups, setGroups] = useState([]);
   const userId = getUserId();
@@ -61,7 +61,7 @@ export default function Navbar() {
   };
 
   const navItemClasses =
-    "relative px-3 py-2 rounded-lg font-medium text-gray-700 overflow-hidden transition-all duration-300 ease-out";
+    "relative px-3 py-2 rounded-lg font-medium text-gray-700 dark:text-gray-200 overflow-hidden transition-all duration-300 ease-out";
 
   const hoverBg =
     "absolute inset-0 bg-gradient-to-r from-pink-500 via-rose-500 to-orange-400 rounded-lg opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300 ease-out";
@@ -71,7 +71,7 @@ export default function Navbar() {
 
   return (
     <>
-      <div className="w-full bg-white shadow-md py-3 px-4 sm:px-6 sticky top-0 z-50">
+      <div className="w-full bg-white dark:bg-gray-900 shadow-md dark:shadow-gray-900/60 py-3 px-4 sm:px-6 sticky top-0 z-50 border-b border-transparent dark:border-gray-800 transition-colors duration-200">
         {/* Desktop layout (md and up): original navbar */}
         <div className="hidden md:flex max-w-6xl mx-auto items-center justify-between">
           {/* Logo */}
@@ -82,10 +82,10 @@ export default function Navbar() {
             <div className="text-white rounded-lg h-8 w-8 flex items-center justify-center text-lg font-bold shadow-md" style={getGradientStyle(theme, "to bottom right")}>
               ⚡
             </div>
-            <h1 className="text-xl font-semibold text-gray-700">Smart Split</h1>
+            <h1 className="text-xl font-semibold text-gray-700 dark:text-gray-100">Smart Split</h1>
           </Link>
 
-          {/* Right items */}}
+          {/* Right items */}
           <div className="flex items-center gap-4 font-medium">
             <Link className={`group ${navItemClasses}`} to="/dashboard">
               <span className={hoverText}>Dashboard</span>
@@ -112,6 +112,14 @@ export default function Navbar() {
             </button>
 
             <button
+              onClick={toggleDarkMode}
+              className="p-2.5 rounded-lg text-gray-500 dark:text-yellow-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
+              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {isDark ? <FiSun size={18} /> : <FiMoon size={18} />}
+            </button>
+
+            <button
               onClick={() => navigate("/profile")}
               className={`px-3 py-2 rounded-lg ${theme.textBtn} ${theme.bgHover} transition-all duration-300 ease-out flex items-center gap-2`}
               title="Profile Settings"
@@ -126,7 +134,7 @@ export default function Navbar() {
 
             <button
               onClick={handleLogout}
-              className="text-sm text-red-500 px-3 py-2 rounded-lg hover:bg-red-100 transition-all duration-300 ease-out flex items-center gap-1"
+              className="text-sm text-red-500 px-3 py-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 transition-all duration-300 ease-out flex items-center gap-1"
             >
               <FiLogOut />
               <span>Logout</span>
@@ -134,46 +142,48 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile layout (below md): logo left, actions right */}
+        {/* Mobile layout (below md): brand left, actions right */}
         <div className="md:hidden flex items-center justify-between">
           <Link
             to="/dashboard"
-            className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition"
+            className="flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition"
           >
-            {/* Mobile logo icon */}
-            <div className="text-white rounded-lg h-8 w-8 flex items-center justify-center text-lg font-bold shadow-md" style={getGradientStyle(theme, "to bottom right")}>
+            <div
+              className="text-white rounded-xl h-9 w-9 flex items-center justify-center text-xl font-bold shadow-md flex-shrink-0"
+              style={getGradientStyle(theme, "to bottom right")}
+            >
               ⚡
+            </div>
+            <div className="flex flex-col leading-tight">
+              <span className="text-[15px] font-bold text-gray-800 dark:text-white">Smart Split</span>
+              <span className="text-[10px] text-gray-400 dark:text-gray-500">Split bills, stay friends</span>
             </div>
           </Link>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
               onClick={handleScanClick}
-              className="text-white px-3 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 ease-out flex items-center gap-1.5 text-sm"
+              className="text-white px-2.5 py-1.5 rounded-lg shadow-sm hover:shadow-md transition flex items-center gap-1"
               style={getGradientStyle(theme)}
             >
-              <FiCamera size={16} />
-              <span>Scan</span>
+              <FiCamera size={14} />
+              <span className="text-xs font-medium">Scan</span>
             </button>
 
             <button
-              onClick={() => navigate("/profile")}
-              className={`p-2 rounded-lg ${theme.textBtn} transition`}
-              title="Profile"
+              onClick={toggleDarkMode}
+              className="p-2 rounded-lg text-gray-500 dark:text-yellow-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              title={isDark ? "Light Mode" : "Dark Mode"}
             >
-              {avatar ? (
-                <img src={avatar} alt="avatar" className={`h-7 w-7 rounded-full border ${theme.border} object-cover`} />
-              ) : (
-                <FiUser size={20} />
-              )}
+              {isDark ? <FiSun size={17} /> : <FiMoon size={17} />}
             </button>
 
             <button
               onClick={handleLogout}
-              className="p-2 rounded-lg text-red-500 hover:bg-red-50 transition"
+              className="p-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
               title="Logout"
             >
-              <FiLogOut size={20} />
+              <FiLogOut size={17} />
             </button>
           </div>
         </div>
