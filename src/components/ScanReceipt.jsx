@@ -160,113 +160,100 @@ export default function ScanReceipt({
   };
 
   const extractExpenseData = (text) => {
-    // Clean the text - remove extra whitespace
-    const cleanedText = text.replace(/\s+/g, " ").trim();
-    const lines = text.split("\n").map(line => line.trim()).filter((line) => line.length > 0);
-    
-    // Extract amount - look for various patterns
+    const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+
+    // ─── AMOUNT EXTRACTION ───
+    // Normalize a matched string to a float, handling . and , as decimal sep
+    const toFloat = (str) => {
+      let s = str.replace(/[€£₹$¥\s]/g, "");
+      // e.g. "495,36" → European decimal
+      if (/,\d{1,2}$/.test(s)) s = s.replace(/\./g, "").replace(",", ".");
+      else s = s.replace(/,/g, "");
+      return parseFloat(s);
+    };
+
+    // Match any currency amount: optional symbol + digits + decimal
+    const findAmts = (str) => {
+      const rx = /[€£₹$¥]?\s*\d{1,3}(?:[.,]\d{3})*[.,]\d{1,2}(?!\d)/g;
+      return (str.match(rx) || [])
+        .map(toFloat)
+        .filter(v => !isNaN(v) && v >= 0.01 && v <= 999999.99);
+    };
+
     let amount = null;
-    
-    // Common patterns for finding total/amount
-    const amountPatterns = [
-      /total[:\s]*[₹$]?\s*(\d{1,6}\.?\d{0,2})/i,
-      /amount[:\s]*[₹$]?\s*(\d{1,6}\.?\d{0,2})/i,
-      /balance[:\s]*[₹$]?\s*(\d{1,6}\.?\d{0,2})/i,
-      /due[:\s]*[₹$]?\s*(\d{1,6}\.?\d{0,2})/i,
-      /[₹$]\s*(\d{1,6}\.\d{2})/,
-      /[₹$]\s*(\d{1,6})\.(\d{2})/,
-      /^(\d{1,6}\.\d{2})$/,
-      /(\d{1,6}\.\d{2})/,
+
+    // Priority label scan — bottom-to-top, first matching label with a number wins
+    const priorityLabels = [
+      /total\s+due/i,
+      /amount\s+due/i,
+      /grand\s+total/i,
+      /net\s+total/i,
+      /total\s+amount/i,
+      /total\s+tva/i,
+      /montant\s+total/i,
+      /\btotal\b/i,
+      /\bdue\b/i,
+      /net\s+pay/i,
+      /\bbalance\b/i,
     ];
 
-    // Search from bottom to top (total usually at bottom)
-    const reversedLines = [...lines].reverse();
-    
-    for (const pattern of amountPatterns) {
-      for (const line of reversedLines) {
-        const match = line.match(pattern);
-        if (match) {
-          let extractedAmount;
-          if (match[2]) {
-            // Pattern with cents
-            extractedAmount = parseFloat(`${match[1]}.${match[2]}`);
-          } else {
-            extractedAmount = parseFloat(match[1]);
-          }
-          
-          // Validate amount is reasonable (between $0.01 and $999,999.99)
-          if (extractedAmount && extractedAmount >= 0.01 && extractedAmount <= 999999.99) {
-            amount = extractedAmount;
-            break;
-          }
+    outer:
+    for (const labelRx of priorityLabels) {
+      for (let i = lines.length - 1; i >= 0; i--) {
+        if (!labelRx.test(lines[i])) continue;
+        // Numbers on the same line after the label
+        const afterLabel = lines[i].replace(labelRx, "");
+        const here = findAmts(afterLabel);
+        if (here.length > 0) { amount = here[here.length - 1]; break outer; }
+        // Number on the very next line
+        if (i + 1 < lines.length) {
+          const next = findAmts(lines[i + 1]);
+          if (next.length > 0) { amount = next[next.length - 1]; break outer; }
         }
       }
-      if (amount) break;
     }
 
-    // Also search entire text for currency amounts
+    // Fallback: largest amount in the bottom 40% of the receipt
     if (!amount) {
-      const currencyMatches = cleanedText.match(/[₹$]\s*(\d{1,6}\.?\d{0,2})/g);
-      if (currencyMatches && currencyMatches.length > 0) {
-        // Get the largest amount (usually the total)
-        const amounts = currencyMatches
-          .map(m => parseFloat(m.replace(/[^\d.]/g, '')))
-          .filter(a => a >= 0.01 && a <= 999999.99)
-          .sort((a, b) => b - a);
-        if (amounts.length > 0) {
-          amount = amounts[0];
-        }
-      }
+      const bottomNums = lines.slice(Math.floor(lines.length * 0.6)).flatMap(findAmts);
+      if (bottomNums.length > 0) amount = Math.max(...bottomNums);
     }
 
-    // Extract title/merchant name (usually in first few lines)
+    // Final fallback: largest amount anywhere
+    if (!amount) {
+      const allNums = lines.flatMap(findAmts);
+      if (allNums.length > 0) amount = Math.max(...allNums);
+    }
+
+    // ─── TITLE EXTRACTION ───
+    const skipRx = [
+      /^invoice/i, /^date[:\s]/i, /^table[:\s]/i, /^guests?[:\s]/i,
+      /^server[:\s]/i, /^order[:\s]/i, /^receipt/i, /^bill[:\s]/i,
+      /^transaction/i, /^ref[.:#]/i, /^no[.:#]/i, /^tel/i, /^phone/i,
+      /^fax/i, /^www\./i, /^http/i, /^[\d#]/, /^[€£₹$¥]/,
+      /^(qty|description|price|total|amount|payment|subtotal|tax|vat|tva|service)/i,
+      /^(discount|early\s+bird|taxable)/i,
+    ];
+
     let title = "";
-    const titleLines = lines.slice(0, 5); // Check first 5 lines
-    
-    for (const line of titleLines) {
-      // Skip lines that look like dates, times, addresses, or numbers only
-      if (
-        line.length >= 3 &&
-        line.length <= 60 &&
-        !/^\d+[\.\/\-]/.test(line) && // Doesn't start with date
-        !/^[₹$]/.test(line) && // Doesn't start with currency symbol
-        !/^\d+$/.test(line) && // Not just numbers
-        !/^\d+\s+(AM|PM)/i.test(line) && // Not just time
-        !/@/.test(line) // Not email
-      ) {
-        // Clean up common receipt prefixes
-        const cleanLine = line
-          .replace(/^receipt/i, '')
-          .replace(/^invoice/i, '')
-          .replace(/^transaction/i, '')
-          .trim();
-        
-        if (cleanLine.length >= 3) {
-          title = cleanLine;
-          break;
-        }
-      }
+    for (const line of lines.slice(0, 10)) {
+      if (skipRx.some(p => p.test(line))) continue;
+      if (line.length < 3 || line.length > 70) continue;
+      if (/^\d+$/.test(line) || /@/.test(line)) continue;
+      // Prefer ALL-CAPS lines (restaurant/store name pattern)
+      if (line === line.toUpperCase() && /[A-Z]{2,}/.test(line)) { title = line; break; }
+      if (!title) title = line;
     }
 
-    // Fallback: use first non-empty line or default
-    if (!title || title.length < 3) {
-      const firstValidLine = lines.find(line => 
-        line.length >= 3 && 
-        line.length <= 60 && 
-        !/^\d+/.test(line) &&
-        !/^[₹$]/.test(line)
-      );
-      title = firstValidLine || "Receipt Expense";
-    }
+    title = title
+      .replace(/^(receipt|invoice|transaction|bill)\s*/i, "")
+      .replace(/[#:]/g, "")
+      .trim()
+      .slice(0, 50);
 
-    // Clean title
-    title = title.substring(0, 50).trim();
+    if (!title || title.length < 2) title = "Receipt Expense";
 
-    return {
-      title: title || "Receipt Expense",
-      amount: amount || 0,
-      rawText: text,
-    };
+    return { title, amount: amount || 0, rawText: text };
   };
 
   // Preprocess image for better OCR (especially handwriting)
@@ -290,8 +277,8 @@ export default function ScanReceipt({
         for (let i = 0; i < d.length; i += 4) {
           // Grayscale
           const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-          // High contrast: darken darks, brighten brights
-          const contrast = Math.min(255, Math.max(0, (gray - 128) * 1.8 + 128));
+          // Mild contrast boost — aggressive values harm printed receipts
+          const contrast = Math.min(255, Math.max(0, (gray - 128) * 1.3 + 128));
           d[i] = d[i + 1] = d[i + 2] = contrast;
         }
         ctx.putImageData(imageData, 0, 0);
@@ -323,13 +310,12 @@ export default function ScanReceipt({
       // Preprocess for better OCR (especially handwriting)
       const processedImage = await preprocessImage(image);
 
-      // Run OCR with settings tuned for both printed and handwritten text
+      // Run OCR — PSM 4 (single column) handles receipt layouts better than PSM 6
       const { data } = await Tesseract.recognize(processedImage, "eng", {
         logger: () => {},
-        tessedit_pageseg_mode: "6",       // Assume a single uniform block of text
-        tessedit_ocr_engine_mode: "1",    // Neural net LSTM only (better for handwriting)
+        tessedit_pageseg_mode: "4",       // Single column of text of variable sizes
+        tessedit_ocr_engine_mode: "1",    // Neural net LSTM only
         preserve_interword_spaces: "1",
-        tessedit_char_whitelist: "",       // Allow all characters
       });
 
       const extracted = extractExpenseData(data.text);
