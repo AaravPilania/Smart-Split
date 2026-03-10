@@ -14,7 +14,7 @@ services:
       - key: JWT_SECRET
         sync: false   # Set this manually in the Render dashboard
       - key: CORS_ORIGIN
-        sync: false   # Set to your Render frontend URL after it's deployed
+        value: https://thesmartsplit.netlify.app
 
   # Frontend — Static Site
   - type: web

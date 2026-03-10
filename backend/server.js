@@ -34,11 +34,21 @@ app.use('/api/auth/', authLimiter);
 
 // CORS
 const allowedOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(',')
+  ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
   : ['http://localhost:5173', 'http://localhost:3000'];
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    // Always allow localhost in development
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    // Always allow Netlify deployments for this project
+    if (/^https:\/\/.*\.netlify\.app$/.test(origin)) return callback(null, true);
+    // Always allow Render deployments for this project
+    if (/^https:\/\/.*\.onrender\.com$/.test(origin)) return callback(null, true);
+    callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
 }));
