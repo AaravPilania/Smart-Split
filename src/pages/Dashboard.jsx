@@ -4,7 +4,7 @@ import Navbar from "../components/Navbar";
 import StatsCard from "../components/Statscard";
 import { FiTrendingUp, FiTrendingDown, FiPlus, FiClock } from "react-icons/fi";
 import { BsPeopleFill } from "react-icons/bs";
-import { API_URL, apiFetch } from "../utils/api";
+import { API_URL, apiFetch, getUser, getUserId } from "../utils/api";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -20,15 +20,15 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const userData = localStorage.getItem("user");
-    const userId = localStorage.getItem("userId");
+    const userData = getUser();
+    const userId = getUserId();
 
     if (!userData || !userId) {
       navigate("/");
       return;
     }
 
-    setUser(JSON.parse(userData));
+    setUser(userData);
     fetchDashboardData(userId);
   }, [navigate]);
 

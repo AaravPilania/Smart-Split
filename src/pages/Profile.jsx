@@ -10,7 +10,7 @@ import {
   FiX,
   FiClock,
 } from "react-icons/fi";
-import { API_URL, apiFetch } from "../utils/api";
+import { API_URL, apiFetch, getUserId } from "../utils/api";
 
 export default function Profile() {
   const [user, setUser] = useState(null);
@@ -27,7 +27,7 @@ export default function Profile() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const userIdStr = localStorage.getItem("userId");
+    const userIdStr = getUserId();
     if (!userIdStr) {
       navigate("/");
       return;

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { FiUsers, FiPlus, FiX, FiUserPlus, FiDollarSign } from "react-icons/fi";
-import { groupAPI, API_URL, apiFetch } from "../utils/api";
+import { groupAPI, API_URL, apiFetch, getUserId } from "../utils/api";
 
 export default function Groups() {
   const [groups, setGroups] = useState([]);
@@ -22,7 +22,7 @@ export default function Groups() {
   });
 
   useEffect(() => {
-    const userIdStr = localStorage.getItem("userId");
+    const userIdStr = getUserId();
     if (!userIdStr) {
       navigate("/");
       return;

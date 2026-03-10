@@ -1,12 +1,49 @@
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+// Check both storages; localStorage wins (means "remember me" was checked)
+function _storage() {
+  return localStorage.getItem('token') ? localStorage : sessionStorage;
+}
+
+export function getToken() {
+  return localStorage.getItem('token') || sessionStorage.getItem('token');
+}
+
+export function getUserId() {
+  return localStorage.getItem('userId') || sessionStorage.getItem('userId');
+}
+
+export function getUser() {
+  const raw = localStorage.getItem('user') || sessionStorage.getItem('user');
+  return raw ? JSON.parse(raw) : null;
+}
+
+/** Called after login/signup. remember=true → localStorage, false → sessionStorage */
+export function setAuthData(token, user, userId, remember) {
+  const keep = remember ? localStorage : sessionStorage;
+  const drop = remember ? sessionStorage : localStorage;
+  ['token', 'user', 'userId'].forEach(k => drop.removeItem(k));
+  keep.setItem('token', token);
+  keep.setItem('user', JSON.stringify(user));
+  keep.setItem('userId', userId);
+}
+
+/** Clear auth from both storages (used on logout) */
+export function clearAuth() {
+  ['token', 'user', 'userId'].forEach(k => {
+    localStorage.removeItem(k);
+    sessionStorage.removeItem(k);
+  });
+}
+
+/** @deprecated use setAuthData instead */
 export function setAuthToken(token) {
-  if (token) localStorage.setItem('token', token);
-  else localStorage.removeItem('token');
+  if (token) _storage().setItem('token', token);
+  else { localStorage.removeItem('token'); sessionStorage.removeItem('token'); }
 }
 
 export function apiFetch(url, options = {}) {
-  const token = localStorage.getItem('token');
+  const token = getToken();
   return fetch(url, {
     ...options,
     headers: {

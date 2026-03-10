@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { API_URL, setAuthToken } from "../utils/api";
+import { API_URL, setAuthData } from "../utils/api";
 
 const Home = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -9,6 +9,7 @@ const Home = () => {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -34,9 +35,7 @@ const Home = () => {
         }
 
         // Store user data
-        setAuthToken(data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        localStorage.setItem("userId", data.user.id);
+        setAuthData(data.token, data.user, data.user.id, rememberMe);
 
         // Navigate to dashboard
         navigate("/dashboard");
@@ -61,9 +60,7 @@ const Home = () => {
         }
 
         // Store user data (after signup)
-        setAuthToken(data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        localStorage.setItem("userId", data.user.id);
+        setAuthData(data.token, data.user, data.user.id, rememberMe);
 
         // Navigate to dashboard
         navigate("/dashboard");
@@ -190,10 +187,22 @@ const Home = () => {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 mb-4 rounded-lg bg-white/90 text-black focus:outline-none focus:ring-2 focus:ring-pink-400 placeholder-gray-500"
+              className="w-full px-3 py-2 mb-3 rounded-lg bg-white/90 text-black focus:outline-none focus:ring-2 focus:ring-pink-400 placeholder-gray-500"
               required
               minLength={6}
             />
+
+            {isLogin && (
+              <label className="flex items-center gap-2 mb-4 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 accent-pink-500 rounded"
+                />
+                <span className="text-sm text-white/80">Remember me</span>
+              </label>
+            )}
 
             <button
               type="submit"

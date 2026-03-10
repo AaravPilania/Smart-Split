@@ -4,13 +4,13 @@ import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FiUser, FiLogOut, FiCamera } from "react-icons/fi";
 import ScanReceipt from "./ScanReceipt";
-import { API_URL, apiFetch, setAuthToken } from "../utils/api";
+import { API_URL, apiFetch, clearAuth, getUserId } from "../utils/api";
 
 export default function Navbar() {
   const navigate = useNavigate();
   const [showScanModal, setShowScanModal] = useState(false);
   const [groups, setGroups] = useState([]);
-  const userId = localStorage.getItem("userId");
+  const userId = getUserId();
   const [avatar, setAvatar] = useState(null);
 
   useEffect(() => {
@@ -34,9 +34,8 @@ export default function Navbar() {
   }, []);
 
   const handleLogout = () => {
-    setAuthToken(null);
-    localStorage.removeItem("user");
-    localStorage.removeItem("userId");
+    clearAuth();
+    localStorage.removeItem("selectedAvatar");
     navigate("/");
   };
 

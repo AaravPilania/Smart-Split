@@ -9,7 +9,7 @@ import {
   FiUser,
   FiDollarSign,
 } from "react-icons/fi";
-import { API_URL, apiFetch } from "../utils/api";
+import { API_URL, apiFetch, getUserId } from "../utils/api";
 
 export default function Expenses() {
   const [expenses, setExpenses] = useState([]);
@@ -29,7 +29,7 @@ export default function Expenses() {
   });
 
   useEffect(() => {
-    const userIdStr = localStorage.getItem("userId");
+    const userIdStr = getUserId();
     if (!userIdStr) {
       navigate("/");
       return;
