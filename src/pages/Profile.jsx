@@ -464,10 +464,11 @@ export default function Profile() {
             <button
               type="button"
               onClick={() => saveAvatar("")}
-              className="p-3 rounded-xl border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600 text-sm text-gray-500 dark:text-gray-400 flex flex-col items-center justify-center gap-1"
+              className="p-1 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-red-400 dark:hover:border-red-500 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 flex flex-col items-center justify-center gap-1 h-[72px] w-[72px] transition group"
+              title="Remove avatar"
             >
-              <span className="text-xl">✕</span>
-              Remove
+              <FiX className="text-lg group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-medium tracking-wide">Remove</span>
             </button>
           </div>
         </div>
