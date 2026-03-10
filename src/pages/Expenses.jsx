@@ -11,6 +11,7 @@ import {
   FiDollarSign,
 } from "react-icons/fi";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
+import { useTheme, getGradientStyle } from "../utils/theme";
 
 export default function Expenses() {
   const [expenses, setExpenses] = useState([]);
@@ -21,6 +22,7 @@ export default function Expenses() {
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { theme } = useTheme();
 
   const [createForm, setCreateForm] = useState({
     title: "",
@@ -192,7 +194,7 @@ export default function Expenses() {
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+          <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${theme.spinner}`}></div>
         </div>
       </div>
     );
@@ -219,7 +221,8 @@ export default function Expenses() {
               }
               setShowCreateModal(true);
             }}
-            className="bg-gradient-to-r from-pink-500 to-orange-400 text-white px-5 py-2.5 rounded-lg shadow-md flex items-center gap-2 hover:shadow-lg transition"
+            className="text-white px-5 py-2.5 rounded-lg shadow-md flex items-center gap-2 hover:shadow-lg transition disabled:opacity-50"
+            style={getGradientStyle(theme)}
             disabled={!selectedGroupId}
           >
             <FiPlus /> Add Expense
@@ -252,7 +255,7 @@ export default function Expenses() {
               No groups found.{" "}
               <button
                 onClick={() => navigate("/groups")}
-                className="text-pink-500 hover:underline"
+                className={`${theme.text} hover:underline`}
               >
                 Create a group first
               </button>
@@ -330,7 +333,7 @@ export default function Expenses() {
                     {expense.splitBetween?.map((split, idx) => (
                       <span
                         key={idx}
-                        className="px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-sm"
+                        className={`px-3 py-1 ${theme.bgActive} ${theme.text} rounded-full text-sm`}
                       >
                         {split.user?.name || "Unknown"}:{" "}
                         {formatCurrency(parseFloat(split.amount || 0))}
@@ -426,7 +429,7 @@ export default function Expenses() {
                   <button
                     type="button"
                     onClick={addSplitRow}
-                    className="text-sm text-pink-500 hover:text-pink-600 flex items-center gap-1"
+                    className={`text-sm ${theme.text} flex items-center gap-1`}
                   >
                     <FiPlus /> Add Person
                   </button>
@@ -507,7 +510,8 @@ export default function Expenses() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-lg hover:opacity-90"
+                  className="flex-1 px-4 py-2 text-white rounded-lg hover:opacity-90"
+                  style={getGradientStyle(theme)}
                 >
                   Create Expense
                 </button>

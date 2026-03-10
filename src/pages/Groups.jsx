@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
 import { FiUsers, FiPlus, FiX, FiUserPlus, FiDollarSign } from "react-icons/fi";
 import { groupAPI, API_URL, apiFetch, getUserId } from "../utils/api";
+import { useTheme, getGradientStyle } from "../utils/theme";
 
 export default function Groups() {
   const [groups, setGroups] = useState([]);
@@ -12,6 +13,7 @@ export default function Groups() {
   const [showAddMemberModal, setShowAddMemberModal] = useState(null);
   const [userId, setUserId] = useState(null);
   const navigate = useNavigate();
+  const { theme } = useTheme();
 
   const [createForm, setCreateForm] = useState({
     name: "",
@@ -123,7 +125,7 @@ export default function Groups() {
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+          <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${theme.spinner}`}></div>
         </div>
       </div>
     );
@@ -144,7 +146,8 @@ export default function Groups() {
           {/* Create Group Button */}
           <button
             onClick={() => setShowCreateModal(true)}
-            className="bg-gradient-to-r from-pink-500 to-orange-400 text-white px-5 py-2.5 rounded-lg shadow-md flex items-center gap-2 hover:shadow-lg transition"
+            className="text-white px-5 py-2.5 rounded-lg shadow-md flex items-center gap-2 hover:shadow-lg transition"
+            style={getGradientStyle(theme)}
           >
             <FiPlus /> Create Group
           </button>
@@ -186,14 +189,14 @@ export default function Groups() {
 
                 <div className="mb-4">
                   <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                    <FiUsers className="text-pink-500" />
+                    <FiUsers className={theme.text} />
                     <span>{group.members?.length || 0} members</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {group.members?.slice(0, 3).map((member) => (
                       <span
                         key={member.id}
-                        className="px-2 py-1 bg-pink-100 text-pink-700 rounded-full text-xs"
+                        className={`px-2 py-1 ${theme.bgActive} ${theme.text} rounded-full text-xs`}
                       >
                         {member.name}
                       </span>
@@ -209,14 +212,15 @@ export default function Groups() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => navigate(`/expenses?group=${group.id}`)}
-                    className="flex-1 bg-gradient-to-r from-pink-500 to-orange-400 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition flex items-center justify-center gap-1"
+                    className="flex-1 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition flex items-center justify-center gap-1"
+                    style={getGradientStyle(theme)}
                   >
                     <FiDollarSign /> Expenses
                   </button>
                   {group.createdBy?.id === userId ? (
                     <button
                       onClick={() => setShowAddMemberModal(group.id)}
-                      className="flex-1 bg-white border border-pink-500 text-pink-500 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-pink-50 transition flex items-center justify-center gap-1"
+                      className={`flex-1 bg-white border ${theme.border} ${theme.text} px-4 py-2 rounded-lg text-sm font-semibold ${theme.bgHover} transition flex items-center justify-center gap-1`}
                     >
                       <FiUserPlus /> Add Member
                     </button>
@@ -297,7 +301,8 @@ export default function Groups() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-lg hover:opacity-90"
+                  className="flex-1 px-4 py-2 text-white rounded-lg hover:opacity-90"
+                  style={getGradientStyle(theme)}
                 >
                   Create Group
                 </button>
@@ -351,7 +356,8 @@ export default function Groups() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-lg hover:opacity-90"
+                  className="flex-1 px-4 py-2 text-white rounded-lg hover:opacity-90"
+                  style={getGradientStyle(theme)}
                 >
                   Add Member
                 </button>
@@ -367,6 +373,7 @@ export default function Groups() {
 
 // Component to show all groups for discovery
 function AllGroupsSection({ userId, onJoinRequest }) {
+  const { theme } = useTheme();
   const [allGroups, setAllGroups] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAll, setShowAll] = useState(false);
@@ -421,7 +428,7 @@ function AllGroupsSection({ userId, onJoinRequest }) {
             setShowAll(true);
             fetchAllGroups();
           }}
-          className="text-pink-600 hover:text-pink-700 font-semibold"
+          className={`${theme.textBtn} font-semibold`}
         >
           Browse All Groups to Join →
         </button>
@@ -443,7 +450,7 @@ function AllGroupsSection({ userId, onJoinRequest }) {
 
       {loading ? (
         <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500 mx-auto"></div>
+          <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${theme.spinner} mx-auto`}></div>
         </div>
       ) : allGroups.length === 0 ? (
         <div className="bg-white rounded-xl p-8 text-center text-gray-500">

@@ -1,8 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 import { FiHome, FiUsers, FiDollarSign, FiUser } from "react-icons/fi";
+import { useTheme } from "../utils/theme";
 
 export default function BottomNav() {
   const { pathname } = useLocation();
+  const { theme } = useTheme();
 
   const tabs = [
     { to: "/dashboard", icon: <FiHome size={22} />, label: "Home" },
@@ -23,10 +25,10 @@ export default function BottomNav() {
             key={to}
             to={to}
             className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-0.5 text-xs font-medium transition-colors ${
-              active ? "text-pink-500" : "text-gray-400"
+              active ? theme.text : "text-gray-400"
             }`}
           >
-            <span className={active ? "text-pink-500" : "text-gray-400"}>
+            <span className={active ? theme.text : "text-gray-400"}>
               {icon}
             </span>
             {label}

@@ -5,9 +5,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { FiUser, FiLogOut, FiCamera } from "react-icons/fi";
 import ScanReceipt from "./ScanReceipt";
 import { API_URL, apiFetch, clearAuth, getUserId } from "../utils/api";
+import { useTheme, getGradientStyle } from "../utils/theme";
 
 export default function Navbar() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [showScanModal, setShowScanModal] = useState(false);
   const [groups, setGroups] = useState([]);
   const userId = getUserId();
@@ -77,13 +79,13 @@ export default function Navbar() {
             to="/dashboard"
             className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition"
           >
-            <div className="bg-gradient-to-br from-pink-500 to-orange-400 text-white rounded-lg h-8 w-8 flex items-center justify-center text-lg font-bold shadow-md">
+            <div className="text-white rounded-lg h-8 w-8 flex items-center justify-center text-lg font-bold shadow-md" style={getGradientStyle(theme, "to bottom right")}>
               ⚡
             </div>
             <h1 className="text-xl font-semibold text-gray-700">Smart Split</h1>
           </Link>
 
-          {/* Right items */}
+          {/* Right items */}}
           <div className="flex items-center gap-4 font-medium">
             <Link className={`group ${navItemClasses}`} to="/dashboard">
               <span className={hoverText}>Dashboard</span>
@@ -102,7 +104,8 @@ export default function Navbar() {
 
             <button
               onClick={handleScanClick}
-              className="bg-gradient-to-r from-pink-500 to-orange-400 text-white px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 ease-out flex items-center gap-2"
+              className="text-white px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 ease-out flex items-center gap-2"
+              style={getGradientStyle(theme)}
             >
               <FiCamera />
               <span>Scan Receipt</span>
@@ -110,7 +113,7 @@ export default function Navbar() {
 
             <button
               onClick={() => navigate("/profile")}
-              className="px-3 py-2 rounded-lg text-pink-600 hover:bg-pink-50 transition-all duration-300 ease-out flex items-center gap-2"
+              className={`px-3 py-2 rounded-lg ${theme.textBtn} ${theme.bgHover} transition-all duration-300 ease-out flex items-center gap-2`}
               title="Profile Settings"
             >
               {avatar ? (
@@ -137,16 +140,17 @@ export default function Navbar() {
             to="/dashboard"
             className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition"
           >
-            <div className="bg-gradient-to-br from-pink-500 to-orange-400 text-white rounded-lg h-8 w-8 flex items-center justify-center text-lg font-bold shadow-md">
+            {/* Mobile logo icon */}
+            <div className="text-white rounded-lg h-8 w-8 flex items-center justify-center text-lg font-bold shadow-md" style={getGradientStyle(theme, "to bottom right")}>
               ⚡
             </div>
-            <h1 className="text-lg font-semibold text-gray-700 whitespace-nowrap">Smart Split</h1>
           </Link>
 
           <div className="flex items-center gap-2">
             <button
               onClick={handleScanClick}
-              className="bg-gradient-to-r from-pink-500 to-orange-400 text-white px-3 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 ease-out flex items-center gap-1.5 text-sm"
+              className="text-white px-3 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 ease-out flex items-center gap-1.5 text-sm"
+              style={getGradientStyle(theme)}
             >
               <FiCamera size={16} />
               <span>Scan</span>
@@ -154,11 +158,11 @@ export default function Navbar() {
 
             <button
               onClick={() => navigate("/profile")}
-              className="p-2 rounded-lg text-pink-600 hover:bg-pink-50 transition"
+              className={`p-2 rounded-lg ${theme.textBtn} transition`}
               title="Profile"
             >
               {avatar ? (
-                <img src={avatar} alt="avatar" className="h-7 w-7 rounded-full border border-pink-300 object-cover" />
+                <img src={avatar} alt="avatar" className={`h-7 w-7 rounded-full border ${theme.border} object-cover`} />
               ) : (
                 <FiUser size={20} />
               )}

@@ -17,15 +17,7 @@ import {
 } from "react-icons/fi";
 import { QRCodeSVG } from "qrcode.react";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
-
-const ACCENT_PRESETS = [
-  { label: "Pink",   from: "#ec4899", to: "#f97316", key: "pink" },
-  { label: "Violet", from: "#8b5cf6", to: "#ec4899", key: "violet" },
-  { label: "Ocean",  from: "#0ea5e9", to: "#6366f1", key: "ocean" },
-  { label: "Emerald",from: "#10b981", to: "#0ea5e9", key: "emerald" },
-  { label: "Sunset", from: "#f59e0b", to: "#ef4444", key: "sunset" },
-  { label: "Night",  from: "#1e293b", to: "#475569", key: "night" },
-];
+import { ACCENT_PRESETS, getGradientStyle, useTheme } from "../utils/theme";
 
 export default function Profile() {
   const [user, setUser] = useState(null);
@@ -39,16 +31,17 @@ export default function Profile() {
     password: "",
   });
   const [avatar, setAvatar] = useState(localStorage.getItem("selectedAvatar") || "");
-  const [accentKey, setAccentKey] = useState(localStorage.getItem("accentColor") || "pink");
+  const { theme, accentKey } = useTheme();
+  const [localAccentKey, setLocalAccentKey] = useState(localStorage.getItem("accentColor") || "pink");
   const [idExpanded, setIdExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const navigate = useNavigate();
 
-  const accent = ACCENT_PRESETS.find((p) => p.key === accentKey) || ACCENT_PRESETS[0];
   const saveAccent = (key) => {
-    setAccentKey(key);
+    setLocalAccentKey(key);
     localStorage.setItem("accentColor", key);
+    window.dispatchEvent(new Event("theme-changed"));
   };
 
   const truncateId = (id) => {
@@ -250,7 +243,7 @@ export default function Profile() {
         {/* User ID Display */}
         <div
           className="rounded-xl shadow-lg p-4 sm:p-6 mb-6 text-white"
-          style={{ background: `linear-gradient(to right, ${accent.from}, ${accent.to})` }}
+          style={getGradientStyle(theme)}
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
@@ -482,14 +475,14 @@ export default function Profile() {
           <h3 className="text-xl font-bold text-gray-800 mb-1">Profile Theme Color</h3>
           <p className="text-sm text-gray-500 mb-4">Changes the color of your User ID banner</p>
           <div className="flex gap-3 flex-wrap">
-            {ACCENT_PRESETS.map((preset) => (
+            {Object.values(ACCENT_PRESETS).map((preset) => (
               <button
                 key={preset.key}
                 type="button"
                 onClick={() => saveAccent(preset.key)}
                 title={preset.label}
-                className={`h-10 w-10 rounded-full border-4 transition ${accentKey === preset.key ? "border-gray-800 scale-110" : "border-transparent hover:scale-105"}`}
-                style={{ background: `linear-gradient(135deg, ${preset.from}, ${preset.to})` }}
+                className={`h-10 w-10 rounded-full border-4 transition ${localAccentKey === preset.key ? "border-gray-800 scale-110" : "border-transparent hover:scale-105"}`}
+                style={{ background: `linear-gradient(135deg, ${preset.gradFrom}, ${preset.gradTo})` }}
               />
             ))}
           </div>

@@ -6,6 +6,7 @@ import StatsCard from "../components/Statscard";
 import { FiTrendingUp, FiTrendingDown, FiPlus, FiClock, FiUser } from "react-icons/fi";
 import { BsPeopleFill } from "react-icons/bs";
 import { API_URL, apiFetch, getUser, getUserId } from "../utils/api";
+import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -20,6 +21,7 @@ export default function Dashboard() {
   const [groups, setGroups] = useState([]);
   const [avatar, setAvatar] = useState(localStorage.getItem("selectedAvatar") || "");
   const navigate = useNavigate();
+  const { theme } = useTheme();
 
   useEffect(() => {
     const onAvatarChanged = () => setAvatar(localStorage.getItem("selectedAvatar") || "");
@@ -159,9 +161,9 @@ export default function Dashboard() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-r from-pink-300 via-pink-200 to-orange-200 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={getPageBgStyle(theme)}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
+          <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${theme.spinner} mx-auto`}></div>
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
@@ -169,7 +171,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-pink-300 via-pink-200 to-orange-200">
+    <div className="min-h-screen" style={getPageBgStyle(theme)}>
       <Navbar />
 
       <div className="max-w-7xl mx-auto mt-4 sm:mt-10 px-4 sm:px-6 pb-24 md:pb-10">
@@ -178,9 +180,9 @@ export default function Dashboard() {
           <div className="flex items-center gap-4 min-w-0 flex-1">
             {/* Avatar */}
             {avatar ? (
-              <img src={avatar} alt="avatar" className="h-14 w-14 rounded-full border-2 border-pink-300 shadow flex-shrink-0 object-cover" />
+              <img src={avatar} alt="avatar" className={`h-14 w-14 rounded-full border-2 ${theme.border} shadow flex-shrink-0 object-cover`} />
             ) : (
-              <div className="h-14 w-14 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center text-2xl font-bold flex-shrink-0 border-2 border-pink-200 shadow">
+              <div className={`h-14 w-14 rounded-full ${theme.bgLight} ${theme.text} flex items-center justify-center text-2xl font-bold flex-shrink-0 border-2 ${theme.border} shadow`}>
                 {user.name?.[0]?.toUpperCase() || <FiUser />}
               </div>
             )}
@@ -191,7 +193,7 @@ export default function Dashboard() {
               <p className="text-gray-700 mb-1 text-base sm:text-lg font-semibold">
                 Here's your expense overview
               </p>
-              <p className="font-mono text-pink-600 text-xs">
+              <p className={`font-mono ${theme.text} text-xs`}>
                 ID: {user.id?.slice(0,6)}...{user.id?.slice(-4)}
               </p>
             </div>
@@ -200,7 +202,7 @@ export default function Dashboard() {
 
         {loading ? (
           <div className="text-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
+            <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${theme.spinner} mx-auto`}></div>
             <p className="mt-4 text-gray-600">Loading your data...</p>
           </div>
         ) : (
@@ -211,7 +213,7 @@ export default function Dashboard() {
                 title="Total Expenses"
                 value={formatCurrency(stats.totalExpenses)}
                 subtext={`Across ${groups.length} group${groups.length !== 1 ? 's' : ''}`}
-                icon={<FiTrendingUp className="text-pink-500 text-xl" />}
+                icon={<FiTrendingUp className={`${theme.text} text-xl`} />}
               />
 
               <StatsCard
@@ -242,7 +244,8 @@ export default function Dashboard() {
               {/* Add Expense */}
               <button
                 onClick={() => navigate("/expenses")}
-                className="bg-gradient-to-r from-pink-500 to-orange-400 rounded-xl shadow-lg p-6 flex items-center justify-center cursor-pointer hover:opacity-90 hover:shadow-xl transition text-white text-lg font-semibold"
+                className="rounded-xl shadow-lg p-6 flex items-center justify-center cursor-pointer hover:opacity-90 hover:shadow-xl transition text-white text-lg font-semibold"
+                style={getGradientStyle(theme)}
               >
                 <FiPlus className="mr-2" /> Add New Expense
               </button>
