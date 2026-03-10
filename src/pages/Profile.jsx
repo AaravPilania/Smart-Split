@@ -437,7 +437,7 @@ export default function Profile() {
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Choose an abstract avatar or upload your own photo</p>
 
           {/* Upload button */}
-          <label className="inline-flex items-center gap-2 cursor-pointer bg-gradient-to-r from-pink-500 to-orange-400 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow hover:opacity-90 transition mb-4">
+          <label className="inline-flex items-center gap-2 cursor-pointer text-white text-sm font-semibold px-4 py-2 rounded-lg shadow hover:opacity-90 transition mb-4" style={getGradientStyle(theme)}>
             <FiUpload />
             Upload Photo
             <input
@@ -464,11 +464,13 @@ export default function Profile() {
             <button
               type="button"
               onClick={() => saveAvatar("")}
-              className="p-1 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-red-400 dark:hover:border-red-500 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 flex flex-col items-center justify-center gap-1 h-[72px] w-[72px] transition group"
+              className="p-1 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-red-400 dark:hover:border-red-500 transition group"
               title="Remove avatar"
             >
-              <FiX className="text-lg group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-medium tracking-wide">Remove</span>
+              <div className="h-16 w-16 rounded-lg flex flex-col items-center justify-center gap-1 text-gray-400 dark:text-gray-500 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors">
+                <FiX className="text-xl group-hover:scale-110 transition-transform" />
+                <span className="text-[10px] font-medium tracking-wide">Remove</span>
+              </div>
             </button>
           </div>
         </div>

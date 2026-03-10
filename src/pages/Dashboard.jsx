@@ -11,6 +11,7 @@ import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [stats, setStats] = useState({
     totalExpenses: 0,
     youOwe: 0,
@@ -161,8 +162,10 @@ export default function Dashboard() {
         }
       });
       setMonthlyChartData(Object.values(monthBuckets));
+      setFetchError(false);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
+      setFetchError(true);
     } finally {
       setLoading(false);
     }
@@ -231,6 +234,23 @@ export default function Dashboard() {
           <div className="text-center py-20">
             <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${theme.spinner} mx-auto`}></div>
             <p className="mt-4 text-gray-600 dark:text-gray-400">Loading your data...</p>
+          </div>
+        ) : fetchError ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-5">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-8 max-w-sm w-full text-center shadow">
+              <div className="text-4xl mb-3">⚠️</div>
+              <h3 className="text-lg font-bold text-red-700 dark:text-red-400 mb-2">Server Unreachable</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
+                Your data is <span className="font-semibold text-green-600 dark:text-green-400">safe in the cloud</span> — the server is temporarily offline. This usually resolves in 30–60 seconds.
+              </p>
+              <button
+                onClick={() => { const uid = getUserId(); if (uid) fetchDashboardData(uid); }}
+                className="w-full py-2.5 rounded-xl text-white font-semibold shadow hover:opacity-90 transition"
+                style={getGradientStyle(theme)}
+              >
+                Retry Now
+              </button>
+            </div>
           </div>
         ) : (
           <>

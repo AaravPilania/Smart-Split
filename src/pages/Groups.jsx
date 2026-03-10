@@ -10,6 +10,7 @@ import { simplifyDebts } from "../utils/debts";
 export default function Groups() {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(null);
   const [userId, setUserId] = useState(null);
@@ -71,8 +72,10 @@ export default function Groups() {
       if (!response.ok) throw new Error("Failed to fetch groups");
       const data = await response.json();
       setGroups(data.groups || []);
+      setFetchError(false);
     } catch (error) {
       console.error("Error fetching groups:", error);
+      setFetchError(true);
     } finally {
       setLoading(false);
     }
@@ -184,7 +187,24 @@ export default function Groups() {
         </div>
 
         {/* Groups List */}
-        {groups.length === 0 ? (
+        {fetchError ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-5">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-8 max-w-sm w-full text-center shadow">
+              <div className="text-4xl mb-3">⚠️</div>
+              <h3 className="text-lg font-bold text-red-700 dark:text-red-400 mb-2">Server Unreachable</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
+                Your groups are <span className="font-semibold text-green-600 dark:text-green-400">safe in the cloud</span> — the server is temporarily offline. Usually resolves in 30–60 seconds.
+              </p>
+              <button
+                onClick={() => { if (userId) fetchGroups(userId); }}
+                className="w-full py-2.5 rounded-xl text-white font-semibold shadow hover:opacity-90 transition"
+                style={getGradientStyle(theme)}
+              >
+                Retry Now
+              </button>
+            </div>
+          </div>
+        ) : groups.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm p-14 flex flex-col items-center justify-center">
             <div className="text-gray-400 text-5xl mb-3">
               <FiUsers />
