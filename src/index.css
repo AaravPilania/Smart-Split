@@ -19,3 +19,67 @@ body {
 .dark {
   color-scheme: dark;
 }
+
+/* ─── Login page animated gradient background ─────────────────── */
+.home-bg {
+  background: #0d0818;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.55;
+  will-change: transform;
+}
+
+.blob-1 {
+  width: 70vw;
+  height: 70vw;
+  max-width: 700px;
+  max-height: 700px;
+  top: -15%;
+  left: -10%;
+  background: radial-gradient(circle, #7c3aed 0%, #4f23a0 60%, transparent 100%);
+  animation: blobFloat1 14s ease-in-out infinite;
+}
+
+.blob-2 {
+  width: 60vw;
+  height: 60vw;
+  max-width: 620px;
+  max-height: 620px;
+  bottom: -10%;
+  right: -8%;
+  background: radial-gradient(circle, #f97316 0%, #ec4899 50%, transparent 100%);
+  animation: blobFloat2 17s ease-in-out infinite;
+}
+
+.blob-3 {
+  width: 45vw;
+  height: 45vw;
+  max-width: 480px;
+  max-height: 480px;
+  top: 45%;
+  left: 35%;
+  background: radial-gradient(circle, #ec4899 0%, #a855f7 55%, transparent 100%);
+  animation: blobFloat3 20s ease-in-out infinite;
+  opacity: 0.35;
+}
+
+@keyframes blobFloat1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(6%, 8%) scale(1.07); }
+  66%       { transform: translate(-4%, 12%) scale(0.95); }
+}
+
+@keyframes blobFloat2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%       { transform: translate(-8%, -6%) scale(1.04); }
+  66%       { transform: translate(5%, -10%) scale(1.09); }
+}
+
+@keyframes blobFloat3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(-10%, 8%) scale(1.12); }
+}

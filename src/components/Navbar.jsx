@@ -144,7 +144,21 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="w-full bg-white/90 dark:bg-gray-900/90 backdrop-blur-md shadow-sm sticky top-0 z-40 border-b border-gray-200/60 dark:border-gray-800/60 transition-colors duration-200">
+      <header className="w-full sticky top-0 z-40 transition-colors duration-200"
+        style={{
+          background: isDark
+            ? "rgba(15,15,25,0.72)"
+            : "rgba(255,255,255,0.72)",
+          backdropFilter: "blur(20px) saturate(180%)",
+          WebkitBackdropFilter: "blur(20px) saturate(180%)",
+          borderBottom: isDark
+            ? "1px solid rgba(255,255,255,0.07)"
+            : "1px solid rgba(0,0,0,0.08)",
+          boxShadow: isDark
+            ? "0 1px 20px rgba(0,0,0,0.35)"
+            : "0 1px 20px rgba(0,0,0,0.07)",
+        }}
+      >
 
         {/* â”€â”€ Desktop (md+) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="hidden md:flex max-w-6xl mx-auto px-6 h-16 items-center justify-between">

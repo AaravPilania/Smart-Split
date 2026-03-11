@@ -58,20 +58,16 @@ const Home = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden" style={{ background: "#0f0a1e" }}>
-      {/* Video background */}
-      <video
-        className="absolute inset-0 w-full h-full object-cover opacity-25"
-        src="/topo.mp4"
-        autoPlay loop muted playsInline aria-hidden preload="auto"
-      />
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden home-bg">
+      {/* Animated wavy gradient blobs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="blob blob-1" />
+        <div className="blob blob-2" />
+        <div className="blob blob-3" />
+      </div>
 
-      {/* Layered overlays */}
-      <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(88,28,200,0.55) 0%, rgba(15,10,30,0.75) 50%, rgba(120,40,10,0.4) 100%)" }} />
-      {/* Ambient glow orbs */}
-      <div className="absolute -top-32 left-1/4 w-[600px] h-[600px] bg-purple-600/20 rounded-full blur-[130px] pointer-events-none" />
-      <div className="absolute -bottom-32 right-1/4 w-[500px] h-[500px] bg-orange-500/15 rounded-full blur-[110px] pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-pink-600/10 rounded-full blur-[90px] pointer-events-none" />
+      {/* Noise/texture overlay */}
+      <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E')" }} />
 
       <div className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-10 flex flex-col lg:flex-row items-center gap-12 lg:gap-20 min-h-screen lg:min-h-0">
 

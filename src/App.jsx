@@ -21,19 +21,32 @@ function PublicRoute({ element }) {
 }
 
 function WakingBanner() {
-  const [waking, setWaking] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const [shown, setShown] = useState(false); // show at most once per session
 
   useEffect(() => {
-    const handler = (e) => setWaking(e.detail.waking);
+    const handler = (e) => {
+      if (e.detail.waking) {
+        if (!shown) { setVisible(true); setShown(true); }
+      } else {
+        // Delay hiding so user can read it
+        setTimeout(() => setVisible(false), 3500);
+      }
+    };
     window.addEventListener('server-waking', handler);
     return () => window.removeEventListener('server-waking', handler);
-  }, []);
+  }, [shown]);
 
-  if (!waking) return null;
   return (
-    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 dark:bg-gray-800 text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl border border-gray-700 animate-pulse pointer-events-none">
-      <span className="inline-block h-2.5 w-2.5 rounded-full bg-yellow-400 animate-ping" />
-      Server is waking up — this takes ~30 s on the free tier…
+    <div
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 bg-gray-900 text-white text-sm font-medium px-5 py-3 rounded-full shadow-2xl border border-white/10 pointer-events-none transition-all duration-500"
+      style={{ opacity: visible ? 1 : 0, transform: `translateX(-50%) translateY(${visible ? 0 : 24}px)` }}
+    >
+      <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75" />
+        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-400" />
+      </span>
+      Server is waking up — may take ~30 s on the free tier
     </div>
   );
 }
