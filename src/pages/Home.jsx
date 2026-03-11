@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiMail, FiLock, FiUser, FiEye, FiEyeOff, FiArrowRight, FiCheck } from "react-icons/fi";
 import { API_URL, setAuthData } from "../utils/api";
@@ -33,21 +33,17 @@ const Home = () => {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
       const endpoint = isLogin ? "/auth/login" : "/auth/signup";
       const body = isLogin ? { email, password } : { email, password, name };
       if (!isLogin && !name.trim()) throw new Error("Name is required");
-
       const response = await fetch(`${API_URL}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || (isLogin ? "Login failed" : "Registration failed"));
-
       setAuthData(data.token, data.user, data.user.id, rememberMe);
       navigate("/dashboard");
     } catch (err) {
@@ -57,223 +53,205 @@ const Home = () => {
     }
   };
 
+  const gradientText = {
+    background: "linear-gradient(90deg, #f472b6 0%, #c084fc 45%, #fb923c 100%)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    backgroundClip: "text",
+  };
+
+  const cardStyle = {
+    background: "rgba(30,18,60,0.88)",
+    backdropFilter: "blur(48px)",
+    WebkitBackdropFilter: "blur(48px)",
+    border: "1px solid rgba(255,255,255,0.14)",
+  };
+
+  const FormCard = ({ compact = false }) => (
+    <div className={`rounded-3xl overflow-hidden shadow-2xl shadow-black/70`} style={cardStyle}>
+      <div className="h-[3px]" style={{ background: "linear-gradient(90deg, #ec4899, #a855f7, #f97316)" }} />
+      <div className={compact ? "p-6" : "p-7 sm:p-8"}>
+        <h2 className={`${compact ? "text-xl" : "text-2xl"} font-bold text-white`}>
+          {isLogin ? "Welcome back" : "Create account"}
+        </h2>
+        <p className={`${compact ? "text-xs" : "text-sm"} text-white/60 mt-1 mb-5`}>
+          {isLogin ? "Sign in to your Smart Split account" : "Join Smart Split — it's free forever"}
+        </p>
+
+        <div className="flex p-1 mb-5 gap-1 rounded-2xl"
+          style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}>
+          {[["Sign In", true], ["Register", false]].map(([label, val]) => (
+            <button key={label} onClick={() => { setIsLogin(val); setError(""); }}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                isLogin === val ? "bg-white text-gray-900 shadow-sm" : "text-white/55 hover:text-white/80"
+              }`}>{label}</button>
+          ))}
+        </div>
+
+        {error && (
+          <div className="mb-4 px-4 py-3 rounded-xl flex items-start gap-2.5 text-sm text-red-300"
+            style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.22)" }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 flex-shrink-0" />
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-3.5">
+          {!isLogin && (
+            <AuthInput icon={<FiUser size={15} />} type="text" placeholder="Full name"
+              value={name} onChange={(e) => setName(e.target.value)} required />
+          )}
+          <AuthInput icon={<FiMail size={15} />} type="email" placeholder="Email address"
+            value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <AuthInput
+            icon={<FiLock size={15} />}
+            type={showPassword ? "text" : "password"}
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={6}
+            suffix={
+              <button type="button" onClick={() => setShowPassword((p) => !p)}
+                className="text-white/50 hover:text-white/80 transition" tabIndex={-1}>
+                {showPassword ? <FiEyeOff size={15} /> : <FiEye size={15} />}
+              </button>
+            }
+          />
+          {isLogin && (
+            <label className="flex items-center gap-2.5 cursor-pointer pt-0.5 select-none">
+              <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-3.5 h-3.5 rounded accent-pink-500" />
+              <span className="text-xs text-white/60">Keep me signed in</span>
+            </label>
+          )}
+          <button type="submit" disabled={loading}
+            className="w-full py-3.5 text-white text-sm font-bold rounded-xl shadow-lg hover:opacity-90 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-1"
+            style={{ background: "linear-gradient(135deg, #ec4899 0%, #a855f7 50%, #f97316 100%)" }}>
+            {loading ? (
+              <>
+                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                {isLogin ? "Signing in…" : "Creating account…"}
+              </>
+            ) : (
+              <>{isLogin ? "Sign In" : "Create Account"}<FiArrowRight size={16} /></>
+            )}
+          </button>
+        </form>
+
+        <p className="mt-5 text-center text-sm text-white/50">
+          {isLogin ? "New to Smart Split?" : "Already have an account?"}{" "}
+          <button onClick={switchMode} className="text-white font-semibold hover:text-pink-300 transition-colors">
+            {isLogin ? "Create an account" : "Sign in instead"}
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden home-bg">
-      {/* Animated wavy gradient blobs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div className="home-bg min-h-screen">
+      {/* Fixed blob layer — always covers screen even while scrolling */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden>
         <div className="blob blob-1" />
         <div className="blob blob-2" />
         <div className="blob blob-3" />
       </div>
 
-      {/* Noise/texture overlay */}
-      <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E')" }} />
+      {/* Scrollable content */}
+      <div className="relative z-10 w-full">
 
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-10 flex flex-col lg:flex-row items-center gap-12 lg:gap-20 min-h-screen lg:min-h-0">
+        {/* ── DESKTOP: side-by-side ── */}
+        <div className="hidden lg:flex w-full max-w-6xl mx-auto px-10 py-12 items-center gap-20 min-h-screen">
 
-        {/* ── Left: Brand hero (desktop only) ── */}
-        <div className="hidden lg:flex flex-1 flex-col gap-10 text-white">
-          <div className="flex items-center gap-3">
-            <img src="/favicon.svg" alt="Smart Split" className="h-11 w-11 rounded-2xl shadow-lg" />
-            <span className="text-base font-semibold tracking-tight text-white/60">Smart Split</span>
-          </div>
+          {/* Desktop hero — left column */}
+          <div className="flex flex-1 flex-col gap-10 text-white">
+            <div className="flex items-center gap-3">
+              <img src="/favicon.svg" alt="Smart Split" className="h-11 w-11 rounded-2xl shadow-lg" />
+              <span className="text-base font-semibold tracking-tight text-white/60">Smart Split</span>
+            </div>
 
-          <div>
-            <h1 className="text-[3.8rem] font-black leading-[1.05] tracking-tight">
-              Split bills,
-              <br />
-              <span style={{
-                background: "linear-gradient(90deg, #f472b6 0%, #c084fc 45%, #fb923c 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}>
-                not friendships.
-              </span>
-            </h1>
-            <p className="mt-5 text-white/45 text-[1.05rem] leading-relaxed max-w-[420px]">
-              The smartest way to track shared expenses — automated splits, instant settlement, zero drama.
-            </p>
-          </div>
+            <div>
+              <h1 className="text-[3.8rem] font-black leading-[1.05] tracking-tight">
+                Split bills,<br />
+                <span style={gradientText}>not friendships.</span>
+              </h1>
+              <p className="mt-5 text-white/45 text-[1.05rem] leading-relaxed max-w-[420px]">
+                The smartest way to track shared expenses — automated splits, instant settlement, zero drama.
+              </p>
+            </div>
 
-          <div className="space-y-3.5">
-            {FEATURES.map((txt) => (
-              <div key={txt} className="flex items-center gap-3.5">
-                <div
-                  className="h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: "linear-gradient(135deg, #ec4899, #f97316)" }}
-                >
-                  <FiCheck size={10} className="text-white" strokeWidth={3} />
+            <div className="space-y-3.5">
+              {FEATURES.map((txt) => (
+                <div key={txt} className="flex items-center gap-3.5">
+                  <div className="h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ background: "linear-gradient(135deg, #ec4899, #f97316)" }}>
+                    <FiCheck size={10} className="text-white" strokeWidth={3} />
+                  </div>
+                  <span className="text-white/55 text-sm">{txt}</span>
                 </div>
-                <span className="text-white/55 text-sm">{txt}</span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          <div className="flex gap-10 pt-2 border-t border-white/10">
-            {STATS.map(([n, l]) => (
-              <div key={l}>
-                <p className="text-2xl font-black text-white">{n}</p>
-                <p className="text-xs text-white/35 mt-0.5 tracking-wide uppercase">{l}</p>
-              </div>
-            ))}
+            <div className="flex gap-10 pt-2 border-t border-white/10">
+              {STATS.map(([n, l]) => (
+                <div key={l}>
+                  <p className="text-2xl font-black text-white">{n}</p>
+                  <p className="text-xs text-white/35 mt-0.5 tracking-wide uppercase">{l}</p>
+                </div>
+              ))}
+            </div>
           </div>
+          {/* end desktop hero */}
+
+          {/* Desktop form card — right column */}
+          <div className="w-[430px] flex-shrink-0">
+            <FormCard />
+          </div>
+          {/* end desktop form */}
+
         </div>
+        {/* end desktop row */}
 
-        {/* ── Right: Auth Form ── */}
-        <div className="w-full lg:max-w-[430px] flex-shrink-0">
+        {/* ── MOBILE: vertically & horizontally centered ── */}
+        <div className="lg:hidden flex flex-col items-center justify-center min-h-screen w-full px-5 py-10 gap-7">
 
-          {/* Mobile hero */}
-          <div className="lg:hidden text-center pt-6 pb-5">
-            <img src="/favicon.svg" alt="Smart Split" className="h-14 w-14 rounded-2xl shadow-2xl mx-auto mb-3" />
-            <h1 className="text-[1.65rem] font-black text-white leading-tight">
+          {/* Mobile branding */}
+          <div className="text-center w-full">
+            <img src="/favicon.svg" alt="Smart Split" className="h-14 w-14 rounded-2xl shadow-2xl mx-auto mb-4" />
+            <h1 className="text-[1.75rem] font-black text-white leading-tight">
               Split bills,{" "}
-              <span style={{
-                background: "linear-gradient(90deg, #f472b6 0%, #c084fc 45%, #fb923c 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}>not friendships.</span>
+              <span style={gradientText}>not friendships.</span>
             </h1>
-            <p className="text-xs text-white/50 mt-2 mb-4">The smartest way to track shared expenses</p>
-            {/* Compact pill features */}
+            <p className="text-sm text-white/50 mt-2 mb-5 max-w-xs mx-auto">
+              The smartest way to track shared expenses
+            </p>
             <div className="flex flex-wrap justify-center gap-2">
               {[["🧾","Receipt Scan"],["👥","Group Splits"],["📊","Balances"],["⚡","Quick Settle"]].map(([icon, label]) => (
                 <span key={label} className="flex items-center gap-1.5 text-[11px] font-medium text-white/65 px-3 py-1.5 rounded-full"
-                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                  style={{ background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.12)" }}>
                   <span>{icon}</span>{label}
                 </span>
               ))}
             </div>
           </div>
+          {/* end mobile branding */}
 
-          {/* Card */}
-          <div
-            className="rounded-3xl overflow-hidden shadow-2xl shadow-black/60"
-            style={{
-              background: "rgba(30,18,60,0.85)",
-              backdropFilter: "blur(48px)",
-              WebkitBackdropFilter: "blur(48px)",
-              border: "1px solid rgba(255,255,255,0.14)",
-            }}
-          >
-            {/* Gradient accent bar */}
-            <div className="h-[3px]" style={{ background: "linear-gradient(90deg, #ec4899, #a855f7, #f97316)" }} />
-
-            <div className="p-7 sm:p-8">
-              <h2 className="text-2xl font-bold text-white">
-                {isLogin ? "Welcome back" : "Create account"}
-              </h2>
-              <p className="text-sm text-white/60 mt-1 mb-6">
-                {isLogin ? "Sign in to your Smart Split account" : "Join Smart Split — it's free forever"}
-              </p>
-
-              {/* Tab toggle */}
-              <div
-                className="flex p-1 mb-6 gap-1 rounded-2xl"
-                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
-              >
-                {[["Sign In", true], ["Register", false]].map(([label, val]) => (
-                  <button
-                    key={label}
-                    onClick={() => { setIsLogin(val); setError(""); }}
-                    className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                      isLogin === val
-                        ? "bg-white text-gray-900 shadow-sm"
-                        : "text-white/55 hover:text-white/80"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Error */}
-              {error && (
-                <div
-                  className="mb-5 px-4 py-3 rounded-xl flex items-start gap-2.5 text-sm text-red-300"
-                  style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.22)" }}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 flex-shrink-0" />
-                  {error}
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-3.5">
-                {!isLogin && (
-                  <AuthInput icon={<FiUser size={15} />} type="text" placeholder="Full name"
-                    value={name} onChange={(e) => setName(e.target.value)} required />
-                )}
-                <AuthInput icon={<FiMail size={15} />} type="email" placeholder="Email address"
-                  value={email} onChange={(e) => setEmail(e.target.value)} required />
-                <AuthInput
-                  icon={<FiLock size={15} />}
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  suffix={
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((p) => !p)}
-                      className="text-white/50 hover:text-white/80 transition"
-                      tabIndex={-1}
-                    >
-                      {showPassword ? <FiEyeOff size={15} /> : <FiEye size={15} />}
-                    </button>
-                  }
-                />
-
-                {isLogin && (
-                  <label className="flex items-center gap-2.5 cursor-pointer pt-0.5 select-none">
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="w-3.5 h-3.5 rounded accent-pink-500"
-                    />
-                    <span className="text-xs text-white/60">Keep me signed in</span>
-                  </label>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 text-white text-sm font-bold rounded-xl shadow-lg hover:opacity-90 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-1"
-                  style={{ background: "linear-gradient(135deg, #ec4899 0%, #a855f7 50%, #f97316 100%)" }}
-                >
-                  {loading ? (
-                    <>
-                      <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      {isLogin ? "Signing in…" : "Creating account…"}
-                    </>
-                  ) : (
-                    <>
-                      {isLogin ? "Sign In" : "Create Account"}
-                      <FiArrowRight size={16} />
-                    </>
-                  )}
-                </button>
-              </form>
-
-              <p className="mt-6 text-center text-sm text-white/50">
-                {isLogin ? "New to Smart Split?" : "Already have an account?"}{" "}
-                <button
-                  onClick={switchMode}
-                  className="text-white font-semibold hover:text-pink-300 transition-colors"
-                >
-                  {isLogin ? "Create an account" : "Sign in instead"}
-                </button>
-              </p>
-            </div>
+          {/* Mobile form card */}
+          <div className="w-full max-w-[420px]">
+            <FormCard compact />
           </div>
+          {/* end mobile card */}
+
         </div>
+        {/* end mobile layout */}
+
       </div>
+      {/* end scrollable content */}
+
     </div>
   );
 };
