@@ -54,7 +54,7 @@ app.use(cors({
     if (/^https:\/\/.*\.onrender\.com$/.test(origin)) return callback(null, true);
     callback(new Error(`CORS: origin ${origin} not allowed`));
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   credentials: true,
 }));
 
@@ -68,6 +68,7 @@ app.use('/api/groups', require('./routes/groupRoutes'));
 app.use('/api/expenses', require('./routes/expenseRoutes'));
 app.use('/api/requests', require('./routes/groupRequestRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/friends', require('./routes/friendRoutes'));
 
 // User search endpoint
 app.get('/api/users/search', auth, async (req, res) => {

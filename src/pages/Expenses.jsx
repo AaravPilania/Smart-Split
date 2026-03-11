@@ -211,12 +211,12 @@ export default function Expenses() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Navbar />
 
-      <div className="max-w-6xl mx-auto py-4 sm:py-8 px-4 sm:px-6 pb-24 md:pb-10">
+      <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-10">
         {/* Page Header */}
         <div className="flex justify-between items-center mb-6 sm:mb-8 gap-3">
           <div className="min-w-0">
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">All Expenses</h2>
-            <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">Track and manage your spending</p>
+            <p className="text-gray-400 dark:text-gray-500 text-sm uppercase tracking-wide mt-0.5">Track and manage your spending</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -224,11 +224,12 @@ export default function Expenses() {
                 const group = groups.find((g) => g.id === selectedGroupId);
                 downloadExpensesCSV(expenses, group?.name || "expenses");
               }}
-              className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm hover:shadow transition disabled:opacity-40"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm hover:shadow transition disabled:opacity-40"
               disabled={!expenses.length}
               title="Export as CSV"
             >
-              <FiDownload className="text-base" /> Export CSV
+              <FiDownload className="text-base" />
+              <span className="hidden sm:inline">Export CSV</span>
             </button>
             <button
               onClick={() => {
@@ -238,18 +239,18 @@ export default function Expenses() {
                 }
                 setShowCreateModal(true);
               }}
-              className="text-white px-5 py-2.5 rounded-lg shadow-md flex items-center gap-2 hover:shadow-lg transition disabled:opacity-50"
+              className="text-white px-4 py-2.5 rounded-xl shadow-md flex items-center gap-2 hover:shadow-lg transition disabled:opacity-50 text-sm font-semibold"
               style={getGradientStyle(theme)}
               disabled={!selectedGroupId}
             >
-              <FiPlus /> Add Expense
+              <FiPlus /> <span className="hidden sm:inline">Add Expense</span><span className="sm:hidden">Add</span>
             </button>
           </div>
         </div>
 
         {/* Group Filter */}
         <div className="mb-6">
-          <label className="block mb-2 text-gray-600 dark:text-gray-300 font-semibold text-sm">
+          <label className="block mb-2 text-gray-500 dark:text-gray-400 font-medium text-xs uppercase tracking-wide">
             Select Group
           </label>
           <select
@@ -259,7 +260,7 @@ export default function Expenses() {
               setSelectedGroupId(groupId);
               fetchExpenses(groupId);
             }}
-            className="w-full max-w-md px-4 py-3 rounded-xl border dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-white font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-400"
+            className="w-full max-w-md px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-white font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1"
           >
             <option value="">Select a group...</option>
             {groups.map((group) => (
@@ -311,7 +312,7 @@ export default function Expenses() {
             {expenses.map((expense) => (
               <div
                 key={expense.id}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border dark:border-gray-700 hover:shadow-lg transition"
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 border border-gray-100 dark:border-gray-800 hover:shadow-md transition"
               >
               <div className="flex justify-between items-start mb-3 gap-2">
                   <div className="flex-1 min-w-0">
@@ -399,13 +400,14 @@ export default function Expenses() {
                   placeholder="e.g., Dinner, Groceries"
                   required
                 />
-                {/* AI category suggestion pill */}
+                {/* AI category suggestion */}
                 {createForm.title.length > 2 && (() => {
                   const cat = getCategoryInfo(createForm.category);
                   return (
-                    <div className="mt-1.5 flex items-center gap-1.5">
-                      <span className="text-[11px] text-gray-400 dark:text-gray-500">AI suggestion:</span>
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${cat.badge}`}>{cat.icon} {cat.label}</span>
+                    <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+                      <span className="text-blue-400 dark:text-blue-300 text-xs font-semibold">✨ AI suggests:</span>
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${cat.badge}`}>{cat.icon} {cat.label}</span>
+                      <span className="ml-auto text-[10px] text-blue-300 dark:text-blue-400">tap below to change</span>
                     </div>
                   );
                 })()}

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
-import { FiUsers, FiPlus, FiX, FiUserPlus, FiDollarSign, FiLink, FiZap } from "react-icons/fi";
+import { FiUsers, FiPlus, FiX, FiUserPlus, FiDollarSign, FiLink, FiZap, FiHeart } from "react-icons/fi";
 import { groupAPI, API_URL, apiFetch, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
 import { simplifyDebts } from "../utils/debts";
@@ -20,6 +20,7 @@ export default function Groups() {
   const [simplifyGroupId, setSimplifyGroupId] = useState(null);
   const [simplifiedDebts, setSimplifiedDebts] = useState([]);
   const [simplifying, setSimplifying] = useState(false);
+  const [friends, setFriends] = useState([]);
 
   const [createForm, setCreateForm] = useState({
     name: "",
@@ -38,7 +39,15 @@ export default function Groups() {
     }
     setUserId(userIdStr);
     fetchGroups(userIdStr);
+    fetchFriends();
   }, [navigate]);
+
+  const fetchFriends = async () => {
+    try {
+      const res = await apiFetch(`${API_URL}/friends`);
+      if (res.ok) { const d = await res.json(); setFriends(d.friends || []); }
+    } catch {}
+  };
 
   const handleCopyInvite = (groupId, groupName) => {
     const code = groupId;
@@ -168,7 +177,7 @@ export default function Groups() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Navbar />
 
-      <div className="max-w-6xl mx-auto py-4 sm:py-8 px-4 sm:px-6 pb-24 md:pb-10">
+      <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-10">
         {/* Page Header */}
         <div className="flex justify-between items-center mb-6 sm:mb-8">
           <div>
@@ -179,7 +188,7 @@ export default function Groups() {
           {/* Create Group Button */}
           <button
             onClick={() => setShowCreateModal(true)}
-            className="text-white px-5 py-2.5 rounded-lg shadow-md flex items-center gap-2 hover:shadow-lg transition"
+            className="text-white px-4 py-2.5 rounded-xl shadow flex items-center gap-2 hover:shadow-md transition text-sm font-semibold"
             style={getGradientStyle(theme)}
           >
             <FiPlus /> Create Group
@@ -221,7 +230,7 @@ export default function Groups() {
             {groups.map((group) => (
               <div
                 key={group.id}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border dark:border-gray-700 hover:shadow-lg transition"
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 border border-gray-100 dark:border-gray-800 hover:shadow-md transition flex flex-col"
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
@@ -262,7 +271,7 @@ export default function Groups() {
                 <div className="flex flex-wrap gap-2 mt-4">
                   <button
                     onClick={() => navigate(`/expenses?group=${group.id}`)}
-                    className="flex-1 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition flex items-center justify-center gap-1"
+                    className="flex-1 text-white px-3 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition flex items-center justify-center gap-1"
                     style={getGradientStyle(theme)}
                   >
                     <FiDollarSign /> Expenses
@@ -429,6 +438,51 @@ export default function Groups() {
             </div>
 
             <form onSubmit={(e) => handleAddMember(showAddMemberModal, e)}>
+              {/* Friends quick-add */}
+              {friends.length > 0 && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
+                    <FiHeart size={13} className={theme.text} /> Add from Friends
+                  </label>
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                    {friends.map((f) => {
+                      const currentGroup = groups.find(g => g.id === showAddMemberModal);
+                      const alreadyMember = currentGroup?.members?.some(m => m.id === f.id);
+                      return (
+                        <div key={f.id} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-700">
+                          <div className="h-7 w-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={getGradientStyle(theme)}>
+                            {f.name?.[0]?.toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-gray-800 dark:text-white truncate">{f.name}</p>
+                            <p className="text-[10px] text-gray-400 truncate">{f.email}</p>
+                          </div>
+                          {alreadyMember ? (
+                            <span className="text-[10px] text-green-500 font-semibold">Already in</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAddMemberForm({ memberEmail: f.id });
+                                setTimeout(() => document.getElementById("addMemberSubmitBtn")?.click(), 50);
+                              }}
+                              className="text-xs font-semibold px-2.5 py-1 rounded-lg text-white"
+                              style={getGradientStyle(theme)}
+                            >
+                              Add
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="my-3 flex items-center gap-2 text-gray-300 dark:text-gray-600">
+                    <div className="flex-1 border-t dark:border-gray-700" />
+                    <span className="text-xs">or enter ID manually</span>
+                    <div className="flex-1 border-t dark:border-gray-700" />
+                  </div>
+                </div>
+              )}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Member User ID
@@ -457,6 +511,7 @@ export default function Groups() {
                   Cancel
                 </button>
                 <button
+                  id="addMemberSubmitBtn"
                   type="submit"
                   className="flex-1 px-4 py-2 text-white rounded-lg hover:opacity-90"
                   style={getGradientStyle(theme)}

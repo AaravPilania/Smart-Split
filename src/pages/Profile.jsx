@@ -21,6 +21,8 @@ import { QRCodeSVG } from "qrcode.react";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
 import { ACCENT_PRESETS, getGradientStyle, useTheme, toggleDarkMode } from "../utils/theme";
 
+const APP_URL = import.meta.env.VITE_APP_URL || "https://thesmartsplit.netlify.app";
+
 export default function Profile() {
   const [user, setUser] = useState(null);
   const [groups, setGroups] = useState([]);
@@ -226,7 +228,7 @@ export default function Profile() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Navbar />
 
-      <div className="max-w-4xl mx-auto py-4 sm:py-8 px-4 sm:px-6 pb-24 md:pb-10">
+      <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 pb-10">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <div className="flex items-center gap-3">
@@ -285,8 +287,8 @@ export default function Profile() {
               {/* QR Code */}
               {showQR && (
                 <div className="mt-4 inline-block bg-white p-3 rounded-xl shadow">
-                  <QRCodeSVG value={user.id} size={120} />
-                  <p className="text-center text-xs text-gray-500 mt-1">Scan to share ID</p>
+                  <QRCodeSVG value={`${APP_URL}/add-friend/${user.id}`} size={120} />
+                  <p className="text-center text-xs text-gray-500 mt-1">Scan to add as friend</p>
                 </div>
               )}
             </div>

@@ -220,7 +220,7 @@ export default function Dashboard() {
     <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
       <Navbar />
 
-      <div className="max-w-7xl mx-auto mt-4 sm:mt-10 px-4 sm:px-6 pb-24 md:pb-10">
+      <div className="max-w-7xl mx-auto mt-4 sm:mt-8 px-4 sm:px-6 pb-10">
         {/* Header */}
         <div className="flex justify-between items-start mb-6 sm:mb-8">
           <div className="flex items-center gap-4 min-w-0 flex-1">
@@ -312,7 +312,7 @@ export default function Dashboard() {
               {/* Add Expense */}
               <button
                 onClick={() => navigate("/expenses")}
-                className="rounded-xl shadow-lg p-6 flex items-center justify-center cursor-pointer hover:opacity-90 hover:shadow-xl transition text-white text-lg font-semibold"
+                className="rounded-2xl shadow p-5 flex items-center justify-center cursor-pointer hover:opacity-90 hover:shadow-lg transition text-white text-base font-bold"
                 style={getGradientStyle(theme)}
               >
                 <FiPlus className="mr-2" /> Add New Expense
@@ -321,7 +321,7 @@ export default function Dashboard() {
               {/* Manage Groups */}
               <button
                 onClick={() => navigate("/groups")}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 flex items-center justify-center cursor-pointer hover:shadow-2xl transition text-orange-600 text-lg font-semibold border dark:border-gray-700 hover:border-orange-400"
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 flex items-center justify-center cursor-pointer hover:shadow-md transition text-gray-700 dark:text-gray-200 text-base font-bold border border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
               >
                 <BsPeopleFill className="mr-2" /> Manage Groups
               </button>
@@ -329,9 +329,9 @@ export default function Dashboard() {
 
             {/* Spending by Group chart */}
             {groupSpending.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border dark:border-gray-700 mt-8">
-                <h3 className="font-bold text-lg mb-1 text-gray-800 dark:text-white">Spending by Group</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">Total across all expenses</p>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 border border-gray-100 dark:border-gray-800 mt-6">
+                <h3 className="font-bold text-base mb-1 text-gray-800 dark:text-white">Spending by Group</h3>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-5 uppercase tracking-wide">Total across all expenses</p>
                 <div className="space-y-4">
                   {groupSpending.map((g, i) => {
                     const pct = (g.amount / groupSpending[0].amount) * 100;
@@ -356,9 +356,9 @@ export default function Dashboard() {
 
             {/* Monthly Expense Chart */}
             {monthlyChartData.some((m) => m.amount > 0) && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border dark:border-gray-700 mt-8 mb-8">
-                <h3 className="font-bold text-lg mb-1 text-gray-800 dark:text-white">Monthly Expenses</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">Last 6 months spending</p>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 border border-gray-100 dark:border-gray-800 mt-6 mb-6">
+                <h3 className="font-bold text-base mb-1 text-gray-800 dark:text-white">Monthly Expenses</h3>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-5 uppercase tracking-wide">Last 6 months spending</p>
                 {/* Vertical bars */}
                 <div className="flex items-end gap-2 sm:gap-3" style={{ height: "120px" }}>
                   {monthlyChartData.map((m, i) => {
@@ -401,11 +401,11 @@ export default function Dashboard() {
             {/* Bottom sections */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
               {/* Recent Expenses */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border dark:border-gray-700">
-                <h3 className="font-bold text-lg mb-1 text-gray-800 dark:text-white">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 border border-gray-100 dark:border-gray-800">
+                <h3 className="font-bold text-base mb-1 text-gray-800 dark:text-white">
                   Recent Expenses
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-4 uppercase tracking-wide">
                   Your latest transactions
                 </p>
 
@@ -460,9 +460,9 @@ export default function Dashboard() {
               </div>
 
               {/* Outstanding Balances */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 border border-gray-100 dark:border-gray-800">
                 <div className="flex justify-between items-center mb-1">
-                  <h3 className="font-bold text-lg text-gray-800 dark:text-white">
+                  <h3 className="font-bold text-base text-gray-800 dark:text-white">
                     Outstanding Balances
                   </h3>
                   <button

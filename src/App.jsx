@@ -6,6 +6,8 @@ import Groups from "./pages/Groups";
 import Expenses from "./pages/Expenses";
 import Profile from "./pages/Profile";
 import Balances from "./pages/Balances";
+import Friends from "./pages/Friends";
+import AddFriend from "./pages/AddFriend";
 import { getToken, wakeUpServer } from "./utils/api";
 
 // Redirects to / if not logged in
@@ -50,6 +52,9 @@ function App() {
         <Route path="/expenses" element={<ProtectedRoute element={<Expenses />} />} />
         <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
         <Route path="/balances" element={<ProtectedRoute element={<Balances />} />} />
+        <Route path="/friends" element={<ProtectedRoute element={<Friends />} />} />
+        {/* Public — anyone with the link/QR can land here */}
+        <Route path="/add-friend/:userId" element={<AddFriend />} />
       </Routes>
     </BrowserRouter>
   );

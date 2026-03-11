@@ -74,7 +74,7 @@ const Home = () => {
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center px-4 sm:px-6 overflow-hidden">
-      {/* 🔥 Background Video */}
+      {/* Background Video */}
       <video
         className="absolute top-0 left-0 w-full h-full object-cover -z-10"
         src="/topo.mp4"
@@ -86,184 +86,161 @@ const Home = () => {
         preload="auto"
       />
 
-      {/* Dark overlay for readability */}
-      <div className="absolute inset-0 bg-black/20 -z-5"></div>
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/35 to-black/55 -z-5" />
 
-      {/* Center Content */}
-      <div className="w-full max-w-5xl mx-auto bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-5 sm:p-8 md:p-10 shadow-2xl flex flex-col md:flex-row gap-6 md:gap-12 items-start">
-        {/* LEFT HERO — hidden on small screens to avoid overflow */}
-        <div className="hidden md:flex flex-1 text-white flex-col">
-          <h1 className="text-5xl md:text-6xl font-extrabold leading-tight bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-orange-400">
-            Split bills,
-            <br />
-            stay friends
-          </h1>
+      {/* Main layout */}
+      <div className="w-full max-w-5xl mx-auto flex flex-col md:flex-row gap-10 md:gap-16 items-center py-10 md:py-0">
 
-          <p className="text-lg mt-4 text-white/80 max-w-xl">
-            Keep track of shared expenses and settle up with ease.
-            <br />
-            Perfect for roommates, trips, and group activities.
-          </p>
+        {/* ── Left Hero (desktop only) ── */}
+        <div className="hidden md:flex flex-1 text-white flex-col gap-7">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center text-xl font-bold shadow-lg">⚡</div>
+            <span className="text-lg font-bold tracking-tight opacity-90">Smart Split</span>
+          </div>
 
-          {/* FEATURES */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-8">
-            <Feature icon="🧾" title="Track Expenses" sub="Keep it organized" />
-            <Feature icon="👥" title="Split Easy" sub="Fair & automated" />
+          <div>
+            <h1 className="text-5xl md:text-6xl font-extrabold leading-[1.1] text-white">
+              Split bills,
+              <br />
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-orange-300">stay friends.</span>
+            </h1>
+            <p className="mt-4 text-lg text-white/65 leading-relaxed max-w-md">
+              The smart way to track shared expenses and settle up with your group — no awkward conversations needed.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Feature icon="🧾" title="Track Expenses" sub="Every penny accounted for" />
+            <Feature icon="👥" title="Group Splits" sub="Fair & automated" />
             <Feature icon="📊" title="View Balances" sub="See who owes what" />
-            <Feature icon="⚡" title="Quick Settle" sub="Mark as paid" />
+            <Feature icon="⚡" title="Quick Settle" sub="One-tap mark as paid" />
           </div>
         </div>
 
-        {/* Mobile-only compact heading above the card */}
-        <div className="md:hidden w-full text-center text-white">
-          <h1 className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-orange-400">
-            Smart Split
-          </h1>
-          <p className="text-sm text-white/70 mt-1">Split bills, stay friends</p>
+        {/* ── Mobile heading ── */}
+        <div className="md:hidden w-full text-center text-white pt-2">
+          <div className="flex items-center justify-center gap-2.5 mb-2">
+            <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center text-xl font-bold shadow-lg">⚡</div>
+            <span className="text-2xl font-extrabold">Smart Split</span>
+          </div>
+          <p className="text-sm text-white/55">Split bills · Stay friends</p>
         </div>
 
-        {/* RIGHT LOGIN CARD */}
-        <div className="w-full md:w-80 bg-white/20 backdrop-blur-lg border border-white/25 p-5 sm:p-6 rounded-2xl shadow-xl flex-shrink-0">
-          <h2 className="text-2xl font-semibold text-pink-600 mb-1">
-            Welcome to Smart Split
-          </h2>
-          <p className="text-sm text-white/85 mb-4">
-            {isLogin
-              ? "Sign in to your account"
-              : "Create a new account to get started"}
-          </p>
+        {/* ── Right Form Card ── */}
+        <div className="w-full md:w-[360px] flex-shrink-0">
+          <div className="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl">
 
-          {/* Tabs */}
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            <button
-              onClick={() => {
-                setIsLogin(true);
-                setError("");
-              }}
-              className={`py-2 rounded-lg font-semibold transition-all ${
-                isLogin
-                  ? "bg-white text-pink-600 shadow-md"
-                  : "bg-white/50 text-gray-700 hover:bg-white/70"
-              }`}
-            >
-              Login
-            </button>
-            <button
-              onClick={() => {
-                setIsLogin(false);
-                setError("");
-              }}
-              className={`py-2 rounded-lg font-semibold transition-all ${
-                !isLogin
-                  ? "bg-white text-pink-600 shadow-md"
-                  : "bg-white/50 text-gray-700 hover:bg-white/70"
-              }`}
-            >
-              Register
-            </button>
-          </div>
+            <h2 className="text-2xl font-bold text-white mb-1">
+              {isLogin ? "Welcome back" : "Get started"}
+            </h2>
+            <p className="text-sm text-white/55 mb-5">
+              {isLogin ? "Sign in to your account" : "Create a free account"}
+            </p>
 
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-sm">
-              {error}
+            {/* Tabs */}
+            <div className="flex bg-white/10 rounded-2xl p-1 mb-5 gap-1">
+              <button
+                onClick={() => { setIsLogin(true); setError(""); }}
+                className={`flex-1 py-2 rounded-xl font-semibold transition-all text-sm ${
+                  isLogin ? "bg-white text-gray-800 shadow" : "text-white/65 hover:text-white"
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => { setIsLogin(false); setError(""); }}
+                className={`flex-1 py-2 rounded-xl font-semibold transition-all text-sm ${
+                  !isLogin ? "bg-white text-gray-800 shadow" : "text-white/65 hover:text-white"
+                }`}
+              >
+                Register
+              </button>
             </div>
-          )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit}>
-            {!isLogin && (
+            {/* Error */}
+            {error && (
+              <div className="mb-4 p-3 bg-red-500/20 border border-red-400/30 rounded-xl text-red-200 text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-3">
+              {!isLogin && (
+                <input
+                  type="text"
+                  placeholder="Your Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/90 text-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-400/70 placeholder-gray-400 shadow-sm transition"
+                  required
+                />
+              )}
               <input
-                type="text"
-                placeholder="Your Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 mb-3 rounded-lg bg-white/90 text-black focus:outline-none focus:ring-2 focus:ring-pink-400 placeholder-gray-500"
+                type="email"
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl bg-white/90 text-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-400/70 placeholder-gray-400 shadow-sm transition"
                 required
               />
-            )}
-            <input
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 mb-3 rounded-lg bg-white/90 text-black focus:outline-none focus:ring-2 focus:ring-pink-400 placeholder-gray-500"
-              required
-            />
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 mb-3 rounded-lg bg-white/90 text-black focus:outline-none focus:ring-2 focus:ring-pink-400 placeholder-gray-500"
-              required
-              minLength={6}
-            />
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl bg-white/90 text-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-400/70 placeholder-gray-400 shadow-sm transition"
+                required
+                minLength={6}
+              />
 
-            {isLogin && (
-              <label className="flex items-center gap-2 mb-4 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 accent-pink-500 rounded"
-                />
-                <span className="text-sm text-white/80">Remember me</span>
-              </label>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-2.5 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-lg font-semibold shadow-lg transition-all hover:from-pink-600 hover:to-orange-500 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed ${
-                loading ? "cursor-wait" : ""
-              }`}
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg
-                    className="animate-spin h-4 w-4"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  {isLogin ? "Logging in..." : "Creating account..."}
-                </span>
-              ) : (
-                isLogin ? "Login" : "Register"
+              {isLogin && (
+                <label className="flex items-center gap-2 cursor-pointer select-none pt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 accent-pink-500 rounded"
+                  />
+                  <span className="text-sm text-white/65">Remember me</span>
+                </label>
               )}
-            </button>
-          </form>
 
-          
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:opacity-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-1"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    {isLogin ? "Signing in..." : "Creating account..."}
+                  </span>
+                ) : (
+                  isLogin ? "Sign In" : "Create Account"
+                )}
+              </button>
+            </form>
+
+          </div>
         </div>
+
       </div>
     </div>
   );
 };
 
 const Feature = ({ icon, title, sub }) => (
-  <div className="flex items-center gap-3 text-white/90">
+  <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/15 rounded-2xl p-3.5">
     <span className="text-2xl">{icon}</span>
-    <p>
-      <strong>{title}</strong>
-      <br />
-      <span className="text-sm">{sub}</span>
-    </p>
+    <div>
+      <p className="font-semibold text-white text-sm">{title}</p>
+      <p className="text-white/55 text-xs">{sub}</p>
+    </div>
   </div>
 );
 

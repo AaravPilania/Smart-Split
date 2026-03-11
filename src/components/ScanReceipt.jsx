@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { FiCamera, FiUpload, FiX, FiCheck, FiPlus, FiRefreshCw } from "react-icons/fi";
 import Tesseract from "tesseract.js";
 import { apiFetch } from "../utils/api";
+import { useTheme, getGradientStyle } from "../utils/theme";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -11,6 +12,7 @@ export default function ScanReceipt({
   onExpenseCreated,
   onClose 
 }) {
+  const { theme } = useTheme();
   const [mode, setMode] = useState(null); // 'camera' or 'upload'
   const [image, setImage] = useState(null);
   const [imageUrl, setImageUrl] = useState(null);
@@ -496,12 +498,12 @@ export default function ScanReceipt({
       )}
 
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full p-4 sm:p-6 my-8 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-3xl w-full p-4 sm:p-6 my-8 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-2xl font-bold text-gray-800">Scan Receipt</h3>
+          <h3 className="text-2xl font-bold text-gray-800 dark:text-white">Scan Receipt</h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
           >
             <FiX className="text-xl" />
           </button>
@@ -514,17 +516,18 @@ export default function ScanReceipt({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button
                 onClick={startCamera}
-                className="p-8 border-2 border-dashed border-pink-500 rounded-xl hover:bg-pink-50 transition flex flex-col items-center justify-center gap-3"
+                className="p-8 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-3"
+                style={{ borderColor: theme.gradFrom }}
               >
-                <FiCamera className="text-4xl text-pink-500" />
-                <span className="font-semibold text-gray-800">Open Camera</span>
-                <span className="text-sm text-gray-500">Take a photo of receipt</span>
+                <FiCamera className="text-4xl" style={{ color: theme.gradFrom }} />
+                <span className="font-semibold text-gray-800 dark:text-white">Open Camera</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">Take a photo of receipt</span>
               </button>
 
-              <label className="p-8 border-2 border-dashed border-orange-500 rounded-xl hover:bg-orange-50 transition flex flex-col items-center justify-center gap-3 cursor-pointer">
-                <FiUpload className="text-4xl text-orange-500" />
-                <span className="font-semibold text-gray-800">Upload Photo</span>
-                <span className="text-sm text-gray-500">Select from device</span>
+              <label className="p-8 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-3 cursor-pointer" style={{ borderColor: theme.gradTo }}>
+                <FiUpload className="text-4xl" style={{ color: theme.gradTo }} />
+                <span className="font-semibold text-gray-800 dark:text-white">Upload Photo</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">Select from device</span>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -566,11 +569,12 @@ export default function ScanReceipt({
                   <div className="space-y-3">
                     {/* Group Selection before scanning */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Select Group *</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select Group *</label>
                       <select
                         value={selectedGroupId || ""}
                         onChange={(e) => setSelectedGroupId(e.target.value)}
-                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                        style={{ "--tw-ring-color": theme.gradFrom }}
                       >
                         <option value="">Select a group...</option>
                         {groups.map((group) => (
@@ -584,7 +588,8 @@ export default function ScanReceipt({
                     <button
                       onClick={scanReceipt}
                       disabled={scanning || !selectedGroupId}
-                      className="flex-1 bg-gradient-to-r from-pink-500 to-orange-400 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="flex-1 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      style={getGradientStyle(theme)}
                     >
                       {scanning ? (
                         <>
@@ -605,7 +610,8 @@ export default function ScanReceipt({
                         setExtractedData(null);
                         if (imageUrl) URL.revokeObjectURL(imageUrl);
                       }}
-                      className="px-6 py-3 border rounded-lg text-gray-700 hover:bg-gray-50"
+                      className="px-6 py-3 border-2 rounded-lg font-semibold transition hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+                      style={{ borderColor: theme.gradFrom, color: theme.gradFrom }}
                     >
                       Retake
                     </button>
@@ -640,13 +646,13 @@ export default function ScanReceipt({
 
                     {/* Group Selection (post-scan, can still change) */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Select Group *
                       </label>
                       <select
                         value={selectedGroupId || ""}
                         onChange={(e) => setSelectedGroupId(e.target.value)}
-                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                         required
                       >
                         <option value="">Select a group...</option>
@@ -660,7 +666,7 @@ export default function ScanReceipt({
 
                     {/* Title */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Expense Title *
                       </label>
                       <input
@@ -669,14 +675,14 @@ export default function ScanReceipt({
                         onChange={(e) =>
                           setFormData({ ...formData, title: e.target.value })
                         }
-                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                         required
                       />
                     </div>
 
                     {/* Amount */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Total Amount *
                       </label>
                       <input
@@ -686,7 +692,7 @@ export default function ScanReceipt({
                         onChange={(e) =>
                           setFormData({ ...formData, amount: e.target.value })
                         }
-                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                         required
                       />
                     </div>
@@ -694,7 +700,7 @@ export default function ScanReceipt({
                     {/* Paid By */}
                     {selectedGroup && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                           Paid By *
                         </label>
                         <select
@@ -705,7 +711,7 @@ export default function ScanReceipt({
                               paidBy: e.target.value,
                             })
                           }
-                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                           required
                         >
                           <option value="">Select member...</option>
@@ -722,13 +728,14 @@ export default function ScanReceipt({
                     {selectedGroup && (
                       <div>
                         <div className="flex justify-between items-center mb-2">
-                          <label className="block text-sm font-medium text-gray-700">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                             Split Between *
                           </label>
                           <button
                             type="button"
                             onClick={addSplitRow}
-                            className="text-sm text-pink-500 hover:text-pink-600 flex items-center gap-1"
+                            className="text-sm font-semibold flex items-center gap-1"
+                            style={{ color: theme.gradFrom }}
                           >
                             <FiPlus /> Add Person
                           </button>
@@ -747,7 +754,7 @@ export default function ScanReceipt({
                               onChange={(e) =>
                                 updateSplit(index, "userId", e.target.value)
                               }
-                              className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                              className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                               required
                             >
                               <option value="">Select member...</option>
@@ -764,7 +771,7 @@ export default function ScanReceipt({
                               onChange={(e) =>
                                 updateSplit(index, "amount", e.target.value)
                               }
-                              className="w-32 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                              className="w-32 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                               placeholder="Amount"
                               required
                             />
@@ -802,13 +809,15 @@ export default function ScanReceipt({
                       <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50"
+                        className="flex-1 px-4 py-2 border-2 rounded-lg font-semibold transition dark:border-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        style={{ borderColor: theme.gradFrom, color: theme.gradFrom }}
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
-                        className="flex-1 px-4 py-2 bg-gradient-to-r from-pink-500 to-orange-400 text-white rounded-lg hover:opacity-90"
+                        className="flex-1 px-4 py-2 text-white rounded-lg font-semibold hover:opacity-90"
+                        style={getGradientStyle(theme)}
                       >
                         Create Expense
                       </button>
