@@ -94,6 +94,12 @@ export default function Navbar() {
 
   const user = getUser();
 
+  // Keep OS status-bar / PWA chrome colour in sync with the selected theme
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta && theme.gradFrom) meta.setAttribute('content', theme.gradFrom);
+  }, [theme.gradFrom]);
+
   function NavItem({ to, children }) {
     const [hovered, setHovered] = useState(false);
     const active = location.pathname === to;
@@ -143,7 +149,7 @@ export default function Navbar() {
         {/* â”€â”€ Desktop (md+) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="hidden md:flex max-w-6xl mx-auto px-6 h-16 items-center justify-between">
           <Link to="/dashboard" className="flex items-center gap-2.5 hover:opacity-80 transition">
-            <div className="text-white rounded-xl h-9 w-9 flex items-center justify-center text-lg font-bold shadow-md flex-shrink-0" style={getGradientStyle(theme, "to bottom right")}>{"⚡"}</div>
+            <img src="/favicon.svg" alt="Smart Split" className="h-9 w-9 rounded-xl shadow-md flex-shrink-0" />
             <span className="text-lg font-bold text-gray-800 dark:text-white tracking-tight">Smart Split</span>
           </Link>
 
@@ -196,12 +202,12 @@ export default function Navbar() {
         {/* â”€â”€ Mobile header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="md:hidden flex items-center justify-between px-4 h-14 gap-3">
           <Link to="/dashboard" className="flex items-center gap-2.5 hover:opacity-80 transition min-w-0">
-            <div className="text-white rounded-xl h-9 w-9 flex items-center justify-center text-lg font-bold shadow-md flex-shrink-0" style={getGradientStyle(theme, "to bottom right")}>{"\u26A1"}</div>
+            <img src="/favicon.svg" alt="Smart Split" className="h-9 w-9 rounded-xl shadow-md flex-shrink-0" />
             <span className="text-[16px] font-bold text-gray-800 dark:text-white truncate">Smart Split</span>
           </Link>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button onClick={handleScanClick} className="text-white h-9 px-3 rounded-xl shadow flex items-center gap-1.5 text-sm font-semibold" style={getGradientStyle(theme)}>
-              <FiCamera size={14} /><span>Scan</span>
+            <button onClick={handleScanClick} className="text-white h-9 w-9 rounded-xl shadow flex items-center justify-center" style={getGradientStyle(theme)} title="Scan Receipt">
+              <FiCamera size={16} />
             </button>
             <button
               onClick={() => setSidebarOpen(true)}
@@ -227,7 +233,7 @@ export default function Navbar() {
           {/* Drawer header */}
           <div className="flex items-center justify-between px-4 h-14 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="text-white rounded-xl h-8 w-8 flex items-center justify-center font-bold shadow" style={getGradientStyle(theme, "to bottom right")}>{"\u26A1"}</div>
+              <img src="/favicon.svg" alt="Smart Split" className="h-8 w-8 rounded-xl shadow flex-shrink-0" />
               <span className="font-bold text-gray-800 dark:text-white">Smart Split</span>
             </div>
             <button
@@ -239,17 +245,17 @@ export default function Navbar() {
           </div>
 
           {/* Profile card */}
-          <div className="mx-3 mt-3 p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/60 flex items-center gap-3 flex-shrink-0">
+          <div className="mx-3 mt-4 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 flex items-center gap-4 flex-shrink-0">
             {avatar ? (
-              <img src={avatar} alt="avatar" className="h-11 w-11 rounded-full border-2 shadow-sm flex-shrink-0" style={{ borderColor: theme.gradFrom }} />
+              <img src={avatar} alt="avatar" className="h-14 w-14 rounded-full border-2 shadow-md flex-shrink-0" style={{ borderColor: theme.gradFrom }} />
             ) : (
-              <div className="h-11 w-11 rounded-full flex items-center justify-center text-white font-bold text-lg shadow flex-shrink-0" style={getGradientStyle(theme, "to bottom right")}>
+              <div className="h-14 w-14 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-md flex-shrink-0" style={getGradientStyle(theme, "to bottom right")}>
                 {user?.name?.[0]?.toUpperCase() || "U"}
               </div>
             )}
             <div className="min-w-0">
-              <p className="font-semibold text-gray-800 dark:text-white text-sm truncate">{user?.name || "User"}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{user?.email || ""}</p>
+              <p className="font-bold text-gray-800 dark:text-white text-base truncate">{user?.name || "User"}</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 truncate mt-0.5">{user?.email || ""}</p>
             </div>
           </div>
 
@@ -262,7 +268,7 @@ export default function Navbar() {
                   key={to}
                   to={to}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-[15px] font-medium ${active ? "text-white shadow-md" : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"}`}
+                  className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 text-base font-medium ${active ? "text-white shadow-md" : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"}`}
                   style={active ? getGradientStyle(theme) : {}}
                 >
                   <span className={active ? "text-white/90" : theme.text}>{icon}</span>

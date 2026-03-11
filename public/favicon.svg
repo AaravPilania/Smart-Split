@@ -1,27 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FFBED6"/>
-      <stop offset="100%" stop-color="#FFA07A"/>
-    </linearGradient>
-    <linearGradient id="chart" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#F888B0"/>
-      <stop offset="100%" stop-color="#EE7A68"/>
+    <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="45%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#f97316"/>
     </linearGradient>
   </defs>
-  <!-- Rounded square background -->
-  <rect width="100" height="100" rx="22" ry="22" fill="url(#bg)"/>
-  <!-- Pie circle -->
-  <circle cx="50" cy="50" r="36" fill="url(#chart)"/>
-  <!-- Segment dividers (cream lines from center to edge) -->
-  <!-- top -->
-  <line x1="50" y1="50" x2="50" y2="14"   stroke="#FEE9E1" stroke-width="3.5" stroke-linecap="round"/>
-  <!-- bottom-right -->
-  <line x1="50" y1="50" x2="81" y2="68"   stroke="#FEE9E1" stroke-width="3.5" stroke-linecap="round"/>
-  <!-- bottom-left -->
-  <line x1="50" y1="50" x2="19" y2="68"   stroke="#FEE9E1" stroke-width="3.5" stroke-linecap="round"/>
-  <!-- Inner cream circle -->
-  <circle cx="50" cy="50" r="17.5" fill="#FEE9E1"/>
-  <!-- Dollar sign -->
-  <text x="50" y="57" text-anchor="middle" font-size="18" font-weight="700" fill="#F888B0" font-family="Georgia, 'Times New Roman', serif">$</text>
+  <rect width="512" height="512" fill="url(#grad)"/>
+  <text x="256" y="375" text-anchor="middle" font-size="295" font-weight="900" fill="white"
+        font-family="system-ui, -apple-system, Arial, sans-serif">&#x20B9;</text>
+  <line x1="382" y1="82" x2="142" y2="448"
+        stroke="white" stroke-width="24" stroke-linecap="round" opacity="0.95"/>
 </svg>

@@ -30,7 +30,9 @@ export default function ScanReceipt({
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
+  const hintTimerRef = useRef(null);
   const [facingMode, setFacingMode] = useState("environment");
+  const [showHint, setShowHint] = useState(false);
 
   // Attach stream to video element — called after stream acquired OR when video mounts
   const attachStream = useCallback(() => {
@@ -67,16 +69,27 @@ export default function ScanReceipt({
       if (imageUrl) {
         URL.revokeObjectURL(imageUrl);
       }
+      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
     };
   }, [imageUrl]);
 
   const applyStream = (stream) => {
     streamRef.current = stream;
+    // Detect the actual facing mode so flipCamera state is always accurate
+    const track = stream.getVideoTracks()[0];
+    if (track) {
+      const settings = track.getSettings();
+      if (settings.facingMode) setFacingMode(settings.facingMode);
+    }
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
       videoRef.current.play().catch(() => {});
     }
     if (mode !== "camera") setMode("camera");
+    // Show 5-second photo-tip overlay
+    setShowHint(true);
+    if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+    hintTimerRef.current = setTimeout(() => setShowHint(false), 5000);
   };
 
   const startCamera = async (facing = facingMode) => {
@@ -484,6 +497,14 @@ export default function ScanReceipt({
               </button>
             </div>
           </div>
+          {/* 5-second photo tip */}
+          {showHint && (
+            <div className="absolute inset-x-0 bottom-36 flex justify-center px-6 pointer-events-none">
+              <div className="bg-black/75 backdrop-blur-sm text-white text-[13px] px-5 py-3 rounded-2xl text-center max-w-xs shadow-xl leading-snug">
+                📸 Hold steady — take a clear, close picture of the bill for best results
+              </div>
+            </div>
+          )}
           {/* Bottom shutter bar */}
           <div className="bg-black h-32 flex items-center justify-center">
             <button

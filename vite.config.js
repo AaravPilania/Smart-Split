@@ -11,7 +11,7 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Smart Split',
-        short_name: 'SmartSplit',
+        short_name: 'Smart Split',
         description: 'Split bills, stay friends',
         theme_color: '#F888B0',
         background_color: '#FFBED6',
