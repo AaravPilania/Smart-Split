@@ -123,11 +123,28 @@ const Home = () => {
         {/* ── Right: Auth Form ── */}
         <div className="w-full lg:max-w-[430px] flex-shrink-0">
 
-          {/* Mobile logo */}
-          <div className="lg:hidden text-center mb-8 pt-6">
-            <img src="/favicon.svg" alt="Smart Split" className="h-16 w-16 rounded-3xl shadow-2xl mx-auto mb-3" />
-            <h1 className="text-2xl font-black text-white">Smart Split</h1>
-            <p className="text-sm text-white/55 mt-1.5">Split bills &middot; Stay friends</p>
+          {/* Mobile hero */}
+          <div className="lg:hidden text-center pt-6 pb-5">
+            <img src="/favicon.svg" alt="Smart Split" className="h-14 w-14 rounded-2xl shadow-2xl mx-auto mb-3" />
+            <h1 className="text-[1.65rem] font-black text-white leading-tight">
+              Split bills,{" "}
+              <span style={{
+                background: "linear-gradient(90deg, #f472b6 0%, #c084fc 45%, #fb923c 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}>not friendships.</span>
+            </h1>
+            <p className="text-xs text-white/50 mt-2 mb-4">The smartest way to track shared expenses</p>
+            {/* Compact pill features */}
+            <div className="flex flex-wrap justify-center gap-2">
+              {[["🧾","Receipt Scan"],["👥","Group Splits"],["📊","Balances"],["⚡","Quick Settle"]].map(([icon, label]) => (
+                <span key={label} className="flex items-center gap-1.5 text-[11px] font-medium text-white/65 px-3 py-1.5 rounded-full"
+                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                  <span>{icon}</span>{label}
+                </span>
+              ))}
+            </div>
           </div>
 
           {/* Card */}
