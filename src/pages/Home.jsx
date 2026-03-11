@@ -58,7 +58,7 @@ const Home = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#050508]">
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden" style={{ background: "#0f0a1e" }}>
       {/* Video background */}
       <video
         className="absolute inset-0 w-full h-full object-cover opacity-25"
@@ -67,7 +67,7 @@ const Home = () => {
       />
 
       {/* Layered overlays */}
-      <div className="absolute inset-0 bg-gradient-to-br from-violet-950/70 via-black/50 to-orange-950/50" />
+      <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(88,28,200,0.55) 0%, rgba(15,10,30,0.75) 50%, rgba(120,40,10,0.4) 100%)" }} />
       {/* Ambient glow orbs */}
       <div className="absolute -top-32 left-1/4 w-[600px] h-[600px] bg-purple-600/20 rounded-full blur-[130px] pointer-events-none" />
       <div className="absolute -bottom-32 right-1/4 w-[500px] h-[500px] bg-orange-500/15 rounded-full blur-[110px] pointer-events-none" />
@@ -131,17 +131,17 @@ const Home = () => {
           <div className="lg:hidden text-center mb-8 pt-6">
             <img src="/favicon.svg" alt="Smart Split" className="h-16 w-16 rounded-3xl shadow-2xl mx-auto mb-3" />
             <h1 className="text-2xl font-black text-white">Smart Split</h1>
-            <p className="text-sm text-white/40 mt-1.5">Split bills &middot; Stay friends</p>
+            <p className="text-sm text-white/55 mt-1.5">Split bills &middot; Stay friends</p>
           </div>
 
           {/* Card */}
           <div
             className="rounded-3xl overflow-hidden shadow-2xl shadow-black/60"
             style={{
-              background: "rgba(255,255,255,0.055)",
+              background: "rgba(30,18,60,0.85)",
               backdropFilter: "blur(48px)",
               WebkitBackdropFilter: "blur(48px)",
-              border: "1px solid rgba(255,255,255,0.10)",
+              border: "1px solid rgba(255,255,255,0.14)",
             }}
           >
             {/* Gradient accent bar */}
@@ -151,14 +151,14 @@ const Home = () => {
               <h2 className="text-2xl font-bold text-white">
                 {isLogin ? "Welcome back" : "Create account"}
               </h2>
-              <p className="text-sm text-white/38 mt-1 mb-6">
+              <p className="text-sm text-white/60 mt-1 mb-6">
                 {isLogin ? "Sign in to your Smart Split account" : "Join Smart Split — it's free forever"}
               </p>
 
               {/* Tab toggle */}
               <div
                 className="flex p-1 mb-6 gap-1 rounded-2xl"
-                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)" }}
+                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
               >
                 {[["Sign In", true], ["Register", false]].map(([label, val]) => (
                   <button
@@ -167,7 +167,7 @@ const Home = () => {
                     className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
                       isLogin === val
                         ? "bg-white text-gray-900 shadow-sm"
-                        : "text-white/40 hover:text-white/65"
+                        : "text-white/55 hover:text-white/80"
                     }`}
                   >
                     {label}
@@ -205,7 +205,7 @@ const Home = () => {
                     <button
                       type="button"
                       onClick={() => setShowPassword((p) => !p)}
-                      className="text-white/30 hover:text-white/65 transition"
+                      className="text-white/50 hover:text-white/80 transition"
                       tabIndex={-1}
                     >
                       {showPassword ? <FiEyeOff size={15} /> : <FiEye size={15} />}
@@ -221,7 +221,7 @@ const Home = () => {
                       onChange={(e) => setRememberMe(e.target.checked)}
                       className="w-3.5 h-3.5 rounded accent-pink-500"
                     />
-                    <span className="text-xs text-white/38">Keep me signed in</span>
+                    <span className="text-xs text-white/60">Keep me signed in</span>
                   </label>
                 )}
 
@@ -248,11 +248,11 @@ const Home = () => {
                 </button>
               </form>
 
-              <p className="mt-6 text-center text-sm text-white/28">
+              <p className="mt-6 text-center text-sm text-white/50">
                 {isLogin ? "New to Smart Split?" : "Already have an account?"}{" "}
                 <button
                   onClick={switchMode}
-                  className="text-white/65 font-semibold hover:text-white transition-colors"
+                  className="text-white font-semibold hover:text-pink-300 transition-colors"
                 >
                   {isLogin ? "Create an account" : "Sign in instead"}
                 </button>
@@ -267,15 +267,15 @@ const Home = () => {
 
 const AuthInput = ({ icon, suffix, ...props }) => (
   <div className="relative flex items-center">
-    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none flex-shrink-0">
+    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none flex-shrink-0">
       {icon}
     </span>
     <input
       {...props}
-      className="w-full pl-10 pr-10 py-3 text-sm text-white placeholder-white/28 rounded-xl outline-none transition-all focus:bg-white/[0.09]"
+      className="w-full pl-10 pr-10 py-3 text-sm text-white placeholder-white/45 rounded-xl outline-none transition-all"
       style={{
-        background: "rgba(255,255,255,0.065)",
-        border: "1px solid rgba(255,255,255,0.09)",
+        background: "rgba(255,255,255,0.10)",
+        border: "1px solid rgba(255,255,255,0.18)",
       }}
     />
     {suffix && (
