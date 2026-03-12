@@ -101,9 +101,9 @@ const Home = () => {
   };
 
   // Plain render function — NOT a React component — so React never unmounts the inputs on re-render
-  const renderForm = (compact) => (
-    <div className="rounded-3xl overflow-hidden shadow-2xl shadow-black/70" style={CARD_STYLE}>
-      <div className="h-[3px]" style={{ background: "linear-gradient(90deg, #ec4899, #a855f7, #f97316)" }} />
+  // noCard=true → renders only the inner form content without the glass card wrapper
+  const renderForm = (compact, noCard = false) => {
+    const inner = (
       <div className={compact ? "p-5" : "p-7 sm:p-8"}>
         <h2 className={`${compact ? "text-lg" : "text-2xl"} font-bold text-white`}>
           {isLogin ? "Welcome back" : "Create account"}
@@ -183,8 +183,17 @@ const Home = () => {
           </button>
         </p>
       </div>
-    </div>
-  );
+    );
+
+    if (noCard) return inner;
+
+    return (
+      <div className="rounded-3xl overflow-hidden shadow-2xl shadow-black/70" style={CARD_STYLE}>
+        <div className="h-[3px]" style={{ background: "linear-gradient(90deg, #ec4899, #a855f7, #f97316)" }} />
+        {inner}
+      </div>
+    );
+  };
 
   return (
     <div className="home-bg fixed inset-0 overflow-hidden"
@@ -199,18 +208,27 @@ const Home = () => {
       {/* Content layer — fills viewport exactly, no scroll */}
       <div className="relative z-10 h-full w-full overflow-hidden flex items-center justify-center">
 
-        {/* ── DESKTOP: side-by-side ── */}
-        <div className="hidden lg:flex w-full max-w-6xl mx-auto px-10 items-center gap-20">
+        {/* ── DESKTOP: everything inside one glass panel ── */}
+        <div className="hidden lg:flex w-full max-w-5xl mx-auto px-12 py-12 items-center gap-16 rounded-3xl shadow-2xl shadow-black/50"
+          style={{
+            opacity: mounted ? 1 : 0,
+            transform: mounted ? "translateY(0)" : "translateY(24px)",
+            transition: "opacity 0.5s ease, transform 0.5s ease",
+            background: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(255,255,255,0.13)",
+            backdropFilter: "blur(32px)",
+            WebkitBackdropFilter: "blur(32px)",
+          }}>
 
           {/* Left: hero */}
           <div className="flex flex-1 flex-col gap-8 text-white">
             <div className="flex items-center gap-3"
-              style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(18px)", transition: "opacity 0.5s ease, transform 0.5s ease" }}>
+              style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(12px)", transition: "opacity 0.5s ease 0.1s, transform 0.5s ease 0.1s" }}>
               <img src="/icon.png" alt="Smart Split" className="h-11 w-11 rounded-2xl shadow-lg" />
               <span className="text-base font-semibold tracking-tight text-white/60">Smart Split</span>
             </div>
 
-            <div style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(22px)", transition: "opacity 0.55s ease 0.08s, transform 0.55s ease 0.08s" }}>
+            <div style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(14px)", transition: "opacity 0.5s ease 0.18s, transform 0.5s ease 0.18s" }}>
               <h1 className="text-[3.8rem] font-black leading-[1.05] tracking-tight">
                 Split bills,<br />
                 <span style={GRADIENT_TEXT}>not friendships.</span>
@@ -221,7 +239,7 @@ const Home = () => {
             </div>
 
             <div className="space-y-3"
-              style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(22px)", transition: "opacity 0.55s ease 0.16s, transform 0.55s ease 0.16s" }}>
+              style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(14px)", transition: "opacity 0.5s ease 0.26s, transform 0.5s ease 0.26s" }}>
               {FEATURES.map((txt) => (
                 <div key={txt} className="flex items-center gap-3">
                   <div className="h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0"
@@ -234,20 +252,23 @@ const Home = () => {
             </div>
           </div>
 
+          {/* Divider */}
+          <div className="w-px self-stretch opacity-20" style={{ background: "linear-gradient(to bottom, transparent, rgba(255,255,255,0.6), transparent)" }} />
+
           {/* Right: form */}
-          <div className="w-[430px] flex-shrink-0"
-            style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(28px)", transition: "opacity 0.6s ease 0.22s, transform 0.6s ease 0.22s" }}>
+          <div className="w-[400px] flex-shrink-0"
+            style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(14px)", transition: "opacity 0.5s ease 0.32s, transform 0.5s ease 0.32s" }}>
             {renderForm(false)}
           </div>
 
         </div>
 
         {/* ── MOBILE: stacked, viewport-locked ── */}
-        <div className="lg:hidden flex flex-col h-full w-full px-5 pt-10 pb-5">
+        <div className="lg:hidden flex flex-col h-full w-full px-5 pt-9 pb-6">
 
           {/* Branding — near top */}
           <div className="text-center w-full"
-            style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(20px)", transition: "opacity 0.5s ease, transform 0.5s ease" }}>
+            style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(18px)", transition: "opacity 0.45s ease, transform 0.45s ease" }}>
             <img src="/icon.png" alt="Smart Split" className="h-11 w-11 rounded-2xl shadow-2xl mx-auto mb-2.5" />
             <h1 className="text-[1.8rem] font-black text-white leading-tight">
               Split bills,{" "}
@@ -258,35 +279,41 @@ const Home = () => {
             </p>
           </div>
 
-          {/* USP pills in a glassy container */}
-          <div className="mt-5 w-full max-w-xs mx-auto rounded-2xl px-4 py-3"
+          {/* Small gap */}
+          <div className="h-5" />
+
+          {/* ── Single unified glass card: USP + form ── */}
+          <div className="w-full max-w-sm mx-auto rounded-3xl overflow-hidden shadow-2xl shadow-black/60"
             style={{
               opacity: mounted ? 1 : 0,
-              transform: mounted ? "translateY(0)" : "translateY(20px)",
-              transition: "opacity 0.5s ease 0.1s, transform 0.5s ease 0.1s",
-              background: "rgba(255,255,255,0.07)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              backdropFilter: "blur(16px)",
-              WebkitBackdropFilter: "blur(16px)",
+              transform: mounted ? "translateY(0)" : "translateY(22px)",
+              transition: "opacity 0.5s ease 0.12s, transform 0.5s ease 0.12s",
+              background: "rgba(30,18,60,0.82)",
+              backdropFilter: "blur(40px)",
+              WebkitBackdropFilter: "blur(40px)",
+              border: "1px solid rgba(255,255,255,0.14)",
             }}>
-            <div className="flex flex-wrap justify-center gap-2">
+
+            {/* Rainbow top accent bar */}
+            <div className="h-[3px]" style={{ background: "linear-gradient(90deg, #ec4899, #a855f7, #f97316)" }} />
+
+            {/* USP pills strip */}
+            <div className="px-5 pt-4 pb-3.5 flex flex-wrap justify-center gap-2"
+              style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
               {[["🧾","Receipt Scan"],["👥","Group Splits"],["📊","Balances"],["⚡","Quick Settle"]].map(([icon, label]) => (
-                <span key={label} className="flex items-center gap-1.5 text-[11px] font-semibold text-white/70 px-3 py-1.5 rounded-full"
-                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.10)" }}>
+                <span key={label} className="flex items-center gap-1.5 text-[11px] font-semibold text-white/65 px-3 py-1.5 rounded-full"
+                  style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.10)" }}>
                   <span className="text-sm">{icon}</span>{label}
                 </span>
               ))}
             </div>
+
+            {/* Form content — no extra card wrapper */}
+            {renderForm(true, true)}
           </div>
 
-          {/* Spacer — pushes form down */}
-          <div className="flex-1" />
-
-          {/* Form card — shifted up from absolute bottom */}
-          <div className="w-full max-w-sm mx-auto mb-4"
-            style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(30px)", transition: "opacity 0.55s ease 0.2s, transform 0.55s ease 0.2s" }}>
-            {renderForm(true)}
-          </div>
+          {/* Bottom breathing room — capped so card stays visually centred-ish */}
+          <div className="flex-1 max-h-14" />
 
         </div>
 
