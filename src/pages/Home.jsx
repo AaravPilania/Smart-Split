@@ -232,7 +232,7 @@ const Home = () => {
         </div>
 
         {/* ── MOBILE: stacked, viewport-locked ── */}
-        <div className="lg:hidden flex flex-col items-center h-full w-full px-5 pt-10 pb-5">
+        <div className="lg:hidden flex flex-col h-full w-full px-5 pt-10 pb-5">
 
           {/* Branding — near top */}
           <div className="text-center w-full">
@@ -246,19 +246,33 @@ const Home = () => {
             </p>
           </div>
 
-          {/* USP pills — right below headline */}
-          <div className="flex flex-wrap justify-center gap-1.5 mt-4">
-            {[["🧾","Receipt Scan"],["👥","Group Splits"],["📊","Balances"],["⚡","Quick Settle"]].map(([icon, label]) => (
-              <span key={label} className="flex items-center gap-1 text-[10px] font-medium text-white/55 px-2.5 py-1 rounded-full"
-                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                <span>{icon}</span>{label}
-              </span>
+          {/* USP bullet points — spaced below heading */}
+          <div className="mt-6 space-y-3 w-full max-w-xs mx-auto">
+            {[
+              ["🧾", "AI Receipt Scanning", "Point, snap, split — OCR does the rest"],
+              ["👥", "Group Expense Splits", "Track every shared bill across groups"],
+              ["📊", "Real-Time Balances", "See who owes what at a glance"],
+              ["⚡", "One-Tap Settlement", "Simplify debts into minimal payments"],
+            ].map(([icon, title, desc]) => (
+              <div key={title} className="flex items-start gap-3">
+                <span className="h-8 w-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0"
+                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                  {icon}
+                </span>
+                <div>
+                  <p className="text-[13px] font-semibold text-white/80 leading-tight">{title}</p>
+                  <p className="text-[11px] text-white/40 leading-snug mt-0.5">{desc}</p>
+                </div>
+              </div>
             ))}
           </div>
 
-          {/* Form card — centered in remaining space */}
-          <div className="flex-1 flex items-center w-full max-w-sm">
-            <div className="w-full">{renderForm(true)}</div>
+          {/* Spacer pushes form toward bottom */}
+          <div className="flex-1 min-h-6" />
+
+          {/* Form card — near bottom with breathing room */}
+          <div className="w-full max-w-sm mx-auto pb-2">
+            {renderForm(true)}
           </div>
 
         </div>
