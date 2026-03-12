@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FiMail, FiLock, FiUser, FiEye, FiEyeOff, FiArrowRight, FiCheck } from "react-icons/fi";
 import { API_URL, setAuthData } from "../utils/api";
@@ -9,6 +9,66 @@ const FEATURES = [
   "Simplified debt with one-tap settlement",
   "Add friends via QR code in seconds",
 ];
+
+// Animated sine-wave canvas — defined outside Home so it never remounts
+const WaveBackground = () => {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let raf;
+    let frame = 0;
+
+    const resize = () => {
+      const W = canvas.offsetWidth;
+      const H = canvas.offsetHeight;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    // Each wave: vertical position, amplitude, frequency, speed, colour, line width
+    const WAVES = [
+      { y: 0.15, amp: 0.055, freq: 1.2, spd: 0.30, color: "rgba(147,51,234,0.26)",  lw: 2.0 },
+      { y: 0.30, amp: 0.065, freq: 1.7, spd: 0.48, color: "rgba(236,72,153,0.22)",  lw: 1.6 },
+      { y: 0.46, amp: 0.048, freq: 2.2, spd: 0.65, color: "rgba(249,115,22,0.18)",  lw: 1.8 },
+      { y: 0.60, amp: 0.072, freq: 1.0, spd: 0.22, color: "rgba(139,92,246,0.24)",  lw: 2.3 },
+      { y: 0.74, amp: 0.052, freq: 1.5, spd: 0.55, color: "rgba(232,121,249,0.18)", lw: 1.5 },
+      { y: 0.88, amp: 0.040, freq: 1.9, spd: 0.40, color: "rgba(99,102,241,0.16)",  lw: 1.4 },
+    ];
+
+    const draw = () => {
+      const W = canvas.offsetWidth;
+      const H = canvas.offsetHeight;
+      ctx.clearRect(0, 0, W, H);
+      const t = frame / 60;
+      WAVES.forEach((w) => {
+        ctx.beginPath();
+        ctx.lineWidth = w.lw;
+        ctx.strokeStyle = w.color;
+        for (let x = 0; x <= W + 4; x += 3) {
+          const y = w.y * H + Math.sin((x / W) * Math.PI * 2 * w.freq + t * w.spd * Math.PI * 2) * w.amp * H;
+          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      });
+      frame++;
+      raf = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
+  }, []);
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+    />
+  );
+};
 
 // Defined outside Home so AuthInput is never remounted on re-render
 const AuthInput = ({ icon, suffix, ...props }) => (
@@ -206,7 +266,7 @@ const Home = () => {
         <div className="glow-1" />
         <div className="glow-2" />
         <div className="glow-3" />
-        <div className="home-pattern" />
+        <WaveBackground />
       </div>
 
       {/* Content layer — fills viewport exactly, no scroll */}
@@ -288,9 +348,8 @@ const Home = () => {
           {/* Top spacer — pushes USP pills toward vertical center */}
           <div className="flex-1" />
 
-          {/* USP pills — glassy box centered between headline and login card */}
-          <div className="flex justify-center gap-2.5 flex-wrap px-5 py-3 rounded-2xl mx-2"
-            style={{
+          {/* USP pills — single-line glassy box */}
+          <div className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl mx-2" style={{ flexWrap: "nowrap",
               opacity: mounted ? 1 : 0,
               transform: mounted ? "translateY(0)" : "translateY(14px)",
               transition: "opacity 0.45s ease 0.08s, transform 0.45s ease 0.08s",
@@ -300,8 +359,8 @@ const Home = () => {
               WebkitBackdropFilter: "blur(20px)",
               boxShadow: "0 4px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(255,255,255,0.04)",
             }}>
-            {[["🧾", "Receipt Scan"], ["👥", "Group Splits"], ["⚡", "Quick Settle"]].map(([icon, label]) => (
-              <span key={label} className="flex items-center gap-1.5 text-[11px] font-semibold text-white/75 px-3 py-1.5 rounded-full"
+            {[["🧾", "Receipt"], ["👥", "Groups"], ["⚡", "Settle"]].map(([icon, label]) => (
+              <span key={label} className="flex items-center gap-1 text-[11px] font-semibold text-white/75 px-2.5 py-1.5 rounded-full whitespace-nowrap"
                 style={{ background: "rgba(255,255,255,0.11)", border: "1px solid rgba(255,255,255,0.22)", backdropFilter: "blur(12px)", boxShadow: "0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.14)" }}>
                 <span className="text-sm">{icon}</span>{label}
               </span>

@@ -34,20 +34,7 @@ button, a, input, select, textarea {
   background: #0d0818;
 }
 
-/* Moving dot-grid pattern layer */
-.home-pattern {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle, rgba(255,255,255,0.13) 1.5px, transparent 1.5px);
-  background-size: 28px 28px;
-  animation: patternDrift 22s linear infinite;
-  pointer-events: none;
-}
-
-@keyframes patternDrift {
-  from { background-position: 0 0; }
-  to   { background-position: 28px 28px; }
-}
+/* Moving dot-grid pattern layer — replaced by canvas WaveBackground */
 
 /* Ambient colour glows — sit behind the pattern */
 .glow-1 {
