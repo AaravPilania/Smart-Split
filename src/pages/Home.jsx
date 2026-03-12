@@ -248,14 +248,11 @@ const Home = () => {
 
         </div>
 
-        {/* ── MOBILE: stacked, centered, viewport-locked ── */}
-        <div className="lg:hidden flex flex-col items-center justify-between h-full w-full px-5 py-8">
+        {/* ── MOBILE: stacked, viewport-locked ── */}
+        <div className="lg:hidden flex flex-col items-center h-full w-full px-5 pt-12 pb-5">
 
-          {/* Top spacer */}
-          <div />
-
-          {/* Branding */}
-          <div className="text-center w-full mb-5">
+          {/* Branding — pinned near top */}
+          <div className="text-center w-full">
             <img src="/favicon.svg" alt="Smart Split" className="h-10 w-10 rounded-2xl shadow-2xl mx-auto mb-2" />
             <h1 className="text-[1.5rem] font-black text-white leading-tight">
               Split bills,{" "}
@@ -266,13 +263,13 @@ const Home = () => {
             </p>
           </div>
 
-          {/* Form card */}
-          <div className="w-full max-w-sm">
-            {renderForm(true)}
+          {/* Form card — centered in remaining space */}
+          <div className="flex-1 flex items-center w-full max-w-sm">
+            <div className="w-full">{renderForm(true)}</div>
           </div>
 
           {/* Bottom: feature pills */}
-          <div className="flex flex-wrap justify-center gap-1.5 mt-5">
+          <div className="flex flex-wrap justify-center gap-1.5 pt-3">
             {[["🧾","Receipt Scan"],["👥","Group Splits"],["📊","Balances"],["⚡","Quick Settle"]].map(([icon, label]) => (
               <span key={label} className="flex items-center gap-1 text-[10px] font-medium text-white/55 px-2.5 py-1 rounded-full"
                 style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
