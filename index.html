@@ -10,6 +10,9 @@
     <script>
       // Apply dark mode before React hydrates to prevent FOUC
       (function() {
+        if (localStorage.getItem('darkMode') === null) {
+          localStorage.setItem('darkMode', 'true');
+        }
         if (localStorage.getItem('darkMode') === 'true') {
           document.documentElement.classList.add('dark');
         }

@@ -169,7 +169,7 @@ export default function Navbar() {
         {/* â”€â”€ Desktop (md+) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="hidden md:flex max-w-6xl mx-auto px-6 h-16 items-center justify-between">
           <Link to="/dashboard" className="flex items-center gap-2.5 hover:opacity-80 transition">
-            <img src="/favicon.svg" alt="Smart Split" className="h-9 w-9 rounded-xl shadow-md flex-shrink-0" />
+            <img src="/icon.png" alt="Smart Split" className="h-9 w-9 rounded-xl shadow-md flex-shrink-0" />
             <span className="text-lg font-bold text-gray-800 dark:text-white tracking-tight">Smart Split</span>
           </Link>
 
@@ -222,7 +222,7 @@ export default function Navbar() {
         {/* â”€â”€ Mobile header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="md:hidden flex items-center justify-between px-4 h-14 gap-3">
           <Link to="/dashboard" className="flex items-center gap-2.5 hover:opacity-80 transition min-w-0">
-            <img src="/favicon.svg" alt="Smart Split" className="h-9 w-9 rounded-xl shadow-md flex-shrink-0" />
+            <img src="/icon.png" alt="Smart Split" className="h-9 w-9 rounded-xl shadow-md flex-shrink-0" />
             <span className="text-[16px] font-bold text-gray-800 dark:text-white truncate">Smart Split</span>
           </Link>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -253,7 +253,7 @@ export default function Navbar() {
           {/* Drawer header */}
           <div className="flex items-center justify-between px-4 h-14 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
             <div className="flex items-center gap-2.5">
-              <img src="/favicon.svg" alt="Smart Split" className="h-8 w-8 rounded-xl shadow flex-shrink-0" />
+              <img src="/icon.png" alt="Smart Split" className="h-8 w-8 rounded-xl shadow flex-shrink-0" />
               <span className="font-bold text-gray-800 dark:text-white">Smart Split</span>
             </div>
             <button

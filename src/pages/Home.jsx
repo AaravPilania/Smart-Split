@@ -1,7 +1,10 @@
 ﻿import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FiMail, FiLock, FiUser, FiEye, FiEyeOff, FiArrowRight, FiCheck } from "react-icons/fi";
+import { motion, AnimatePresence } from "framer-motion";
 import { API_URL, setAuthData } from "../utils/api";
+import DesktopIntro from "../components/DesktopIntro";
+import MobileOnboarding from "../components/MobileOnboarding";
 
 const FEATURES = [
   "Track every shared bill across groups",
@@ -10,65 +13,133 @@ const FEATURES = [
   "Add friends via QR code in seconds",
 ];
 
-// Animated sine-wave canvas — defined outside Home so it never remounts
-const WaveBackground = () => {
+/* ─── Animated topographic contour background ─── */
+const TopoBackground = () => {
   const canvasRef = useRef(null);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     let raf;
-    let frame = 0;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    // Gaussian-like hills that slowly orbit / breathe
+    const hills = [
+      { cx: 0.15, cy: 0.20, r: 0.32, amp: 1.0, phase: 0,    speed: 0.08 },
+      { cx: 0.75, cy: 0.18, r: 0.28, amp: 0.9, phase: 1.8,  speed: 0.06 },
+      { cx: 0.50, cy: 0.55, r: 0.35, amp: 1.1, phase: 3.2,  speed: 0.07 },
+      { cx: 0.25, cy: 0.80, r: 0.30, amp: 0.8, phase: 4.5,  speed: 0.09 },
+      { cx: 0.80, cy: 0.70, r: 0.26, amp: 0.95,phase: 2.4,  speed: 0.065},
+      { cx: 0.10, cy: 0.50, r: 0.24, amp: 0.7, phase: 5.1,  speed: 0.075},
+      { cx: 0.60, cy: 0.30, r: 0.20, amp: 0.6, phase: 0.7,  speed: 0.085},
+      { cx: 0.40, cy: 0.85, r: 0.22, amp: 0.75,phase: 3.8,  speed: 0.07 },
+      { cx: 0.90, cy: 0.40, r: 0.25, amp: 0.85,phase: 1.2,  speed: 0.06 },
+      { cx: 0.35, cy: 0.10, r: 0.20, amp: 0.65,phase: 4.0,  speed: 0.08 },
+    ];
+
+    const LEVELS = 12;
+    const STEP = 28; // pixel spacing of sample grid
 
     const resize = () => {
-      const W = canvas.offsetWidth;
-      const H = canvas.offsetHeight;
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = W * dpr;
-      canvas.height = H * dpr;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      canvas.style.width = window.innerWidth + "px";
+      canvas.style.height = window.innerHeight + "px";
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
     window.addEventListener("resize", resize);
 
-    // Each wave: vertical position, amplitude, frequency, speed, colour, line width
-    const WAVES = [
-      { y: 0.15, amp: 0.055, freq: 1.2, spd: 0.30, color: "rgba(147,51,234,0.26)",  lw: 2.0 },
-      { y: 0.30, amp: 0.065, freq: 1.7, spd: 0.48, color: "rgba(236,72,153,0.22)",  lw: 1.6 },
-      { y: 0.46, amp: 0.048, freq: 2.2, spd: 0.65, color: "rgba(249,115,22,0.18)",  lw: 1.8 },
-      { y: 0.60, amp: 0.072, freq: 1.0, spd: 0.22, color: "rgba(139,92,246,0.24)",  lw: 2.3 },
-      { y: 0.74, amp: 0.052, freq: 1.5, spd: 0.55, color: "rgba(232,121,249,0.18)", lw: 1.5 },
-      { y: 0.88, amp: 0.040, freq: 1.9, spd: 0.40, color: "rgba(99,102,241,0.16)",  lw: 1.4 },
+    const field = (x, y, t) => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      let v = 0;
+      for (const hill of hills) {
+        const hx = (hill.cx + 0.06 * Math.sin(t * hill.speed + hill.phase)) * w;
+        const hy = (hill.cy + 0.06 * Math.cos(t * hill.speed * 0.8 + hill.phase)) * h;
+        const r = hill.r * Math.max(w, h) * (1 + 0.08 * Math.sin(t * hill.speed * 0.5 + hill.phase));
+        const dx = x - hx;
+        const dy = y - hy;
+        v += hill.amp * Math.exp(-(dx * dx + dy * dy) / (2 * r * r));
+      }
+      return v;
+    };
+
+    // Marching-squares segment lookup (classic 16 cases)
+    const segments = [
+      [], [[0,0.5],[0.5,1]], [[0.5,1],[1,0.5]], [[0,0.5],[1,0.5]],
+      [[1,0.5],[0.5,0]], [[0,0.5],[0.5,0],[1,0.5],[0.5,1]], [[0.5,1],[0.5,0]], [[0,0.5],[0.5,0]],
+      [[0,0.5],[0.5,0]], [[0.5,1],[0.5,0]], [[0,0.5],[0.5,1],[1,0.5],[0.5,0]], [[1,0.5],[0.5,0]],
+      [[0,0.5],[1,0.5]], [[0.5,1],[1,0.5]], [[0,0.5],[0.5,1]], [],
     ];
 
-    const draw = () => {
-      const W = canvas.offsetWidth;
-      const H = canvas.offsetHeight;
-      ctx.clearRect(0, 0, W, H);
-      const t = frame / 60;
-      WAVES.forEach((w) => {
+    const draw = (t) => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const cols = Math.ceil(w / STEP) + 1;
+      const rows = Math.ceil(h / STEP) + 1;
+
+      // Sample the field
+      const grid = new Float32Array(cols * rows);
+      for (let j = 0; j < rows; j++) {
+        for (let i = 0; i < cols; i++) {
+          grid[j * cols + i] = field(i * STEP, j * STEP, t);
+        }
+      }
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = "rgba(255,255,255,0.07)";
+      ctx.lineWidth = 1;
+
+      for (let level = 1; level <= LEVELS; level++) {
+        const threshold = level / (LEVELS + 1);
         ctx.beginPath();
-        ctx.lineWidth = w.lw;
-        ctx.strokeStyle = w.color;
-        for (let x = 0; x <= W + 4; x += 3) {
-          const y = w.y * H + Math.sin((x / W) * Math.PI * 2 * w.freq + t * w.spd * Math.PI * 2) * w.amp * H;
-          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        for (let j = 0; j < rows - 1; j++) {
+          for (let i = 0; i < cols - 1; i++) {
+            const tl = grid[j * cols + i];
+            const tr = grid[j * cols + i + 1];
+            const br = grid[(j + 1) * cols + i + 1];
+            const bl = grid[(j + 1) * cols + i];
+            const code =
+              (tl >= threshold ? 8 : 0) |
+              (tr >= threshold ? 4 : 0) |
+              (br >= threshold ? 2 : 0) |
+              (bl >= threshold ? 1 : 0);
+            const segs = segments[code];
+            if (!segs || segs.length === 0) continue;
+            const ox = i * STEP;
+            const oy = j * STEP;
+            for (let s = 0; s < segs.length; s += 2) {
+              ctx.moveTo(ox + segs[s][0] * STEP, oy + segs[s][1] * STEP);
+              ctx.lineTo(ox + segs[s + 1][0] * STEP, oy + segs[s + 1][1] * STEP);
+            }
+          }
         }
         ctx.stroke();
-      });
-      frame++;
-      raf = requestAnimationFrame(draw);
+      }
+
+      raf = requestAnimationFrame(() => draw(t + 0.35));
     };
-    draw();
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
+
+    raf = requestAnimationFrame(() => draw(0));
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+    };
   }, []);
+
   return (
     <canvas
       ref={canvasRef}
-      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+      className="absolute inset-0 pointer-events-none"
+      style={{ opacity: 1 }}
     />
   );
 };
+
+
 
 // Defined outside Home so AuthInput is never remounted on re-render
 const AuthInput = ({ icon, suffix, ...props }) => (
@@ -111,14 +182,32 @@ const Home = () => {
   const [error, setError] = useState("");
   const [mounted, setMounted] = useState(false);
 
+  // ── Intro / Splash logic ──
+  const hasSeenIntro = useRef(sessionStorage.getItem("smartsplit_intro_seen") === "1");
+  const [showIntro, setShowIntro] = useState(!hasSeenIntro.current);
+  const [showSplash, setShowSplash] = useState(hasSeenIntro.current);
+
+  const handleGetStarted = () => {
+    sessionStorage.setItem("smartsplit_intro_seen", "1");
+    setShowIntro(false);
+  };
+
+  // Splash: auto-dismiss after 1s
+  useEffect(() => {
+    if (!showSplash) return;
+    const timer = setTimeout(() => setShowSplash(false), 1000);
+    return () => clearTimeout(timer);
+  }, [showSplash]);
+
   // Staggered entrance — trigger one frame after mount
   useEffect(() => {
     const id = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(id);
   }, []);
 
-  // Prevent page-level scroll only while on login screen
+  // Prevent page-level scroll only while on login screen (not during intro)
   useEffect(() => {
+    if (showIntro || showSplash) return;
     const html = document.documentElement;
     html.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
@@ -128,7 +217,7 @@ const Home = () => {
       document.body.style.overflow = "";
       document.body.style.overscrollBehavior = "";
     };
-  }, []);
+  }, [showIntro, showSplash]);
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
@@ -260,17 +349,68 @@ const Home = () => {
 
   return (
     <div className="home-bg fixed inset-0 overflow-hidden"
-      style={{ touchAction: "none", opacity: mounted ? 1 : 0, transition: "opacity 0.35s ease" }}>
-      {/* Animated blob background — fixed so blobs fill screen regardless of content */}
+      style={{ touchAction: showIntro ? "auto" : "none", opacity: mounted ? 1 : 0, transition: "opacity 0.35s ease" }}>
+      {/* Animated background layers: topo → dots → blobs — always visible */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden style={{ width: "100%", maxWidth: "100vw" }}>
-        <div className="glow-1" />
-        <div className="glow-2" />
-        <div className="glow-3" />
-        <WaveBackground />
+        <TopoBackground />
+        <div className="home-dots" style={{ position: "relative", zIndex: 1 }} />
+        <div className="glow-1" style={{ position: "relative", zIndex: 2 }} />
+        <div className="glow-2" style={{ position: "relative", zIndex: 2 }} />
+        <div className="glow-3" style={{ position: "relative", zIndex: 2 }} />
       </div>
 
-      {/* Content layer — fills viewport exactly, no scroll */}
-      <div className="relative z-10 h-full w-full overflow-hidden flex items-center justify-center">
+      {/* ── Content layer with AnimatePresence ── */}
+      <AnimatePresence mode="wait">
+        {/* STATE 1: Splash screen (repeat visit — 1s branded pulse) */}
+        {showSplash && (
+          <motion.div
+            key="splash"
+            className="relative z-10 h-full w-full flex flex-col items-center justify-center"
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          >
+            <div className="relative">
+              <img src="/icon.png" alt="Smart Split" className="h-20 w-20 rounded-3xl shadow-2xl splash-logo relative z-10" />
+              <div className="ai-orb" style={{ width: 100, height: 100, top: -10, left: -10 }} />
+            </div>
+            <h1 className="mt-5 text-2xl font-black text-white">
+              Smart <span style={GRADIENT_TEXT}>Split</span>
+            </h1>
+          </motion.div>
+        )}
+
+        {/* STATE 2: Full intro (first visit) */}
+        {!showSplash && showIntro && (
+          <motion.div
+            key="intro"
+            className="relative z-10 h-full w-full"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ scale: 1.06, opacity: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          >
+            {/* Desktop intro */}
+            <div className="hidden lg:block h-full">
+              <DesktopIntro onGetStarted={handleGetStarted} />
+            </div>
+            {/* Mobile/Tablet intro */}
+            <div className="lg:hidden h-full">
+              <MobileOnboarding onGetStarted={handleGetStarted} />
+            </div>
+          </motion.div>
+        )}
+
+        {/* STATE 3: Login (after intro dismissed) */}
+        {!showSplash && !showIntro && (
+          <motion.div
+            key="login"
+            className="relative z-10 h-full w-full overflow-hidden flex items-center justify-center"
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          >
 
         {/* ── DESKTOP: everything inside one glass panel ── */}
         <div className="hidden lg:flex w-full max-w-5xl mx-auto px-12 py-12 items-center gap-16 rounded-3xl"
@@ -280,8 +420,8 @@ const Home = () => {
             transition: "opacity 0.5s ease, transform 0.5s ease",
             background: "linear-gradient(135deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.04) 100%)",
             border: "1px solid rgba(255,255,255,0.20)",
-            backdropFilter: "blur(56px) saturate(180%)",
-            WebkitBackdropFilter: "blur(56px) saturate(180%)",
+            backdropFilter: "blur(18px) saturate(160%)",
+            WebkitBackdropFilter: "blur(18px) saturate(160%)",
             boxShadow: "0 4px 72px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(255,255,255,0.06)",
           }}>
 
@@ -329,10 +469,13 @@ const Home = () => {
         </div>
 
         {/* ── MOBILE: stacked, viewport-locked ── */}
-        <div className="lg:hidden flex flex-col h-full w-full px-5 pt-9"
-          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 48px)" }}>
+        <div className="lg:hidden flex flex-col h-full w-full px-5 pt-4"
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 40px)" }}>
 
-          {/* Branding — near top */}
+          {/* Small top spacer — push heading away from very top edge */}
+          <div style={{ flex: "0 0 0", minHeight: "6vh" }} />
+
+          {/* Branding — lowered */}
           <div className="text-center w-full"
             style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(18px)", transition: "opacity 0.45s ease, transform 0.45s ease" }}>
             <img src="/icon.png" alt="Smart Split" className="h-11 w-11 rounded-2xl shadow-2xl mx-auto mb-2.5" />
@@ -345,11 +488,12 @@ const Home = () => {
             </p>
           </div>
 
-          {/* Top spacer — pushes USP pills toward vertical center */}
-          <div className="flex-1" />
+          {/* Spacer — pushes USP+card group higher */}
+          <div style={{ flex: 0.55 }} />
 
-          {/* USP pills — single-line glassy box */}
-          <div className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl mx-2" style={{ flexWrap: "nowrap",
+          {/* USP pills — single-line glassy box, just above the login card */}
+          <div className="flex items-center gap-1.5 px-3 py-2.5 rounded-2xl mx-2 mb-5"
+            style={{ flexWrap: "nowrap",
               opacity: mounted ? 1 : 0,
               transform: mounted ? "translateY(0)" : "translateY(14px)",
               transition: "opacity 0.45s ease 0.08s, transform 0.45s ease 0.08s",
@@ -359,32 +503,26 @@ const Home = () => {
               WebkitBackdropFilter: "blur(20px)",
               boxShadow: "0 4px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(255,255,255,0.04)",
             }}>
-            {[["🧾", "Receipt"], ["👥", "Groups"], ["⚡", "Settle"]].map(([icon, label]) => (
-              <span key={label} className="flex items-center gap-1 text-[11px] font-semibold text-white/75 px-2.5 py-1.5 rounded-full whitespace-nowrap"
-                style={{ background: "rgba(255,255,255,0.11)", border: "1px solid rgba(255,255,255,0.22)", backdropFilter: "blur(12px)", boxShadow: "0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.14)" }}>
-                <span className="text-sm">{icon}</span>{label}
+            {[["🧾", "Scan"], ["👥", "Groups"], ["💸", "Splits"], ["⚡", "Settle"]].map(([icon, label]) => (
+              <span key={label} className="flex items-center justify-center gap-1 text-[10px] font-semibold text-white/75 py-1.5 rounded-full"
+                style={{ flex: 1, background: "rgba(255,255,255,0.11)", border: "1px solid rgba(255,255,255,0.22)", backdropFilter: "blur(12px)", boxShadow: "0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.14)" }}>
+                <span className="text-xs">{icon}</span>{label}
               </span>
             ))}
           </div>
 
-          {/* Bottom spacer — equal to top spacer so pills sit in centre */}
-          <div className="flex-1" />
-
-          {/* ── Glass login card — form only ── */}
+          {/* ── Login card — transparent glass like USP ── */}
           <div className="w-full max-w-sm mx-auto rounded-3xl overflow-hidden"
             style={{
               opacity: mounted ? 1 : 0,
               transform: mounted ? "translateY(0)" : "translateY(22px)",
               transition: "opacity 0.5s ease 0.12s, transform 0.5s ease 0.12s",
-              background: "linear-gradient(160deg, rgba(100,40,200,0.28) 0%, rgba(30,18,60,0.78) 50%, rgba(18,10,42,0.90) 100%)",
-              backdropFilter: "blur(60px) saturate(160%)",
-              WebkitBackdropFilter: "blur(60px) saturate(160%)",
-              border: "1px solid rgba(255,255,255,0.22)",
-              boxShadow: "0 8px 48px rgba(120,50,220,0.28), 0 2px 16px rgba(0,0,0,0.60), inset 0 1px 0 rgba(255,255,255,0.18)",
+              background: "linear-gradient(135deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.04) 100%)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              border: "1px solid rgba(255,255,255,0.18)",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(255,255,255,0.04)",
             }}>
-
-            {/* Rainbow top accent bar */}
-            <div className="h-[3px]" style={{ background: "linear-gradient(90deg, #ec4899, #a855f7, #f97316)" }} />
 
             {/* Form content */}
             {renderForm(true, true)}
@@ -392,7 +530,9 @@ const Home = () => {
 
         </div>
 
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
