@@ -49,35 +49,16 @@ const Home = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Nuclear scroll lock — kills ALL touch-based scrolling / rubber-band on mobile
+  // Prevent page-level scroll only while on login screen
   useEffect(() => {
-    const prevent = (e) => {
-      // Allow scrolling only inside inputs (keyboard scroll) — block everything else
-      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-      e.preventDefault();
-    };
     const html = document.documentElement;
     html.style.overflow = "hidden";
-    html.style.position = "fixed";
-    html.style.inset = "0";
-    html.style.height = "100%";
     document.body.style.overflow = "hidden";
-    document.body.style.position = "fixed";
-    document.body.style.inset = "0";
-    document.body.style.height = "100%";
-    document.body.style.touchAction = "none";
-    document.addEventListener("touchmove", prevent, { passive: false });
+    document.body.style.overscrollBehavior = "none";
     return () => {
       html.style.overflow = "";
-      html.style.position = "";
-      html.style.inset = "";
-      html.style.height = "";
       document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.inset = "";
-      document.body.style.height = "";
-      document.body.style.touchAction = "";
-      document.removeEventListener("touchmove", prevent);
+      document.body.style.overscrollBehavior = "";
     };
   }, []);
   const [rememberMe, setRememberMe] = useState(false);
@@ -249,12 +230,12 @@ const Home = () => {
         </div>
 
         {/* ── MOBILE: stacked, viewport-locked ── */}
-        <div className="lg:hidden flex flex-col items-center h-full w-full px-5 pt-12 pb-5">
+        <div className="lg:hidden flex flex-col items-center h-full w-full px-5 pt-10 pb-5">
 
-          {/* Branding — pinned near top */}
+          {/* Branding — near top */}
           <div className="text-center w-full">
             <img src="/favicon.svg" alt="Smart Split" className="h-10 w-10 rounded-2xl shadow-2xl mx-auto mb-2" />
-            <h1 className="text-[1.5rem] font-black text-white leading-tight">
+            <h1 className="text-[1.75rem] font-black text-white leading-tight">
               Split bills,{" "}
               <span style={GRADIENT_TEXT}>not friendships.</span>
             </h1>
@@ -263,19 +244,19 @@ const Home = () => {
             </p>
           </div>
 
-          {/* Form card — centered in remaining space */}
-          <div className="flex-1 flex items-center w-full max-w-sm">
-            <div className="w-full">{renderForm(true)}</div>
-          </div>
-
-          {/* Bottom: feature pills */}
-          <div className="flex flex-wrap justify-center gap-1.5 pt-3">
+          {/* USP pills — right below headline */}
+          <div className="flex flex-wrap justify-center gap-1.5 mt-4">
             {[["🧾","Receipt Scan"],["👥","Group Splits"],["📊","Balances"],["⚡","Quick Settle"]].map(([icon, label]) => (
               <span key={label} className="flex items-center gap-1 text-[10px] font-medium text-white/55 px-2.5 py-1 rounded-full"
                 style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
                 <span>{icon}</span>{label}
               </span>
             ))}
+          </div>
+
+          {/* Form card — centered in remaining space */}
+          <div className="flex-1 flex items-center w-full max-w-sm">
+            <div className="w-full">{renderForm(true)}</div>
           </div>
 
         </div>
