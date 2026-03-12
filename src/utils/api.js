@@ -76,18 +76,11 @@ export async function pingServer() {
 export async function wakeUpServer() {
   const alive = await pingServer();
   if (alive) return true;
-
-  window.dispatchEvent(new CustomEvent('server-waking', { detail: { waking: true } }));
-  // Poll for up to 2 minutes (40 × 3 s) — Render cold-start can take 60–90 s
+  // Poll silently for up to 2 minutes (40 × 3 s) — Render cold-start can take 60–90 s
   for (let i = 0; i < 40; i++) {
     await new Promise(r => setTimeout(r, 3000));
-    const ok = await pingServer();
-    if (ok) {
-      window.dispatchEvent(new CustomEvent('server-waking', { detail: { waking: false } }));
-      return true;
-    }
+    if (await pingServer()) return true;
   }
-  window.dispatchEvent(new CustomEvent('server-waking', { detail: { waking: false } }));
   return false;
 }
 

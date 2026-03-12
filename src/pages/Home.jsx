@@ -56,15 +56,26 @@ const Home = () => {
       if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
       e.preventDefault();
     };
+    const html = document.documentElement;
+    html.style.overflow = "hidden";
+    html.style.position = "fixed";
+    html.style.inset = "0";
+    html.style.height = "100%";
     document.body.style.overflow = "hidden";
     document.body.style.position = "fixed";
     document.body.style.inset = "0";
+    document.body.style.height = "100%";
     document.body.style.touchAction = "none";
     document.addEventListener("touchmove", prevent, { passive: false });
     return () => {
+      html.style.overflow = "";
+      html.style.position = "";
+      html.style.inset = "";
+      html.style.height = "";
       document.body.style.overflow = "";
       document.body.style.position = "";
       document.body.style.inset = "";
+      document.body.style.height = "";
       document.body.style.touchAction = "";
       document.removeEventListener("touchmove", prevent);
     };
@@ -238,31 +249,36 @@ const Home = () => {
         </div>
 
         {/* ── MOBILE: stacked, centered, viewport-locked ── */}
-        <div className="lg:hidden flex flex-col items-center justify-center h-full w-full px-5 gap-5">
+        <div className="lg:hidden flex flex-col items-center justify-between h-full w-full px-5 py-8">
+
+          {/* Top spacer */}
+          <div />
 
           {/* Branding */}
-          <div className="text-center w-full">
-            <img src="/favicon.svg" alt="Smart Split" className="h-11 w-11 rounded-2xl shadow-2xl mx-auto mb-3" />
-            <h1 className="text-[1.6rem] font-black text-white leading-tight">
+          <div className="text-center w-full mb-5">
+            <img src="/favicon.svg" alt="Smart Split" className="h-10 w-10 rounded-2xl shadow-2xl mx-auto mb-2" />
+            <h1 className="text-[1.5rem] font-black text-white leading-tight">
               Split bills,{" "}
               <span style={GRADIENT_TEXT}>not friendships.</span>
             </h1>
-            <p className="text-xs text-white/50 mt-2 mb-4 max-w-xs mx-auto">
+            <p className="text-[11px] text-white/50 mt-1.5 max-w-[260px] mx-auto">
               The smartest way to track shared expenses
             </p>
-            <div className="flex flex-wrap justify-center gap-1.5">
-              {[["🧾","Receipt Scan"],["👥","Group Splits"],["📊","Balances"],["⚡","Quick Settle"]].map(([icon, label]) => (
-                <span key={label} className="flex items-center gap-1 text-[10px] font-medium text-white/60 px-2.5 py-1 rounded-full"
-                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                  <span>{icon}</span>{label}
-                </span>
-              ))}
-            </div>
           </div>
 
           {/* Form card */}
           <div className="w-full max-w-sm">
             {renderForm(true)}
+          </div>
+
+          {/* Bottom: feature pills */}
+          <div className="flex flex-wrap justify-center gap-1.5 mt-5">
+            {[["🧾","Receipt Scan"],["👥","Group Splits"],["📊","Balances"],["⚡","Quick Settle"]].map(([icon, label]) => (
+              <span key={label} className="flex items-center gap-1 text-[10px] font-medium text-white/55 px-2.5 py-1 rounded-full"
+                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                <span>{icon}</span>{label}
+              </span>
+            ))}
           </div>
 
         </div>
