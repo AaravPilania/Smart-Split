@@ -48,6 +48,13 @@ const Home = () => {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [mounted, setMounted] = useState(false);
+
+  // Staggered entrance — trigger one frame after mount
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   // Prevent page-level scroll only while on login screen
   useEffect(() => {
@@ -180,7 +187,8 @@ const Home = () => {
   );
 
   return (
-    <div className="home-bg fixed inset-0 overflow-hidden" style={{ touchAction: "none" }}>
+    <div className="home-bg fixed inset-0 overflow-hidden"
+      style={{ touchAction: "none", opacity: mounted ? 1 : 0, transition: "opacity 0.35s ease" }}>
       {/* Animated blob background — fixed so blobs fill screen regardless of content */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden style={{ width: "100%", maxWidth: "100vw" }}>
         <div className="blob blob-1" />
@@ -196,12 +204,13 @@ const Home = () => {
 
           {/* Left: hero */}
           <div className="flex flex-1 flex-col gap-8 text-white">
-            <div className="flex items-center gap-3">
-              <img src="/favicon.svg" alt="Smart Split" className="h-11 w-11 rounded-2xl shadow-lg" />
+            <div className="flex items-center gap-3"
+              style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(18px)", transition: "opacity 0.5s ease, transform 0.5s ease" }}>
+              <img src="/icon.png" alt="Smart Split" className="h-11 w-11 rounded-2xl shadow-lg" />
               <span className="text-base font-semibold tracking-tight text-white/60">Smart Split</span>
             </div>
 
-            <div>
+            <div style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(22px)", transition: "opacity 0.55s ease 0.08s, transform 0.55s ease 0.08s" }}>
               <h1 className="text-[3.8rem] font-black leading-[1.05] tracking-tight">
                 Split bills,<br />
                 <span style={GRADIENT_TEXT}>not friendships.</span>
@@ -211,7 +220,8 @@ const Home = () => {
               </p>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3"
+              style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(22px)", transition: "opacity 0.55s ease 0.16s, transform 0.55s ease 0.16s" }}>
               {FEATURES.map((txt) => (
                 <div key={txt} className="flex items-center gap-3">
                   <div className="h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0"
@@ -225,7 +235,8 @@ const Home = () => {
           </div>
 
           {/* Right: form */}
-          <div className="w-[430px] flex-shrink-0">
+          <div className="w-[430px] flex-shrink-0"
+            style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(28px)", transition: "opacity 0.6s ease 0.22s, transform 0.6s ease 0.22s" }}>
             {renderForm(false)}
           </div>
 
@@ -235,9 +246,10 @@ const Home = () => {
         <div className="lg:hidden flex flex-col h-full w-full px-5 pt-10 pb-5">
 
           {/* Branding — near top */}
-          <div className="text-center w-full">
-            <img src="/favicon.svg" alt="Smart Split" className="h-10 w-10 rounded-2xl shadow-2xl mx-auto mb-2" />
-            <h1 className="text-[1.75rem] font-black text-white leading-tight">
+          <div className="text-center w-full"
+            style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(20px)", transition: "opacity 0.5s ease, transform 0.5s ease" }}>
+            <img src="/icon.png" alt="Smart Split" className="h-11 w-11 rounded-2xl shadow-2xl mx-auto mb-2.5" />
+            <h1 className="text-[1.8rem] font-black text-white leading-tight">
               Split bills,{" "}
               <span style={GRADIENT_TEXT}>not friendships.</span>
             </h1>
@@ -246,32 +258,33 @@ const Home = () => {
             </p>
           </div>
 
-          {/* USP bullet points — spaced below heading */}
-          <div className="mt-6 space-y-3 w-full max-w-xs mx-auto">
-            {[
-              ["🧾", "AI Receipt Scanning", "Point, snap, split — OCR does the rest"],
-              ["👥", "Group Expense Splits", "Track every shared bill across groups"],
-              ["📊", "Real-Time Balances", "See who owes what at a glance"],
-              ["⚡", "One-Tap Settlement", "Simplify debts into minimal payments"],
-            ].map(([icon, title, desc]) => (
-              <div key={title} className="flex items-start gap-3">
-                <span className="h-8 w-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0"
-                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}>
-                  {icon}
+          {/* USP pills in a glassy container */}
+          <div className="mt-5 w-full max-w-xs mx-auto rounded-2xl px-4 py-3"
+            style={{
+              opacity: mounted ? 1 : 0,
+              transform: mounted ? "translateY(0)" : "translateY(20px)",
+              transition: "opacity 0.5s ease 0.1s, transform 0.5s ease 0.1s",
+              background: "rgba(255,255,255,0.07)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              backdropFilter: "blur(16px)",
+              WebkitBackdropFilter: "blur(16px)",
+            }}>
+            <div className="flex flex-wrap justify-center gap-2">
+              {[["🧾","Receipt Scan"],["👥","Group Splits"],["📊","Balances"],["⚡","Quick Settle"]].map(([icon, label]) => (
+                <span key={label} className="flex items-center gap-1.5 text-[11px] font-semibold text-white/70 px-3 py-1.5 rounded-full"
+                  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.10)" }}>
+                  <span className="text-sm">{icon}</span>{label}
                 </span>
-                <div>
-                  <p className="text-[13px] font-semibold text-white/80 leading-tight">{title}</p>
-                  <p className="text-[11px] text-white/40 leading-snug mt-0.5">{desc}</p>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
-          {/* Spacer pushes form toward bottom */}
-          <div className="flex-1 min-h-6" />
+          {/* Spacer — pushes form down */}
+          <div className="flex-1" />
 
-          {/* Form card — near bottom with breathing room */}
-          <div className="w-full max-w-sm mx-auto pb-2">
+          {/* Form card — shifted up from absolute bottom */}
+          <div className="w-full max-w-sm mx-auto mb-4"
+            style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(30px)", transition: "opacity 0.55s ease 0.2s, transform 0.55s ease 0.2s" }}>
             {renderForm(true)}
           </div>
 

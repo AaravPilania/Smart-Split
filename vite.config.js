@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      includeAssets: ['icon.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Smart Split',
         short_name: 'Smart Split',
