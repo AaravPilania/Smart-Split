@@ -32,6 +32,7 @@ export default function Profile() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    username: "",
     password: "",
   });
   const [avatar, setAvatar] = useState(localStorage.getItem("selectedAvatar") || "");
@@ -89,6 +90,7 @@ export default function Profile() {
       setFormData({
         name: data.user.name || "",
         email: data.user.email || "",
+        username: data.user.username || "",
         password: "",
       });
       const saved = localStorage.getItem("selectedAvatar");
@@ -151,6 +153,7 @@ export default function Profile() {
       const updates = {};
       if (formData.name !== user.name) updates.name = formData.name;
       if (formData.email !== user.email) updates.email = formData.email;
+      if (formData.username && formData.username !== user.username) updates.username = formData.username;
       if (formData.password) updates.password = formData.password;
 
       if (Object.keys(updates).length === 0) {
@@ -244,13 +247,16 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* User ID Display */}
+        {/* User ID / Username Display */}
         <div
           className="rounded-xl shadow-lg p-4 sm:p-6 mb-6 text-white"
           style={getGradientStyle(theme)}
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
+              {user.username && (
+                <p className="text-xl font-bold tracking-tight mb-1">@{user.username}</p>
+              )}
               <p className="text-sm opacity-90 mb-2">Your User ID</p>
               {/* Truncated / expanded ID */}
               <div className="flex items-center gap-2 flex-wrap">
@@ -346,6 +352,24 @@ export default function Profile() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Username
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">@</span>
+                      <input
+                        type="text"
+                        value={formData.username}
+                        onChange={(e) =>
+                          setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })
+                        }
+                        className="w-full pl-7 pr-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                        placeholder="your_username"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       New Password (leave blank to keep current)
                     </label>
                     <input
@@ -367,6 +391,7 @@ export default function Profile() {
                         setFormData({
                           name: user.name,
                           email: user.email,
+                          username: user.username || "",
                           password: "",
                         });
                       }}
@@ -400,6 +425,16 @@ export default function Profile() {
                     <p className="font-semibold text-gray-800 dark:text-white">{user.email}</p>
                   </div>
                 </div>
+
+                {user.username && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-gray-400 font-bold text-base leading-none">@</span>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Username</p>
+                      <p className="font-semibold text-gray-800 dark:text-white">@{user.username}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

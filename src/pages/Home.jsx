@@ -92,7 +92,7 @@ const Home = () => {
       if (!response.ok) throw new Error(data.message || (isLogin ? "Login failed" : "Registration failed"));
       setAuthData(data.token, data.user, data.user.id, rememberMe);
       const redirectTo = searchParams.get("redirect") || "/dashboard";
-      navigate(redirectTo);
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -146,7 +146,9 @@ const Home = () => {
             required
             minLength={6}
             suffix={
-              <button type="button" onClick={() => setShowPassword((p) => !p)}
+              <button type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setShowPassword((p) => !p)}
                 className="text-white/50 hover:text-white/80 transition" tabIndex={-1}>
                 {showPassword ? <FiEyeOff size={15} /> : <FiEye size={15} />}
               </button>
@@ -264,7 +266,8 @@ const Home = () => {
         </div>
 
         {/* ── MOBILE: stacked, viewport-locked ── */}
-        <div className="lg:hidden flex flex-col h-full w-full px-5 pt-9 pb-6">
+        <div className="lg:hidden flex flex-col h-full w-full px-5 pt-9"
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 48px)" }}>
 
           {/* Branding — near top */}
           <div className="text-center w-full"
@@ -279,10 +282,24 @@ const Home = () => {
             </p>
           </div>
 
-          {/* Small gap */}
-          <div className="h-5" />
+          {/* Top spacer — pushes USP pills toward vertical center */}
+          <div className="flex-1" />
 
-          {/* ── Single unified glass card: USP + form ── */}
+          {/* USP pills — centered exactly between headline and login card */}
+          <div className="flex justify-center gap-2.5 flex-wrap px-4"
+            style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(14px)", transition: "opacity 0.45s ease 0.08s, transform 0.45s ease 0.08s" }}>
+            {[["🧾", "Receipt Scan"], ["👥", "Group Splits"], ["⚡", "Quick Settle"]].map(([icon, label]) => (
+              <span key={label} className="flex items-center gap-1.5 text-[11px] font-semibold text-white/65 px-3 py-1.5 rounded-full"
+                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.10)" }}>
+                <span className="text-sm">{icon}</span>{label}
+              </span>
+            ))}
+          </div>
+
+          {/* Bottom spacer — equal to top spacer so pills sit in centre */}
+          <div className="flex-1" />
+
+          {/* ── Glass login card — form only ── */}
           <div className="w-full max-w-sm mx-auto rounded-3xl overflow-hidden shadow-2xl shadow-black/60"
             style={{
               opacity: mounted ? 1 : 0,
@@ -297,23 +314,9 @@ const Home = () => {
             {/* Rainbow top accent bar */}
             <div className="h-[3px]" style={{ background: "linear-gradient(90deg, #ec4899, #a855f7, #f97316)" }} />
 
-            {/* USP pills strip */}
-            <div className="px-5 pt-4 pb-3.5 flex flex-wrap justify-center gap-2"
-              style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-              {[["🧾","Receipt Scan"],["👥","Group Splits"],["📊","Balances"],["⚡","Quick Settle"]].map(([icon, label]) => (
-                <span key={label} className="flex items-center gap-1.5 text-[11px] font-semibold text-white/65 px-3 py-1.5 rounded-full"
-                  style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.10)" }}>
-                  <span className="text-sm">{icon}</span>{label}
-                </span>
-              ))}
-            </div>
-
-            {/* Form content — no extra card wrapper */}
+            {/* Form content */}
             {renderForm(true, true)}
           </div>
-
-          {/* Bottom breathing room — capped so card stays visually centred-ish */}
-          <div className="flex-1 max-h-14" />
 
         </div>
 

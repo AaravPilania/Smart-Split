@@ -106,12 +106,6 @@ export default function Navbar() {
 
   const user = getUser();
 
-  // Keep OS status-bar / PWA chrome colour in sync with the selected theme
-  useEffect(() => {
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta && theme.gradFrom) meta.setAttribute('content', theme.gradFrom);
-  }, [theme.gradFrom]);
-
   function NavItem({ to, children }) {
     const [hovered, setHovered] = useState(false);
     const active = location.pathname === to;

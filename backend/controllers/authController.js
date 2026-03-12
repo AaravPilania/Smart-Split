@@ -24,7 +24,8 @@ exports.signup = async (req, res) => {
       user: {
         id: user._id,
         email: user.email,
-        name: user.name
+        name: user.name,
+        username: user.username,
       }
     });
   } catch (error) {
@@ -56,7 +57,8 @@ exports.login = async (req, res) => {
       user: {
         id: user._id,
         email: user.email,
-        name: user.name
+        name: user.name,
+        username: user.username,
       }
     });
   } catch (error) {
@@ -82,7 +84,7 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.params.userId;
-    const { name, email, password } = req.body;
+    const { name, email, password, username } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -97,14 +99,23 @@ exports.updateProfile = async (req, res) => {
       }
     }
 
-    const updatedUser = await User.updateById(userId, { name, email, password });
+    // Check if username is being changed and if it's already taken
+    if (username && username !== user.username) {
+      const usernameTaken = await User.findByUsername(username);
+      if (usernameTaken) {
+        return res.status(400).json({ message: 'Username already taken' });
+      }
+    }
+
+    const updatedUser = await User.updateById(userId, { name, email, password, username });
 
     res.json({
       message: 'Profile updated successfully',
       user: {
         id: updatedUser._id,
         email: updatedUser.email,
-        name: updatedUser.name
+        name: updatedUser.name,
+        username: updatedUser.username,
       }
     });
   } catch (error) {

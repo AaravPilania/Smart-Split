@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home";
@@ -41,12 +41,29 @@ function PageTransition({ children }) {
   );
 }
 
+// Intercepts the hardware/browser back button for authenticated users
+// and lands them on /dashboard instead of reversing navigation history
+function BackButtonGuard() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const handlePopState = () => {
+      if (getToken()) {
+        navigate("/dashboard", { replace: true });
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [navigate]);
+  return null;
+}
+
 function App() {
   // Kick off a health check immediately so cold-start happens ASAP
   useEffect(() => { wakeUpServer(); }, []);
 
   return (
     <BrowserRouter>
+      <BackButtonGuard />
       <PageTransition>
         <Routes>
           <Route path="/" element={<PublicRoute element={<Home />} />} />
