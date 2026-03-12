@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
-import { FiUsers, FiPlus, FiX, FiUserPlus, FiDollarSign, FiLink, FiZap, FiHeart } from "react-icons/fi";
+import { FiUsers, FiPlus, FiX, FiUserPlus, FiLink, FiZap, FiHeart } from "react-icons/fi";
 import { groupAPI, API_URL, apiFetch, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
 import { simplifyDebts } from "../utils/debts";
@@ -274,7 +274,7 @@ export default function Groups() {
                     className="flex-1 text-white px-3 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition flex items-center justify-center gap-1"
                     style={getGradientStyle(theme)}
                   >
-                    <FiDollarSign /> Expenses
+                    <span className="font-bold">₹</span> Expenses
                   </button>
                   {group.createdBy?.id === userId ? (
                     <button

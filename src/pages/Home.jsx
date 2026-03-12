@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiMail, FiLock, FiUser, FiEye, FiEyeOff, FiArrowRight, FiCheck } from "react-icons/fi";
 import { API_URL, setAuthData } from "../utils/api";
@@ -48,6 +48,27 @@ const Home = () => {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Nuclear scroll lock — kills ALL touch-based scrolling / rubber-band on mobile
+  useEffect(() => {
+    const prevent = (e) => {
+      // Allow scrolling only inside inputs (keyboard scroll) — block everything else
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+      e.preventDefault();
+    };
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.inset = "0";
+    document.body.style.touchAction = "none";
+    document.addEventListener("touchmove", prevent, { passive: false });
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.inset = "";
+      document.body.style.touchAction = "";
+      document.removeEventListener("touchmove", prevent);
+    };
+  }, []);
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
@@ -165,16 +186,16 @@ const Home = () => {
   );
 
   return (
-    <div className="home-bg h-screen w-screen overflow-hidden">
+    <div className="home-bg fixed inset-0 overflow-hidden" style={{ touchAction: "none" }}>
       {/* Animated blob background — fixed so blobs fill screen regardless of content */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden>
+      <div className="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden style={{ width: "100%", maxWidth: "100vw" }}>
         <div className="blob blob-1" />
         <div className="blob blob-2" />
         <div className="blob blob-3" />
       </div>
 
       {/* Content layer — fills viewport exactly, no scroll */}
-      <div className="relative z-10 h-full w-full flex items-center justify-center">
+      <div className="relative z-10 h-full w-full overflow-hidden flex items-center justify-center">
 
         {/* ── DESKTOP: side-by-side ── */}
         <div className="hidden lg:flex w-full max-w-6xl mx-auto px-10 items-center gap-20">

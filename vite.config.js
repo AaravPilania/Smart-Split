@@ -47,4 +47,13 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://smart-split-backend-yygp.onrender.com',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
+  },
 })

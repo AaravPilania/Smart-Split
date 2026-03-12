@@ -8,7 +8,6 @@ import {
   FiX,
   FiCheck,
   FiUser,
-  FiDollarSign,
   FiDownload,
 } from "react-icons/fi";
 import { API_URL, apiFetch, getUserId } from "../utils/api";

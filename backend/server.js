@@ -46,7 +46,9 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, curl, Postman)
     if (!origin) return callback(null, true);
-    // Always allow localhost in development
+    // Always allow localhost on any port in development
+    if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return callback(null, true);
+    // Allow explicitly listed origins
     if (allowedOrigins.includes(origin)) return callback(null, true);
     // Always allow Netlify deployments for this project
     if (/^https:\/\/.*\.netlify\.app$/.test(origin)) return callback(null, true);

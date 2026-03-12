@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 /* Safe area insets for PWA standalone mode (notch / home bar) */
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+  overscroll-behavior: none;
+}
 body {
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
@@ -20,6 +25,11 @@ body {
   color-scheme: dark;
 }
 
+/* Smooth global transitions for buttons and interactive elements */
+button, a, input, select, textarea {
+  transition: all 0.2s ease;
+}
+
 /* ─── Login page animated gradient background ─────────────────── */
 .home-bg {
   background: #0d0818;
@@ -28,8 +38,8 @@ body {
 .blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.55;
+  filter: blur(38px);
+  opacity: 0.6;
   will-change: transform;
 }
 
@@ -39,7 +49,7 @@ body {
   max-width: 700px;
   max-height: 700px;
   top: -15%;
-  left: -10%;
+  left: 0%;
   background: radial-gradient(circle, #7c3aed 0%, #4f23a0 60%, transparent 100%);
   animation: blobFloat1 14s ease-in-out infinite;
 }
@@ -50,7 +60,7 @@ body {
   max-width: 620px;
   max-height: 620px;
   bottom: -10%;
-  right: -8%;
+  right: 0%;
   background: radial-gradient(circle, #f97316 0%, #ec4899 50%, transparent 100%);
   animation: blobFloat2 17s ease-in-out infinite;
 }

@@ -6,7 +6,7 @@
   node_bundler = "esbuild"
 
 [functions."keep-alive"]
-  schedule = "*/8 * * * *"
+  schedule = "*/5 * * * *"
 
 [[redirects]]
   from = "/*"

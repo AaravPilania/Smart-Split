@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FiUser, FiLogOut, FiCamera, FiSun, FiMoon, FiBell,
-  FiMenu, FiX, FiHome, FiUsers, FiDollarSign, FiBarChart2, FiHeart,
+  FiMenu, FiX, FiHome, FiUsers, FiBarChart2, FiHeart,
 } from "react-icons/fi";
 import ScanReceipt from "./ScanReceipt";
 import { API_URL, apiFetch, clearAuth, getUserId, getUser } from "../utils/api";
@@ -44,6 +44,18 @@ export default function Navbar() {
 
   // Close sidebar on route change
   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
+
+  // Lock body scroll when sidebar is open
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = "hidden";
+      document.body.style.touchAction = "none";
+    } else {
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
+    }
+    return () => { document.body.style.overflow = ""; document.body.style.touchAction = ""; };
+  }, [sidebarOpen]);
 
   const fetchNotifications = async () => {
     try {
@@ -86,7 +98,7 @@ export default function Navbar() {
   const navLinks = [
     { to: "/dashboard", icon: <FiHome size={18} />, label: "Dashboard" },
     { to: "/groups", icon: <FiUsers size={18} />, label: "Groups" },
-    { to: "/expenses", icon: <FiDollarSign size={18} />, label: "Expenses" },
+    { to: "/expenses", icon: <span className="text-base font-bold leading-none">₹</span>, label: "Expenses" },
     { to: "/balances", icon: <FiBarChart2 size={18} />, label: "Balances" },
     { to: "/friends", icon: <FiHeart size={18} />, label: "Friends" },
     { to: "/profile", icon: <FiUser size={18} />, label: "Profile" },

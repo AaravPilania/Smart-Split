@@ -92,7 +92,7 @@ export default function ScanReceipt({
     hintTimerRef.current = setTimeout(() => setShowHint(false), 5000);
   };
 
-  const startCamera = async (facing = facingMode) => {
+  const startCamera = async (facing = "environment") => {
     // Stop any existing stream first
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
