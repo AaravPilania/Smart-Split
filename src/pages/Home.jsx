@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { FiMail, FiLock, FiUser, FiEye, FiEyeOff, FiArrowRight, FiCheck } from "react-icons/fi";
 import { API_URL, setAuthData } from "../utils/api";
 
@@ -64,6 +64,7 @@ const Home = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const switchMode = () => { setIsLogin((v) => !v); setError(""); setPassword(""); };
 
@@ -83,7 +84,8 @@ const Home = () => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || (isLogin ? "Login failed" : "Registration failed"));
       setAuthData(data.token, data.user, data.user.id, rememberMe);
-      navigate("/dashboard");
+      const redirectTo = searchParams.get("redirect") || "/dashboard";
+      navigate(redirectTo);
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {

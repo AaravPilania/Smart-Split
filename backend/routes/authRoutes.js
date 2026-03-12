@@ -6,9 +6,9 @@ const { signup, login, getProfile, updateProfile } = require('../controllers/aut
 // Public routes
 router.post('/signup', signup);
 router.post('/login', login);
+router.get('/profile/:userId', getProfile);
 
 // Protected routes
-router.get('/profile/:userId', auth, getProfile);
 router.put('/profile/:userId', auth, updateProfile);
 
 module.exports = router;
