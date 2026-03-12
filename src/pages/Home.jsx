@@ -18,8 +18,8 @@ const AuthInput = ({ icon, suffix, ...props }) => (
     </span>
     <input
       {...props}
-      className="w-full pl-10 pr-10 py-3 text-sm text-white placeholder-white/45 rounded-xl outline-none transition-all"
-      style={{ background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.18)" }}
+      className="w-full pl-10 pr-10 py-3 text-sm text-white placeholder-white/45 rounded-xl outline-none transition-all focus:border-white/40 focus:bg-white/[0.13]"
+      style={{ background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.22)", backdropFilter: "blur(8px)" }}
     />
     {suffix && (
       <span className="absolute right-3.5 top-1/2 -translate-y-1/2">{suffix}</span>
@@ -35,10 +35,11 @@ const GRADIENT_TEXT = {
 };
 
 const CARD_STYLE = {
-  background: "rgba(30,18,60,0.88)",
-  backdropFilter: "blur(48px)",
-  WebkitBackdropFilter: "blur(48px)",
-  border: "1px solid rgba(255,255,255,0.14)",
+  background: "linear-gradient(160deg, rgba(100,40,200,0.28) 0%, rgba(30,18,60,0.82) 55%, rgba(18,10,40,0.90) 100%)",
+  backdropFilter: "blur(64px) saturate(160%)",
+  WebkitBackdropFilter: "blur(64px) saturate(160%)",
+  border: "1px solid rgba(255,255,255,0.22)",
+  boxShadow: "0 8px 48px rgba(120,50,220,0.30), 0 2px 12px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.18)",
 };
 
 const Home = () => {
@@ -205,21 +206,23 @@ const Home = () => {
         <div className="blob blob-1" />
         <div className="blob blob-2" />
         <div className="blob blob-3" />
+        <div className="blob blob-4" />
       </div>
 
       {/* Content layer — fills viewport exactly, no scroll */}
       <div className="relative z-10 h-full w-full overflow-hidden flex items-center justify-center">
 
         {/* ── DESKTOP: everything inside one glass panel ── */}
-        <div className="hidden lg:flex w-full max-w-5xl mx-auto px-12 py-12 items-center gap-16 rounded-3xl shadow-2xl shadow-black/50"
+        <div className="hidden lg:flex w-full max-w-5xl mx-auto px-12 py-12 items-center gap-16 rounded-3xl"
           style={{
             opacity: mounted ? 1 : 0,
             transform: mounted ? "translateY(0)" : "translateY(24px)",
             transition: "opacity 0.5s ease, transform 0.5s ease",
-            background: "rgba(255,255,255,0.05)",
-            border: "1px solid rgba(255,255,255,0.13)",
-            backdropFilter: "blur(32px)",
-            WebkitBackdropFilter: "blur(32px)",
+            background: "linear-gradient(135deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.04) 100%)",
+            border: "1px solid rgba(255,255,255,0.20)",
+            backdropFilter: "blur(56px) saturate(180%)",
+            WebkitBackdropFilter: "blur(56px) saturate(180%)",
+            boxShadow: "0 4px 72px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(255,255,255,0.06)",
           }}>
 
           {/* Left: hero */}
@@ -289,8 +292,8 @@ const Home = () => {
           <div className="flex justify-center gap-2.5 flex-wrap px-4"
             style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(14px)", transition: "opacity 0.45s ease 0.08s, transform 0.45s ease 0.08s" }}>
             {[["🧾", "Receipt Scan"], ["👥", "Group Splits"], ["⚡", "Quick Settle"]].map(([icon, label]) => (
-              <span key={label} className="flex items-center gap-1.5 text-[11px] font-semibold text-white/65 px-3 py-1.5 rounded-full"
-                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.10)" }}>
+              <span key={label} className="flex items-center gap-1.5 text-[11px] font-semibold text-white/75 px-3 py-1.5 rounded-full"
+                style={{ background: "rgba(255,255,255,0.11)", border: "1px solid rgba(255,255,255,0.22)", backdropFilter: "blur(12px)", boxShadow: "0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.14)" }}>
                 <span className="text-sm">{icon}</span>{label}
               </span>
             ))}
@@ -300,15 +303,16 @@ const Home = () => {
           <div className="flex-1" />
 
           {/* ── Glass login card — form only ── */}
-          <div className="w-full max-w-sm mx-auto rounded-3xl overflow-hidden shadow-2xl shadow-black/60"
+          <div className="w-full max-w-sm mx-auto rounded-3xl overflow-hidden"
             style={{
               opacity: mounted ? 1 : 0,
               transform: mounted ? "translateY(0)" : "translateY(22px)",
               transition: "opacity 0.5s ease 0.12s, transform 0.5s ease 0.12s",
-              background: "rgba(30,18,60,0.82)",
-              backdropFilter: "blur(40px)",
-              WebkitBackdropFilter: "blur(40px)",
-              border: "1px solid rgba(255,255,255,0.14)",
+              background: "linear-gradient(160deg, rgba(100,40,200,0.28) 0%, rgba(30,18,60,0.78) 50%, rgba(18,10,42,0.90) 100%)",
+              backdropFilter: "blur(60px) saturate(160%)",
+              WebkitBackdropFilter: "blur(60px) saturate(160%)",
+              border: "1px solid rgba(255,255,255,0.22)",
+              boxShadow: "0 8px 48px rgba(120,50,220,0.28), 0 2px 16px rgba(0,0,0,0.60), inset 0 1px 0 rgba(255,255,255,0.18)",
             }}>
 
             {/* Rainbow top accent bar */}
