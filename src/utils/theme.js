@@ -100,8 +100,12 @@ export const getGradientStyle = (theme, direction = "to right") => ({
 });
 
 export const getPageBgStyle = (theme, isDark = false) => {
-  if (isDark) return { background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)" };
-  return { background: `linear-gradient(135deg, ${theme.gradFrom}18 0%, ${theme.gradTo}10 50%, #f9fafb 100%)` };
+  if (isDark) return {
+    background: `radial-gradient(ellipse at 12% 8%, ${theme.gradFrom}22 0%, transparent 42%), radial-gradient(ellipse at 88% 92%, ${theme.gradTo}18 0%, transparent 42%), linear-gradient(160deg, #07091a 0%, #0d1425 55%, #080e1c 100%)`,
+  };
+  return {
+    background: `radial-gradient(ellipse at 0% 0%, ${theme.gradFrom}14 0%, transparent 50%), radial-gradient(ellipse at 100% 100%, ${theme.gradTo}10 0%, transparent 50%), linear-gradient(145deg, #f7f8ff 0%, #faf8ff 50%, #f5f6ff 100%)`,
+  };
 };
 
 export function toggleDarkMode() {

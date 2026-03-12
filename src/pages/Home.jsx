@@ -203,10 +203,10 @@ const Home = () => {
       style={{ touchAction: "none", opacity: mounted ? 1 : 0, transition: "opacity 0.35s ease" }}>
       {/* Animated blob background — fixed so blobs fill screen regardless of content */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden style={{ width: "100%", maxWidth: "100vw" }}>
-        <div className="blob blob-1" />
-        <div className="blob blob-2" />
-        <div className="blob blob-3" />
-        <div className="blob blob-4" />
+        <div className="glow-1" />
+        <div className="glow-2" />
+        <div className="glow-3" />
+        <div className="home-pattern" />
       </div>
 
       {/* Content layer — fills viewport exactly, no scroll */}
@@ -288,9 +288,18 @@ const Home = () => {
           {/* Top spacer — pushes USP pills toward vertical center */}
           <div className="flex-1" />
 
-          {/* USP pills — centered exactly between headline and login card */}
-          <div className="flex justify-center gap-2.5 flex-wrap px-4"
-            style={{ opacity: mounted ? 1 : 0, transform: mounted ? "translateY(0)" : "translateY(14px)", transition: "opacity 0.45s ease 0.08s, transform 0.45s ease 0.08s" }}>
+          {/* USP pills — glassy box centered between headline and login card */}
+          <div className="flex justify-center gap-2.5 flex-wrap px-5 py-3 rounded-2xl mx-2"
+            style={{
+              opacity: mounted ? 1 : 0,
+              transform: mounted ? "translateY(0)" : "translateY(14px)",
+              transition: "opacity 0.45s ease 0.08s, transform 0.45s ease 0.08s",
+              background: "linear-gradient(135deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.04) 100%)",
+              border: "1px solid rgba(255,255,255,0.18)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(255,255,255,0.04)",
+            }}>
             {[["🧾", "Receipt Scan"], ["👥", "Group Splits"], ["⚡", "Quick Settle"]].map(([icon, label]) => (
               <span key={label} className="flex items-center gap-1.5 text-[11px] font-semibold text-white/75 px-3 py-1.5 rounded-full"
                 style={{ background: "rgba(255,255,255,0.11)", border: "1px solid rgba(255,255,255,0.22)", backdropFilter: "blur(12px)", boxShadow: "0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.14)" }}>

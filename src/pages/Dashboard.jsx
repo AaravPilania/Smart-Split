@@ -321,7 +321,19 @@ export default function Dashboard() {
               {/* Manage Groups */}
               <button
                 onClick={() => navigate("/groups")}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 flex items-center justify-center cursor-pointer hover:shadow-md transition text-gray-700 dark:text-gray-200 text-base font-bold border border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
+                className="rounded-2xl p-5 flex items-center justify-center cursor-pointer transition text-base font-bold hover:scale-[1.015]"
+                style={isDark ? {
+                  background: "linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 100%)",
+                  border: "1px solid rgba(255,255,255,0.11)",
+                  backdropFilter: "blur(20px)",
+                  color: "rgba(255,255,255,0.85)",
+                  boxShadow: "0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)",
+                } : {
+                  background: "linear-gradient(135deg, #ffffff 0%, #f8f8fe 100%)",
+                  border: "1px solid rgba(0,0,0,0.07)",
+                  color: "#374151",
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+                }}
               >
                 <BsPeopleFill className="mr-2" /> Manage Groups
               </button>
@@ -329,7 +341,16 @@ export default function Dashboard() {
 
             {/* Spending by Group chart */}
             {groupSpending.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 border border-gray-100 dark:border-gray-800 mt-6">
+              <div className="rounded-2xl p-5 mt-6" style={isDark ? {
+                background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
+                border: "1px solid rgba(255,255,255,0.10)",
+                backdropFilter: "blur(16px)",
+                boxShadow: "0 4px 28px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.07)",
+              } : {
+                background: "#ffffff",
+                border: "1px solid rgba(0,0,0,0.07)",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+              }}>
                 <h3 className="font-bold text-base mb-1 text-gray-800 dark:text-white">Spending by Group</h3>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mb-5 uppercase tracking-wide">Total across all expenses</p>
                 <div className="space-y-4">
@@ -356,7 +377,16 @@ export default function Dashboard() {
 
             {/* Monthly Expense Chart */}
             {monthlyChartData.some((m) => m.amount > 0) && (
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 border border-gray-100 dark:border-gray-800 mt-6 mb-6">
+              <div className="rounded-2xl p-5 mt-6 mb-6" style={isDark ? {
+                background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
+                border: "1px solid rgba(255,255,255,0.10)",
+                backdropFilter: "blur(16px)",
+                boxShadow: "0 4px 28px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.07)",
+              } : {
+                background: "#ffffff",
+                border: "1px solid rgba(0,0,0,0.07)",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+              }}>
                 <h3 className="font-bold text-base mb-1 text-gray-800 dark:text-white">Monthly Expenses</h3>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mb-5 uppercase tracking-wide">Last 6 months spending</p>
                 {/* Vertical bars */}
@@ -401,7 +431,16 @@ export default function Dashboard() {
             {/* Bottom sections */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
               {/* Recent Expenses */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 border border-gray-100 dark:border-gray-800">
+              <div className="rounded-2xl p-5" style={isDark ? {
+                background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
+                border: "1px solid rgba(255,255,255,0.10)",
+                backdropFilter: "blur(16px)",
+                boxShadow: "0 4px 28px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.07)",
+              } : {
+                background: "#ffffff",
+                border: "1px solid rgba(0,0,0,0.07)",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+              }}>
                 <h3 className="font-bold text-base mb-1 text-gray-800 dark:text-white">
                   Recent Expenses
                 </h3>
@@ -460,7 +499,16 @@ export default function Dashboard() {
               </div>
 
               {/* Outstanding Balances */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 border border-gray-100 dark:border-gray-800">
+              <div className="rounded-2xl p-5" style={isDark ? {
+                background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
+                border: "1px solid rgba(255,255,255,0.10)",
+                backdropFilter: "blur(16px)",
+                boxShadow: "0 4px 28px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.07)",
+              } : {
+                background: "#ffffff",
+                border: "1px solid rgba(0,0,0,0.07)",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+              }}>
                 <div className="flex justify-between items-center mb-1">
                   <h3 className="font-bold text-base text-gray-800 dark:text-white">
                     Outstanding Balances
