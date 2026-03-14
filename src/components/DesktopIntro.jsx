@@ -1,8 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import {
   motion,
-  useScroll,
-  useTransform,
   useMotionValue,
   useSpring,
 } from "framer-motion";
@@ -211,10 +209,6 @@ const DesktopIntro = ({ onGetStarted }) => {
     return () => cancelAnimationFrame(id);
   }, []);
 
-  // Parallax for ghost text
-  const { scrollYProgress } = useScroll({ container: scrollRef });
-  const ghostY = useTransform(scrollYProgress, [0, 1], ["0%", "-40%"]);
-
   const scrollToFeatures = () => {
     const el = scrollRef.current?.querySelector("#intro-features");
     el?.scrollIntoView({ behavior: "smooth" });
@@ -310,14 +304,6 @@ const DesktopIntro = ({ onGetStarted }) => {
           <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full" style={{ background: "radial-gradient(circle, rgba(168,85,247,0.06) 0%, transparent 65%)", filter: "blur(70px)" }} />
           <div className="absolute bottom-1/4 -right-20 w-96 h-96 rounded-full" style={{ background: "radial-gradient(circle, rgba(249,115,22,0.07) 0%, transparent 65%)", filter: "blur(80px)" }} />
         </div>
-
-        {/* Ghost parallax text */}
-        <motion.div
-          className="ghost-text"
-          style={{ y: ghostY }}
-        >
-          SCAN · SPLIT · SETTLE
-        </motion.div>
 
         <motion.h2
           className="text-3xl font-black text-white mb-10 relative z-10"

@@ -10,38 +10,10 @@ const GRADIENT_TEXT = {
   backgroundClip: "text",
 };
 
-/* ── Floating decorative orbs ── */
-const ORB_COLORS = {
-  pink: "radial-gradient(circle, rgba(236,72,153,0.3) 0%, transparent 70%)",
-  purple: "radial-gradient(circle, rgba(168,85,247,0.25) 0%, transparent 70%)",
-  amber: "radial-gradient(circle, rgba(249,115,22,0.25) 0%, transparent 70%)",
-};
-
-const FloatingOrb = ({ size = 12, color = "pink", ring = false, className = "", style = {} }) => (
-  <div
-    className={`absolute rounded-full pointer-events-none select-none ${className}`}
-    style={{
-      width: size,
-      height: size,
-      background: ring ? "none" : (ORB_COLORS[color] || ORB_COLORS.pink),
-      ...(ring ? { border: "1px solid rgba(255,255,255,0.07)" } : {}),
-      ...style,
-    }}
-  />
-);
-
 /* ── Slide content components ── */
 
 const WelcomeSlide = ({ onGetStarted }) => (
   <div className="flex flex-col items-center justify-center text-center px-8 h-full gap-6 relative">
-    {/* Floating decorative orbs */}
-    <FloatingOrb size={44} color="pink" className="float-slow" style={{ top: "8%", left: "8%" }} />
-    <FloatingOrb size={28} color="purple" className="float-med float-delay-1" style={{ top: "14%", right: "10%" }} />
-    <FloatingOrb size={36} color="amber" className="float-slow float-delay-2" style={{ bottom: "18%", left: "6%" }} />
-    <FloatingOrb size={20} color="pink" className="float-med float-delay-3" style={{ bottom: "12%", right: "8%" }} />
-    <FloatingOrb size={52} ring className="float-med" style={{ top: "30%", right: "4%" }} />
-    <FloatingOrb size={32} color="purple" className="float-slow float-delay-1" style={{ bottom: "30%", left: "4%" }} />
-
     {/* Ambient glow */}
     <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(168,85,247,0.1) 0%, transparent 65%)", filter: "blur(60px)" }} />
 
@@ -75,34 +47,37 @@ const ScanSlide = () => {
   ];
 
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-5 px-6 relative">
-      {/* Floating decorative orbs */}
-      <FloatingOrb size={36} color="pink" className="float-slow" style={{ top: "6%", left: "6%" }} />
-      <FloatingOrb size={48} ring className="float-med float-delay-2" style={{ top: "10%", right: "8%" }} />
-      <FloatingOrb size={24} color="amber" className="float-slow float-delay-1" style={{ bottom: "16%", right: "6%" }} />
-      <FloatingOrb size={32} color="purple" className="float-med float-delay-3" style={{ bottom: "20%", left: "8%" }} />
+    <div className="flex flex-col items-center justify-center h-full px-6 text-center gap-6 relative">
 
-      {/* Ambient glow */}
-      <div className="absolute top-1/3 left-0 w-64 h-64 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(236,72,153,0.08) 0%, transparent 65%)", filter: "blur(60px)" }} />
+      <h2 className="text-xl font-bold text-white">
+        Scan any receipt
+      </h2>
 
-      <PhoneMockup className="w-48">
-        <div className="relative p-4 space-y-2 overflow-hidden" style={{ height: 170 }}>
-          <div className="text-center text-[9px] text-white/50 font-mono mb-2">
-          <div className="text-white/70 font-bold text-[10px]">The Italian Place</div>
+      <PhoneMockup className="w-[160px] md:w-[300px] shadow-[0_40px_90px_rgba(0,0,0,0.6)]">
+        <div className="relative p-5 space-y-3 overflow-hidden" style={{ height: 230 }}>
+          <div className="text-center text-[11px] text-white/60 font-semibold mb-2">
+            The Italian Place
           </div>
+
           {items.map((item, i) => (
-            <div key={i} className="scan-receipt-line flex justify-between text-[8px] font-mono" style={{ animationDelay: `${i * 0.4}s` }}>
-              <span className="text-white/80">{item.label}</span>
-              <span className="text-white/60">{item.price}</span>
+            <div
+              key={i}
+              className="scan-receipt-line flex justify-between text-[11px] font-mono"
+              style={{ animationDelay: `${i * 0.4}s` }}
+            >
+              <span className="text-white/90">{item.label}</span>
+              <span className="text-white/70">{item.price}</span>
             </div>
           ))}
+
           <div className="scan-bar" />
         </div>
       </PhoneMockup>
-      <h2 className="text-lg font-bold text-white">Scan any receipt</h2>
-      <p className="text-xs text-white/45 text-center max-w-[240px]">
-        Point, snap, done. AI reads every line.
+
+      <p className="text-sm text-white/50 max-w-[260px]">
+        Point, snap, done. AI reads every line instantly.
       </p>
+
     </div>
   );
 };
@@ -115,69 +90,106 @@ const GroupSlide = () => {
   ];
 
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-5 px-6 relative">
-      {/* Floating decorative orbs */}
-      <FloatingOrb size={40} color="purple" className="float-slow" style={{ top: "6%", right: "8%" }} />
-      <FloatingOrb size={28} color="pink" className="float-med float-delay-1" style={{ top: "12%", left: "6%" }} />
-      <FloatingOrb size={56} ring className="float-slow float-delay-2" style={{ bottom: "18%", left: "4%" }} />
-      <FloatingOrb size={24} color="amber" className="float-med float-delay-3" style={{ bottom: "14%", right: "6%" }} />
+    <div className="flex flex-col items-center justify-center h-full px-6 text-center gap-6 relative">
 
-      {/* Ambient glow */}
-      <div className="absolute bottom-1/4 right-0 w-56 h-56 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(168,85,247,0.08) 0%, transparent 65%)", filter: "blur(50px)" }} />
+      <h2 className="text-xl font-bold text-white">
+        Split with your crew
+      </h2>
 
-      <PhoneMockup className="w-48">
-        <div className="p-4 space-y-3" style={{ height: 170 }}>
-          <div className="text-[10px] text-white/60 font-semibold text-center mb-1">Friday Dinner</div>
+      <PhoneMockup className="w-[160px] md:w-[300px] shadow-[0_40px_90px_rgba(0,0,0,0.6)]">
+        <div className="p-5 space-y-4" style={{ height: 230 }}>
+          <div className="text-[12px] text-white/70 font-semibold text-center mb-2">
+            Friday Dinner
+          </div>
+
           {people.map((p, i) => (
             <motion.div
               key={p.name}
               initial={{ opacity: 0, x: -12 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 + i * 0.08, type: "spring", stiffness: 350, damping: 22 }}
-              className="flex items-center gap-2"
+              transition={{
+                delay: 0.1 + i * 0.08,
+                type: "spring",
+                stiffness: 350,
+                damping: 22
+              }}
+              className="flex items-center gap-3"
             >
               <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
                 style={{ background: p.color }}
               >
                 {p.name[0]}
               </div>
+
               <div className="flex-1">
-                <div className="text-[9px] text-white/80 font-medium">{p.name}</div>
-                <div className="h-[3px] rounded-full mt-0.5" style={{ width: `${50 + i * 18}%`, background: p.color, opacity: 0.5 }} />
+                <div className="text-[12px] text-white/90 font-medium">
+                  {p.name}
+                </div>
+                <div
+                  className="h-[4px] rounded-full mt-1"
+                  style={{
+                    width: `${50 + i * 18}%`,
+                    background: p.color,
+                    opacity: 0.5
+                  }}
+                />
               </div>
-              <span className="text-[10px] text-white/70 font-mono font-semibold">{p.amount}</span>
+
+              <span className="text-[12px] text-white/80 font-mono font-semibold">
+                {p.amount}
+              </span>
             </motion.div>
           ))}
         </div>
       </PhoneMockup>
-      <h2 className="text-lg font-bold text-white">Split with your crew</h2>
-      <p className="text-xs text-white/45 text-center max-w-[240px]">
+
+      <p className="text-sm text-white/50 max-w-[260px]">
         Groups, percentages, or equal — however you want.
       </p>
+
     </div>
   );
 };
 
 const SettleSlide = () => (
-  <div className="flex flex-col items-center justify-center h-full gap-5 px-6 relative">
-    {/* Floating decorative orbs */}
-    <FloatingOrb size={32} color="amber" className="float-slow" style={{ top: "6%", left: "8%" }} />
-    <FloatingOrb size={48} ring className="float-med float-delay-1" style={{ top: "10%", right: "6%" }} />
-    <FloatingOrb size={20} color="pink" className="float-slow float-delay-2" style={{ bottom: "18%", right: "5%" }} />
-    <FloatingOrb size={40} color="purple" className="float-med float-delay-3" style={{ bottom: "16%", left: "6%" }} />
+  <div className="flex flex-col items-center justify-center h-full px-6 text-center gap-6 relative">
 
-    {/* Ambient glow */}
-    <div className="absolute top-1/3 right-0 w-56 h-56 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(249,115,22,0.08) 0%, transparent 65%)", filter: "blur(50px)" }} />
+    <h2 className="text-xl font-bold text-white">
+      Settle up instantly
+    </h2>
 
-    <PhoneMockup className="w-48">
-      <div className="p-4 flex flex-col items-center justify-center gap-3" style={{ height: 170 }}>
-        <div className="text-[10px] text-white/50">Payment to Alex</div>
-        <div className="text-xl font-black text-white font-mono">$12.50</div>
+    <PhoneMockup className="w-[160px] md:w-[300px] shadow-[0_40px_90px_rgba(0,0,0,0.6)]">
+      <div className="p-5 flex flex-col items-center justify-center gap-4" style={{ height: 230 }}>
+        
+        <div className="text-[12px] text-white/60">
+          Payment to Alex
+        </div>
+
+        <div className="text-2xl font-black text-white font-mono">
+          $12.50
+        </div>
+
         <div className="settle-check-circle">
-          <svg width="44" height="44" viewBox="0 0 48 48">
-            <circle cx="24" cy="24" r="20" fill="none" stroke="url(#mCheckGrad)" strokeWidth="2.5" className="settle-circle-draw" />
-            <path d="M15 24 L21 30 L33 18" fill="none" stroke="url(#mCheckGrad)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="settle-check-draw" />
+          <svg width="48" height="48" viewBox="0 0 48 48">
+            <circle
+              cx="24"
+              cy="24"
+              r="20"
+              fill="none"
+              stroke="url(#mCheckGrad)"
+              strokeWidth="2.5"
+              className="settle-circle-draw"
+            />
+            <path
+              d="M15 24 L21 30 L33 18"
+              fill="none"
+              stroke="url(#mCheckGrad)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="settle-check-draw"
+            />
             <defs>
               <linearGradient id="mCheckGrad" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stopColor="#ec4899" />
@@ -186,26 +198,23 @@ const SettleSlide = () => (
             </defs>
           </svg>
         </div>
-        <div className="text-[11px] font-bold text-white/80">Settled!</div>
+
+        <div className="text-[13px] font-bold text-white/90">
+          Settled!
+        </div>
+
       </div>
     </PhoneMockup>
-    <h2 className="text-lg font-bold text-white">Settle up instantly</h2>
-    <p className="text-xs text-white/45 text-center max-w-[240px]">
+
+    <p className="text-sm text-white/50 max-w-[260px]">
       One tap. Zero awkwardness.
     </p>
+
   </div>
 );
 
 const CTASlide = ({ onGetStarted }) => (
   <div className="flex flex-col items-center justify-center text-center h-full gap-5 px-8 relative">
-    {/* Floating decorative orbs */}
-    <FloatingOrb size={48} color="pink" className="float-slow" style={{ top: "10%", left: "8%" }} />
-    <FloatingOrb size={32} color="purple" className="float-med float-delay-1" style={{ top: "8%", right: "10%" }} />
-    <FloatingOrb size={56} ring className="float-slow float-delay-2" style={{ bottom: "22%", left: "6%" }} />
-    <FloatingOrb size={24} color="amber" className="float-med float-delay-3" style={{ bottom: "18%", right: "8%" }} />
-    <FloatingOrb size={16} color="pink" className="float-slow" style={{ top: "30%", left: "4%" }} />
-    <FloatingOrb size={40} color="amber" className="float-med float-delay-2" style={{ bottom: "35%", right: "4%" }} />
-
     {/* Dual ambient glows */}
     <div className="absolute top-1/4 -left-10 w-60 h-60 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(236,72,153,0.08) 0%, transparent 65%)", filter: "blur(50px)" }} />
     <div className="absolute bottom-1/4 -right-10 w-60 h-60 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(249,115,22,0.08) 0%, transparent 65%)", filter: "blur(50px)" }} />
