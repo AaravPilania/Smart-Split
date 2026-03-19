@@ -7,6 +7,41 @@ import { FiTrendingUp, FiTrendingDown, FiPlus, FiClock, FiUser } from "react-ico
 import { BsPeopleFill } from "react-icons/bs";
 import { API_URL, apiFetch, getUser, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
+import { detectCategory, getCategoryInfo } from "../utils/categories";
+
+const CAT_COLORS = [
+  "#ec4899", "#f59e0b", "#3b82f6", "#8b5cf6",
+  "#10b981", "#ef4444", "#f97316", "#14b8a6", "#6b7280",
+];
+
+function DonutChart({ data, total }) {
+  const r = 44, cx = 60, cy = 60;
+  const circ = 2 * Math.PI * r;
+  let cumPct = 0;
+  return (
+    <svg viewBox="0 0 120 120" className="w-28 h-28 flex-shrink-0">
+      {data.map((d, i) => {
+        const pct = d.amount / total;
+        const dash = pct * circ;
+        const offset = circ * 0.25 - cumPct * circ;
+        cumPct += pct;
+        return (
+          <circle
+            key={i}
+            cx={cx} cy={cy} r={r}
+            fill="none"
+            stroke={CAT_COLORS[i % CAT_COLORS.length]}
+            strokeWidth="16"
+            strokeDasharray={`${dash} ${circ - dash}`}
+            strokeDashoffset={offset}
+            style={{ transition: "stroke-dasharray 0.7s ease" }}
+          />
+        );
+      })}
+      <circle cx={cx} cy={cy} r={34} fill="transparent" />
+    </svg>
+  );
+}
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
@@ -23,6 +58,7 @@ export default function Dashboard() {
   const [groups, setGroups] = useState([]);
   const [groupSpending, setGroupSpending] = useState([]);
   const [monthlyChartData, setMonthlyChartData] = useState([]);
+  const [categoryData, setCategoryData] = useState([]);
   const [avatar, setAvatar] = useState(localStorage.getItem("selectedAvatar") || "");
   const navigate = useNavigate();
   const { theme, isDark } = useTheme();
@@ -176,6 +212,18 @@ export default function Dashboard() {
         }
       });
       setMonthlyChartData(Object.values(monthBuckets));
+
+      // Category spending breakdown
+      const catTotals = {};
+      allExpenses.forEach((exp) => {
+        const cat = detectCategory(exp.title || "");
+        catTotals[cat] = (catTotals[cat] || 0) + parseFloat(exp.amount || 0);
+      });
+      const catArr = Object.entries(catTotals)
+        .map(([key, amount]) => ({ key, amount, ...getCategoryInfo(key) }))
+        .filter((c) => c.amount > 0)
+        .sort((a, b) => b.amount - a.amount);
+      setCategoryData(catArr);
       setFetchError(false);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
@@ -423,6 +471,50 @@ export default function Dashboard() {
                     <p className="text-xl font-bold" style={{ color: theme.gradFrom }}>
                       {formatCurrency(monthlyChartData.at(-1)?.userShare || 0)}
                     </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Category Spending Chart */}
+            {categoryData.length > 0 && (
+              <div className="rounded-2xl p-5 mt-6" style={isDark ? {
+                background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
+                border: "1px solid rgba(255,255,255,0.10)",
+                backdropFilter: "blur(16px)",
+                boxShadow: "0 4px 28px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.07)",
+              } : {
+                background: "#ffffff",
+                border: "1px solid rgba(0,0,0,0.07)",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+              }}>
+                <h3 className="font-bold text-base mb-1 text-gray-800 dark:text-white">Spending by Category</h3>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-5 uppercase tracking-wide">Auto-detected from expense titles</p>
+                <div className="flex items-center gap-6 flex-wrap">
+                  <DonutChart data={categoryData} total={categoryData.reduce((s, c) => s + c.amount, 0)} />
+                  <div className="flex-1 min-w-0 space-y-2">
+                    {categoryData.slice(0, 6).map((cat, i) => {
+                      const total = categoryData.reduce((s, c) => s + c.amount, 0);
+                      const pct = ((cat.amount / total) * 100).toFixed(1);
+                      return (
+                        <div key={cat.key} className="flex items-center gap-2">
+                          <span className="text-base leading-none">{cat.icon || "💰"}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between text-xs mb-0.5">
+                              <span className="text-gray-700 dark:text-gray-300 font-medium truncate">{cat.label || cat.key}</span>
+                              <span className="text-gray-400 ml-2 flex-shrink-0">{pct}%</span>
+                            </div>
+                            <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all duration-700"
+                                style={{ width: `${pct}%`, background: CAT_COLORS[i % CAT_COLORS.length] }}
+                              />
+                            </div>
+                          </div>
+                          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 flex-shrink-0">{formatCurrency(cat.amount)}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

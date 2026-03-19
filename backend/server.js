@@ -72,7 +72,7 @@ app.use('/api/requests', require('./routes/groupRequestRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/friends', require('./routes/friendRoutes'));
 
-// User search endpoint
+// User search endpoint — matches @username, email, or bare name/username prefix
 app.get('/api/users/search', auth, async (req, res) => {
   try {
     const { q, email } = req.query;
@@ -82,11 +82,40 @@ app.get('/api/users/search', auth, async (req, res) => {
     }
     let users;
     if (query.startsWith('@')) {
+      // Explicit username search
       users = await User.searchByUsername(query.slice(1), 10);
-    } else {
+    } else if (query.includes('@')) {
+      // Looks like an email address
       users = await User.search(query, 10);
+    } else {
+      // Ambiguous — search both email and username, then merge+dedupe
+      const [byEmail, byUsername] = await Promise.all([
+        User.search(query, 10),
+        User.searchByUsername(query, 10),
+      ]);
+      const seen = new Set();
+      users = [...byEmail, ...byUsername].filter(u => {
+        const id = String(u._id || u.id);
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
     }
     res.json({ users });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Activity log for a group
+const ActivityLog = require('./models/ActivityLog');
+app.get('/api/groups/:groupId/activity', auth, async (req, res) => {
+  try {
+    const logs = await ActivityLog
+      .find({ groupId: req.params.groupId })
+      .sort({ createdAt: -1 })
+      .limit(50);
+    res.json({ logs });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

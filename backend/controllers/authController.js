@@ -27,6 +27,7 @@ exports.signup = async (req, res) => {
         name: user.name,
         username: user.username,
         pfp: user.pfp || '',
+        upiId: user.upiId || '',
       }
     });
   } catch (error) {
@@ -61,6 +62,7 @@ exports.login = async (req, res) => {
         name: user.name,
         username: user.username,
         pfp: user.pfp || '',
+        upiId: user.upiId || '',
       }
     });
   } catch (error) {
@@ -86,7 +88,7 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.params.userId;
-    const { name, email, password, username, pfp, currentPassword } = req.body;
+    const { name, email, password, username, pfp, upiId, currentPassword } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -121,7 +123,7 @@ exports.updateProfile = async (req, res) => {
       }
     }
 
-    const updatedUser = await User.updateById(userId, { name, email, password, username, pfp });
+    const updatedUser = await User.updateById(userId, { name, email, password, username, pfp, upiId });
 
     res.json({
       message: 'Profile updated successfully',
@@ -131,6 +133,7 @@ exports.updateProfile = async (req, res) => {
         name: updatedUser.name,
         username: updatedUser.username,
         pfp: updatedUser.pfp || '',
+        upiId: updatedUser.upiId || '',
       }
     });
   } catch (error) {

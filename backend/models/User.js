@@ -6,7 +6,8 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true, select: false },
   username: { type: String, unique: true, sparse: true, trim: true, lowercase: true },
-  pfp: { type: String, default: '' }
+  pfp: { type: String, default: '' },
+  upiId: { type: String, default: '' }
 }, { timestamps: true });
 
 const UserModel = mongoose.model('User', userSchema);
@@ -84,6 +85,7 @@ module.exports = {
     if (updates.password !== undefined) setFields.password = await bcrypt.hash(updates.password, 10);
     if (updates.username !== undefined) setFields.username = updates.username.toLowerCase().trim();
     if (updates.pfp !== undefined) setFields.pfp = updates.pfp;
+    if (updates.upiId !== undefined) setFields.upiId = updates.upiId.trim();
     await UserModel.findByIdAndUpdate(id, { $set: setFields });
     return this.findById(id);
   },

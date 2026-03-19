@@ -1,6 +1,14 @@
 const Expense = require('../models/Expense');
 const Group = require('../models/Group');
 const User = require('../models/User');
+const ActivityLog = require('../models/ActivityLog');
+
+// Helper: silently log activity
+async function logActivity(groupId, actorId, actorName, action, details, meta = {}) {
+  try {
+    await ActivityLog.create({ groupId: String(groupId), actorId, actorName, action, details, meta });
+  } catch (_) {}
+}
 
 // Add expense
 exports.addExpense = async (req, res) => {
@@ -22,6 +30,13 @@ exports.addExpense = async (req, res) => {
 
     // Create expense
     const expense = await Expense.createExpense(title, amount, groupId, paidBy, splitBetween);
+
+    // Log activity
+    const actor = await User.findById(paidBy);
+    logActivity(groupId, paidBy, actor?.name || 'Unknown',
+      'added_expense',
+      `Added "${title}" for ₹${parseFloat(amount).toFixed(2)}`,
+      { expenseId: expense.id, amount });
 
     res.status(201).json({
       message: 'Expense added successfully',
@@ -215,6 +230,16 @@ exports.settleExpense = async (req, res) => {
       settledBy,
       amount || expense.amount
     );
+
+    // Log activity
+    const actor = await User.findById(settledBy);
+    const groupId = expense.group?._id || expense.group || expense.groupId;
+    if (groupId) {
+      logActivity(groupId, settledBy, actor?.name || 'Unknown',
+        'settled',
+        `Settled \"${expense.title}\" for ₹${parseFloat(amount || expense.amount).toFixed(2)}`,
+        { expenseId, amount: amount || expense.amount });
+    }
 
     res.json({
       message: 'Payment settled successfully',

@@ -36,6 +36,7 @@ export default function Profile() {
     name: "",
     email: "",
     username: "",
+    upiId: "",
     password: "",
     currentPassword: "",
   });
@@ -95,6 +96,7 @@ export default function Profile() {
         name: data.user.name || "",
         email: data.user.email || "",
         username: data.user.username || "",
+        upiId: data.user.upiId || "",
         password: "",
         currentPassword: "",
       });
@@ -192,6 +194,7 @@ export default function Profile() {
       if (formData.name !== user.name) updates.name = formData.name;
       if (formData.email !== user.email) updates.email = formData.email;
       if (formData.username && formData.username !== user.username) updates.username = formData.username;
+      if (formData.upiId !== (user.upiId || "")) updates.upiId = formData.upiId;
       if (formData.password) {
         updates.password = formData.password;
         updates.currentPassword = formData.currentPassword;
@@ -376,6 +379,20 @@ export default function Profile() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      UPI ID
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.upiId}
+                      onChange={(e) => setFormData({ ...formData, upiId: e.target.value.trim() })}
+                      className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      placeholder="yourname@upi"
+                    />
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Used to generate QR code for UPI payments</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       New Password (leave blank to keep current)
                     </label>
                     <input
@@ -416,6 +433,7 @@ export default function Profile() {
                           name: user.name,
                           email: user.email,
                           username: user.username || "",
+                          upiId: user.upiId || "",
                           password: "",
                           currentPassword: "",
                         });
@@ -457,6 +475,15 @@ export default function Profile() {
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400">Username</p>
                       <p className="font-semibold text-gray-800 dark:text-white">@{user.username}</p>
+                    </div>
+                  </div>
+                )}
+                {user.upiId && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-gray-400 text-base leading-none">₹</span>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">UPI ID</p>
+                      <p className="font-semibold text-gray-800 dark:text-white">{user.upiId}</p>
                     </div>
                   </div>
                 )}

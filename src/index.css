@@ -29,6 +29,53 @@ button, a, input, select, textarea {
   transition: all 0.2s ease;
 }
 
+/* Global image rendering — prevents aspect-ratio distortion */
+img {
+  object-fit: cover;
+  object-position: center;
+}
+/* App icons & logos that must show fully */
+img[data-fit="contain"], .img-contain {
+  object-fit: contain !important;
+}
+
+/* Card hover lift */
+.card-hover {
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+}
+.dark .card-hover:hover {
+  box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+}
+
+/* Staggered fade-in for list items */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-item {
+  animation: fadeSlideUp 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.animate-item:nth-child(1)  { animation-delay: 0ms; }
+.animate-item:nth-child(2)  { animation-delay: 40ms; }
+.animate-item:nth-child(3)  { animation-delay: 80ms; }
+.animate-item:nth-child(4)  { animation-delay: 120ms; }
+.animate-item:nth-child(5)  { animation-delay: 160ms; }
+.animate-item:nth-child(6)  { animation-delay: 200ms; }
+
+/* Pulse-glow on gradient buttons on hover */
+@keyframes gradientPulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(236,72,153,0.35); }
+  50%       { box-shadow: 0 4px 32px rgba(236,72,153,0.55); }
+}
+.btn-pulse:hover {
+  animation: gradientPulse 1.8s ease-in-out infinite;
+}
+
 /* ─── Login page animated gradient background ─────────────────── */
 .home-bg {
   background: #0d0818;

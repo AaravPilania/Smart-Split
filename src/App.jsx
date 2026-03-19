@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home";
 import Groups from "./pages/Groups";
@@ -20,24 +21,28 @@ function PublicRoute({ element }) {
   return getToken() ? <Navigate to="/dashboard" replace /> : element;
 }
 
-// Smooth fade-in on route change
+// Smooth animated page transition — slide-up + fade
+const pageVariants = {
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.24, ease: [0.4, 0, 0.2, 1] } },
+  exit:    { opacity: 0, y: -10, transition: { duration: 0.16, ease: [0.4, 0, 1, 1] } },
+};
+
 function PageTransition({ children }) {
   const location = useLocation();
-  const [displayed, setDisplayed] = useState(false);
-
-  useEffect(() => {
-    setDisplayed(false);
-    const frame = requestAnimationFrame(() => setDisplayed(true));
-    return () => cancelAnimationFrame(frame);
-  }, [location.pathname]);
-
   return (
-    <div
-      className="transition-opacity duration-300 ease-out"
-      style={{ opacity: displayed ? 1 : 0 }}
-    >
-      {children}
-    </div>
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={location.pathname}
+        variants={pageVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        style={{ minHeight: "100vh" }}
+      >
+        {children}
+      </motion.div>
+    </AnimatePresence>
   );
 }
 

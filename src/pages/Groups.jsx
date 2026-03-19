@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
-import { FiUsers, FiPlus, FiX, FiUserPlus, FiLink, FiZap, FiHeart } from "react-icons/fi";
+import { FiUsers, FiPlus, FiX, FiUserPlus, FiLink, FiZap, FiHeart, FiClock } from "react-icons/fi";
 import { groupAPI, API_URL, apiFetch, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
 import { simplifyDebts } from "../utils/debts";
@@ -21,6 +21,9 @@ export default function Groups() {
   const [simplifiedDebts, setSimplifiedDebts] = useState([]);
   const [simplifying, setSimplifying] = useState(false);
   const [friends, setFriends] = useState([]);
+  const [activityGroupId, setActivityGroupId] = useState(null);
+  const [activityLogs, setActivityLogs] = useState([]);
+  const [activityLoading, setActivityLoading] = useState(false);
 
   const [createForm, setCreateForm] = useState({
     name: "",
@@ -47,6 +50,23 @@ export default function Groups() {
       const res = await apiFetch(`${API_URL}/friends`);
       if (res.ok) { const d = await res.json(); setFriends(d.friends || []); }
     } catch {}
+  };
+
+  const fetchActivity = async (groupId) => {
+    setActivityGroupId(groupId);
+    setActivityLoading(true);
+    setActivityLogs([]);
+    try {
+      const res = await apiFetch(`${API_URL}/groups/${groupId}/activity`);
+      if (res.ok) {
+        const data = await res.json();
+        setActivityLogs(data.logs || []);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setActivityLoading(false);
+    }
   };
 
   const handleCopyInvite = (groupId, groupName) => {
@@ -283,6 +303,13 @@ export default function Groups() {
                   >
                     <FiZap size={13} /> Simplify
                   </button>
+                  <button
+                    onClick={() => fetchActivity(group.id)}
+                    className="px-3 py-2 rounded-lg text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition text-xs font-medium flex items-center gap-1"
+                    title="View activity log for this group"
+                  >
+                    <FiClock size={13} /> Activity
+                  </button>
                 </div>
               </div>
             ))}
@@ -323,6 +350,47 @@ export default function Groups() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Activity Log Modal */}
+      {activityGroupId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6 flex flex-col max-h-[80vh]">
+            <div className="flex justify-between items-center mb-4 flex-shrink-0">
+              <h3 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                <FiClock className={theme.text} /> Activity Log
+              </h3>
+              <button onClick={() => setActivityGroupId(null)} className="text-gray-400 hover:text-gray-600">
+                <FiX className="text-xl" />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1">
+              {activityLoading ? (
+                <div className="text-center py-8">
+                  <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${theme.spinner} mx-auto`}></div>
+                </div>
+              ) : activityLogs.length === 0 ? (
+                <div className="text-center py-8 text-gray-400 dark:text-gray-500 text-sm">No activity yet.</div>
+              ) : (
+                <div className="space-y-2">
+                  {activityLogs.map((log, i) => (
+                    <div key={i} className="flex gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <div className="h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={getGradientStyle(theme)}>
+                        {(log.actorName || "?")[0].toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-800 dark:text-white">{log.details}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {log.actorName} &bull; {new Date(log.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

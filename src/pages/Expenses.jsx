@@ -33,6 +33,55 @@ export default function Expenses() {
     splits: [],
     category: "other",
   });
+  const [splitMode, setSplitMode] = useState("equal"); // "equal" | "percentage" | "exact"
+
+  // Apply equal split whenever amount or mode changes
+  const applyEqualSplit = (amt, members, form) => {
+    const amount = parseFloat(amt);
+    if (!amount || !members?.length) return form.splits;
+    const each = parseFloat((amount / members.length).toFixed(2));
+    return members.map((m, i) => ({
+      userId: m.id,
+      pct: parseFloat((100 / members.length).toFixed(2)),
+      amount: i === members.length - 1
+        ? parseFloat((amount - each * (members.length - 1)).toFixed(2)).toString()
+        : each.toString(),
+    }));
+  };
+
+  const handleSplitModeChange = (mode) => {
+    setSplitMode(mode);
+    const members = getSelectedGroup()?.members || [];
+    const amt = parseFloat(createForm.amount) || 0;
+    if (!members.length || !amt) return;
+    if (mode === "equal") {
+      setCreateForm(f => ({ ...f, splits: applyEqualSplit(amt, members, f) }));
+    } else if (mode === "percentage") {
+      // Init equal percentages
+      const pct = parseFloat((100 / members.length).toFixed(2));
+      const splits = members.map((m, i) => ({
+        userId: m.id,
+        pct: i === members.length - 1 ? parseFloat((100 - pct * (members.length - 1)).toFixed(2)) : pct,
+        amount: i === members.length - 1
+          ? parseFloat((amt * (100 - pct * (members.length - 1)) / 100).toFixed(2)).toString()
+          : parseFloat((amt * pct / 100).toFixed(2)).toString(),
+      }));
+      setCreateForm(f => ({ ...f, splits }));
+    }
+    // "exact": keep current splits as-is
+  };
+
+  const updateSplitPct = (index, pct) => {
+    const amt = parseFloat(createForm.amount) || 0;
+    const v = Math.min(100, Math.max(0, parseFloat(pct) || 0));
+    const newSplits = [...createForm.splits];
+    newSplits[index] = {
+      ...newSplits[index],
+      pct: v,
+      amount: parseFloat((amt * v / 100).toFixed(2)).toString(),
+    };
+    setCreateForm(f => ({ ...f, splits: newSplits }));
+  };
 
   useEffect(() => {
     const userIdStr = getUserId();
@@ -60,6 +109,15 @@ export default function Expenses() {
       setSelectedGroupId(groups[0].id);
     }
   }, [selectedGroupId, groups, userId]);
+
+  // Auto-apply equal split when a new group is selected (if amount is set)
+  useEffect(() => {
+    if (!selectedGroupId || !createForm.amount) return;
+    const group = groups.find(g => g.id === selectedGroupId);
+    if (group?.members?.length && splitMode === "equal") {
+      setCreateForm(f => ({ ...f, splits: applyEqualSplit(f.amount, group.members, f) }));
+    }
+  }, [selectedGroupId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchGroups = async (userId) => {
     try {
@@ -441,9 +499,21 @@ export default function Expenses() {
                   type="number"
                   step="0.01"
                   value={createForm.amount}
-                  onChange={(e) =>
-                    setCreateForm({ ...createForm, amount: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const newAmt = e.target.value;
+                    const group = getSelectedGroup();
+                    let newSplits = createForm.splits;
+                    if (splitMode === "equal" && group?.members?.length) {
+                      newSplits = applyEqualSplit(newAmt, group.members, createForm);
+                    } else if (splitMode === "percentage" && group?.members?.length) {
+                      // Recompute amounts from existing percentages
+                      newSplits = createForm.splits.map(s => ({
+                        ...s,
+                        amount: parseFloat(((parseFloat(newAmt) || 0) * (parseFloat(s.pct) || 0) / 100).toFixed(2)).toString(),
+                      }));
+                    }
+                    setCreateForm({ ...createForm, amount: newAmt, splits: newSplits });
+                  }}
                   className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
                   placeholder="0.00"
                   required
@@ -475,100 +545,164 @@ export default function Expenses() {
               </div>
 
               <div className="mb-4">
+                {/* Split Mode Tabs */}
                 <div className="flex justify-between items-center mb-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Split Between *
                   </label>
-                  <div className="flex gap-2">
+                </div>
+                <div className="flex mb-3 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-600">
+                  {[
+                    { key: "equal",      label: "= Equal" },
+                    { key: "percentage", label: "% Split" },
+                    { key: "exact",      label: "✏ Custom" },
+                  ].map((m) => (
                     <button
+                      key={m.key}
                       type="button"
-                      onClick={() => {
-                        if (!selectedGroup?.members?.length || !createForm.amount) return;
-                        const amt = parseFloat(createForm.amount);
-                        const members = selectedGroup.members;
-                        const each = parseFloat((amt / members.length).toFixed(2));
-                        const splits = members.map((m, i) => ({
-                          userId: m.id,
-                          amount: i === members.length - 1
-                            ? parseFloat((amt - each * (members.length - 1)).toFixed(2)).toString()
-                            : each.toString(),
-                        }));
-                        setCreateForm({ ...createForm, splits });
-                      }}
-                      className={`text-xs px-2 py-1 rounded-lg border ${theme.border} ${theme.text} hover:${theme.bgLight} transition flex items-center gap-1`}
-                      title="Split evenly between all members"
+                      onClick={() => handleSplitModeChange(m.key)}
+                      className={`flex-1 py-2 text-xs font-semibold transition-all ${splitMode === m.key ? "text-white" : "text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"}`}
+                      style={splitMode === m.key ? getGradientStyle(theme) : {}}
                     >
-                      ✨ Smart Even Split
+                      {m.label}
                     </button>
-                    <button type="button" onClick={addSplitRow} className={`text-sm ${theme.text} flex items-center gap-1`}>
-                      <FiPlus /> Add Person
-                    </button>
-                  </div>
+                  ))}
                 </div>
 
-                {createForm.splits.map((split, index) => (
-                  <div key={index} className="flex gap-1.5 mb-2">
-                    <select
-                      value={split.userId || ""}
-                      onChange={(e) =>
-                        updateSplit(index, "userId", e.target.value)
-                      }
-                      className="flex-1 min-w-0 px-2 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
-                      required
-                    >
-                      <option value="">Select member...</option>
-                      {selectedGroup.members?.map((member) => (
-                        <option key={member.id} value={member.id}>
-                          {member.name}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={split.amount}
-                      onChange={(e) =>
-                        updateSplit(index, "amount", e.target.value)
-                      }
-                      className="w-24 sm:w-28 px-2 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
-                      placeholder="Amount"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeSplitRow(index)}
-                      className="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg"
-                    >
-                      <FiX />
-                    </button>
+                {/* Equal mode — read-only equal shares */}
+                {splitMode === "equal" && (
+                  <div>
+                    {!createForm.amount ? (
+                      <p className="text-xs text-amber-500 mb-2">Enter total amount first to auto-split</p>
+                    ) : createForm.splits.length === 0 ? (
+                      <button type="button" onClick={() => handleSplitModeChange("equal")} className={`text-xs ${theme.text} underline`}>Apply even split now</button>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {createForm.splits.map((split, i) => {
+                          const member = getSelectedGroup()?.members?.find(m => m.id === split.userId);
+                          return (
+                            <div key={i} className="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50 dark:bg-gray-700/60 text-sm">
+                              <div className="flex items-center gap-2">
+                                <div className="h-6 w-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold" style={getGradientStyle(theme)}>
+                                  {member?.name?.[0]?.toUpperCase() || "?"}
+                                </div>
+                                <span className="text-gray-700 dark:text-gray-300">{member?.name || split.userId}</span>
+                              </div>
+                              <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(parseFloat(split.amount || 0))}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                ))}
-
-                {createForm.splits.length === 0 && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Click "Add Person" to split the expense
-                  </p>
                 )}
 
-                {createForm.amount && (
-                  <p className="text-sm mt-2">
-                    Total split:{" "}
-                    <span className="font-semibold">
-                      {formatCurrency(
-                        createForm.splits.reduce(
-                          (sum, split) =>
-                            sum + parseFloat(split.amount || 0),
-                          0
-                        )
-                      )}
-                    </span>
-                    {" / "}
-                    Total amount:{" "}
-                    <span className="font-semibold">
-                      {formatCurrency(parseFloat(createForm.amount || 0))}
-                    </span>
-                  </p>
+                {/* Percentage mode */}
+                {splitMode === "percentage" && (
+                  <div>
+                    {!createForm.amount && <p className="text-xs text-amber-500 mb-2">Enter total amount first</p>}
+                    {createForm.splits.map((split, i) => {
+                      const member = getSelectedGroup()?.members?.find(m => m.id === split.userId);
+                      return (
+                        <div key={i} className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <div className="h-6 w-6 flex-shrink-0 rounded-full flex items-center justify-center text-white text-[10px] font-bold" style={getGradientStyle(theme)}>
+                              {member?.name?.[0]?.toUpperCase() || "?"}
+                            </div>
+                            <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{member?.name}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <input
+                              type="number" min="0" max="100" step="0.5"
+                              value={split.pct ?? ""}
+                              onChange={(e) => updateSplitPct(i, e.target.value)}
+                              className="w-16 px-2 py-1.5 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm text-right focus:outline-none focus:ring-1 focus:ring-pink-500"
+                            />
+                            <span className="text-gray-400 text-xs">%</span>
+                          </div>
+                          <span className="w-24 text-right text-sm font-semibold text-gray-700 dark:text-gray-300 flex-shrink-0">
+                            {formatCurrency(parseFloat(split.amount || 0))}
+                          </span>
+                        </div>
+                      );
+                    })}
+                    {createForm.splits.length > 0 && (() => {
+                      const total = createForm.splits.reduce((s, x) => s + (parseFloat(x.pct) || 0), 0);
+                      const ok = Math.abs(total - 100) < 0.5;
+                      return <p className={`text-xs mt-1 font-semibold ${ok ? "text-green-600" : "text-amber-500"}`}>{ok ? "✓" : "⚠"} Total: {total.toFixed(1)}%</p>;
+                    })()}
+                  </div>
                 )}
+
+                {/* Exact / Custom mode */}
+                {splitMode === "exact" && (
+                  <div>
+                    <div className="flex justify-end mb-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!selectedGroup?.members?.length || !createForm.amount) return;
+                          const amt = parseFloat(createForm.amount);
+                          const members = selectedGroup.members;
+                          const each = parseFloat((amt / members.length).toFixed(2));
+                          const splits = members.map((m, i) => ({
+                            userId: m.id,
+                            amount: i === members.length - 1
+                              ? parseFloat((amt - each * (members.length - 1)).toFixed(2)).toString()
+                              : each.toString(),
+                          }));
+                          setCreateForm({ ...createForm, splits });
+                        }}
+                        className={`text-xs px-2 py-1 rounded-lg border ${theme.border} ${theme.text} transition`}
+                      >
+                        ✨ Even Split
+                      </button>
+                      <button type="button" onClick={addSplitRow} className={`text-sm ${theme.text} flex items-center gap-1`}>
+                        <FiPlus /> Add
+                      </button>
+                    </div>
+                    {createForm.splits.map((split, index) => (
+                      <div key={index} className="flex gap-1.5 mb-2">
+                        <select
+                          value={split.userId || ""}
+                          onChange={(e) => updateSplit(index, "userId", e.target.value)}
+                          className="flex-1 min-w-0 px-2 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
+                          required
+                        >
+                          <option value="">Select member...</option>
+                          {selectedGroup.members?.map((member) => (
+                            <option key={member.id} value={member.id}>{member.name}</option>
+                          ))}
+                        </select>
+                        <input
+                          type="number" step="0.01"
+                          value={split.amount}
+                          onChange={(e) => updateSplit(index, "amount", e.target.value)}
+                          className="w-24 sm:w-28 px-2 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
+                          placeholder="Amount"
+                          required
+                        />
+                        <button type="button" onClick={() => removeSplitRow(index)} className="px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
+                          <FiX />
+                        </button>
+                      </div>
+                    ))}
+                    {createForm.splits.length === 0 && (
+                      <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-3">Click Add to add people to the split</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Running total */}
+                {createForm.amount && createForm.splits.length > 0 && (() => {
+                  const splitTotal = createForm.splits.reduce((s, x) => s + parseFloat(x.amount || 0), 0);
+                  const ok = Math.abs(splitTotal - parseFloat(createForm.amount)) < 0.02;
+                  return (
+                    <p className={`text-sm mt-2 font-medium ${ok ? "text-green-600 dark:text-green-400" : "text-amber-500"}`}>
+                      {ok ? "✓ Balanced" : `Split: ${formatCurrency(splitTotal)} / Total: ${formatCurrency(parseFloat(createForm.amount))}`}
+                    </p>
+                  );
+                })()}
               </div>
 
               <div className="flex gap-3">

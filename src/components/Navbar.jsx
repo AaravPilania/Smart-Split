@@ -202,10 +202,18 @@ export default function Navbar() {
                 )}
               </button>
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden">
-                  <div className="px-4 py-3 border-b dark:border-gray-700 flex justify-between items-center">
+                <div className="absolute right-0 mt-2 w-80 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                  style={{
+                    background: isDark ? "rgba(12,12,22,0.88)" : "rgba(255,255,255,0.88)",
+                    backdropFilter: "blur(24px) saturate(180%)",
+                    WebkitBackdropFilter: "blur(24px) saturate(180%)",
+                    border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.07)",
+                    boxShadow: isDark ? "0 8px 40px rgba(0,0,0,0.55)" : "0 8px 40px rgba(0,0,0,0.12)",
+                  }}
+                >
+                  <div className="px-4 py-3 border-b flex justify-between items-center" style={{ borderColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)" }}>
                     <span className="font-semibold text-gray-800 dark:text-white text-sm">Reminders</span>
-                    <button onClick={() => setShowNotifications(false)} className="h-5 w-5 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400 hover:bg-gray-200 transition"><FiX size={10} /></button>
+                    <button onClick={() => setShowNotifications(false)} className="h-5 w-5 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition" style={{ background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)" }}><FiX size={10} /></button>
                   </div>
                   <div className="max-h-72 overflow-y-auto"><NotificationPanel /></div>
                 </div>
@@ -284,45 +292,59 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* Nav links */}
-          <nav className="flex-1 overflow-y-auto px-3 pt-3 space-y-0.5">
-            {navLinks.map(({ to, icon, label }) => {
-              const active = location.pathname === to;
-              return (
-                <Link
-                  key={to}
-                  to={to}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 text-base font-medium ${active ? "text-white shadow-md" : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"}`}
-                  style={active ? getGradientStyle(theme) : {}}
-                >
-                  <span className={active ? "text-white/90" : theme.text}>{icon}</span>
-                  {label}
-                </Link>
-              );
-            })}
-          </nav>
+          {/* Scrollable area: nav links + notifications */}
+          <div className="flex-1 overflow-y-auto flex flex-col">
+            <nav className="px-3 pt-3 space-y-0.5">
+              {navLinks.map(({ to, icon, label }) => {
+                const active = location.pathname === to;
+                return (
+                  <Link
+                    key={to}
+                    to={to}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 text-base font-medium ${active ? "text-white shadow-md" : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"}`}
+                    style={active ? getGradientStyle(theme) : {}}
+                  >
+                    <span className={active ? "text-white/90" : theme.text}>{icon}</span>
+                    {label}
+                  </Link>
+                );
+              })}
+            </nav>
 
-          {/* Bottom actions */}
-          <div className="px-3 pt-2 pb-6 border-t border-gray-100 dark:border-gray-800 space-y-0.5 flex-shrink-0">
-            <button
-              onClick={() => { setShowNotifications((p) => !p); if (unreadCount > 0) markAllRead(); }}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-[15px] font-medium"
-            >
-              <span className="relative flex-shrink-0">
-                <FiBell size={18} className={theme.text} />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full text-[9px] font-bold text-white flex items-center justify-center" style={getGradientStyle(theme)}>{unreadCount}</span>
-                )}
-              </span>
-              <span>Notifications</span>
-              {unreadCount > 0 && <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full text-white" style={getGradientStyle(theme)}>{unreadCount} new</span>}
-            </button>
-            {showNotifications && (
-              <div className="mx-1 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800">
-                <div className="max-h-52 overflow-y-auto"><NotificationPanel /></div>
-              </div>
-            )}
+            {/* Notifications — in scrollable area so expansion never clips or overlays */}
+            <div className="px-3 pt-3 border-t border-gray-100 dark:border-gray-800 mt-2">
+              <button
+                onClick={() => { setShowNotifications((p) => !p); if (unreadCount > 0) markAllRead(); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-[15px] font-medium"
+              >
+                <span className="relative flex-shrink-0">
+                  <FiBell size={18} className={theme.text} />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full text-[9px] font-bold text-white flex items-center justify-center" style={getGradientStyle(theme)}>{unreadCount}</span>
+                  )}
+                </span>
+                <span>Notifications</span>
+                {unreadCount > 0 && <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full text-white" style={getGradientStyle(theme)}>{unreadCount} new</span>}
+              </button>
+              {showNotifications && (
+                <div className="w-full mt-1 mb-3 rounded-xl overflow-hidden"
+                  style={{
+                    background: "rgba(15,15,25,0.82)",
+                    backdropFilter: "blur(20px) saturate(160%)",
+                    WebkitBackdropFilter: "blur(20px) saturate(160%)",
+                    border: "1px solid rgba(255,255,255,0.09)",
+                    boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+                  }}
+                >
+                  <div className="max-h-52 overflow-y-auto"><NotificationPanel /></div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Footer — pinned to bottom, never pushed off screen */}
+          <div className="px-3 pb-6 pt-2 border-t border-gray-100 dark:border-gray-800 space-y-0.5 flex-shrink-0">
             <button
               onClick={toggleDarkMode}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 text-[15px] font-medium"
