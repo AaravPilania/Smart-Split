@@ -9,7 +9,8 @@ import {
   FiUsers,
   FiCheck,
   FiX,
-  FiClock,
+  FiUserPlus,
+  FiHeart,
   FiUpload,
   FiCopy,
   FiChevronDown,
@@ -26,7 +27,9 @@ const APP_URL = import.meta.env.VITE_APP_URL || "https://thesmartsplit.netlify.a
 export default function Profile() {
   const [user, setUser] = useState(null);
   const [groups, setGroups] = useState([]);
-  const [pendingRequests, setPendingRequests] = useState([]);
+  const [friendRequests, setFriendRequests] = useState([]);
+  const [frLoading, setFrLoading] = useState(false);
+  const [frActionLoading, setFrActionLoading] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -34,6 +37,7 @@ export default function Profile() {
     email: "",
     username: "",
     password: "",
+    currentPassword: "",
   });
   const [avatar, setAvatar] = useState(localStorage.getItem("selectedAvatar") || "");
   const { theme, accentKey, isDark } = useTheme();
@@ -78,7 +82,7 @@ export default function Profile() {
     }
     fetchProfile(userIdStr);
     fetchGroups(userIdStr);
-    fetchPendingRequests(userIdStr);
+    fetchFriendRequests();
   }, [navigate]);
 
   const fetchProfile = async (userId) => {
@@ -92,9 +96,15 @@ export default function Profile() {
         email: data.user.email || "",
         username: data.user.username || "",
         password: "",
+        currentPassword: "",
       });
       const saved = localStorage.getItem("selectedAvatar");
-      if (saved) setAvatar(saved);
+      if (saved) {
+        setAvatar(saved);
+      } else if (data.user.pfp) {
+        setAvatar(data.user.pfp);
+        localStorage.setItem("selectedAvatar", data.user.pfp);
+      }
     } catch (error) {
       console.error("Error fetching profile:", error);
     } finally {
@@ -118,6 +128,14 @@ export default function Profile() {
     try {
       window.dispatchEvent(new Event("avatar-changed"));
     } catch {}
+    // Persist to backend (fire-and-forget)
+    const uid = getUserId();
+    if (uid) {
+      apiFetch(`${API_URL}/auth/profile/${uid}`, {
+        method: "PUT",
+        body: JSON.stringify({ pfp: value || '' }),
+      }).catch(() => {});
+    }
   };
 
   const fetchGroups = async (userId) => {
@@ -131,30 +149,53 @@ export default function Profile() {
     }
   };
 
-  const fetchPendingRequests = async (userId) => {
+  const fetchFriendRequests = async () => {
+    setFrLoading(true);
     try {
-      const response = await apiFetch(`${API_URL}/requests/user/${userId}/requests`);
-      if (!response.ok) throw new Error("Failed to fetch requests");
-      const data = await response.json();
-      // Filter only pending requests
-      setPendingRequests(
-        (data.requests || []).filter((r) => r.status === "pending")
-      );
-    } catch (error) {
-      console.error("Error fetching requests:", error);
-    }
+      const res = await apiFetch(`${API_URL}/friends/requests`);
+      if (res.ok) {
+        const data = await res.json();
+        setFriendRequests(data.requests || []);
+      }
+    } catch {}
+    finally { setFrLoading(false); }
+  };
+
+  const handleAcceptFriend = async (friendshipId) => {
+    setFrActionLoading(friendshipId);
+    try {
+      const res = await apiFetch(`${API_URL}/friends/accept/${friendshipId}`, { method: "PATCH" });
+      if (res.ok) fetchFriendRequests();
+    } finally { setFrActionLoading(null); }
+  };
+
+  const handleRejectFriend = async (friendshipId) => {
+    setFrActionLoading(friendshipId);
+    try {
+      const res = await apiFetch(`${API_URL}/friends/reject/${friendshipId}`, { method: "PATCH" });
+      if (res.ok) fetchFriendRequests();
+    } finally { setFrActionLoading(null); }
   };
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
-    const userId = localStorage.getItem("userId");
+    const userId = getUserId();
 
     try {
+      // Frontend guard for password change
+      if (formData.password && !formData.currentPassword.trim()) {
+        alert("Please enter your current password to set a new one.");
+        return;
+      }
+
       const updates = {};
       if (formData.name !== user.name) updates.name = formData.name;
       if (formData.email !== user.email) updates.email = formData.email;
       if (formData.username && formData.username !== user.username) updates.username = formData.username;
-      if (formData.password) updates.password = formData.password;
+      if (formData.password) {
+        updates.password = formData.password;
+        updates.currentPassword = formData.currentPassword;
+      }
 
       if (Object.keys(updates).length === 0) {
         setEditing(false);
@@ -172,49 +213,14 @@ export default function Profile() {
       setUser(data.user);
       localStorage.setItem("user", JSON.stringify(data.user));
       setEditing(false);
-      setFormData({ ...formData, password: "" });
+      setFormData({ ...formData, password: "", currentPassword: "" });
       alert("Profile updated successfully!");
     } catch (error) {
       alert(error.message || "Failed to update profile");
     }
   };
 
-  const handleApproveRequest = async (requestId) => {
-    try {
-      const response = await apiFetch(
-        `${API_URL}/requests/request/${requestId}/approve`,
-        { method: "POST" }
-      );
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Failed to approve");
-
-      const userId = localStorage.getItem("userId");
-      fetchPendingRequests(userId);
-      fetchGroups(userId);
-      alert("Request approved! You've been added to the group.");
-    } catch (error) {
-      alert(error.message || "Failed to approve request");
-    }
-  };
-
-  const handleRejectRequest = async (requestId) => {
-    try {
-      const response = await apiFetch(
-        `${API_URL}/requests/request/${requestId}/reject`,
-        { method: "POST" }
-      );
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Failed to reject");
-
-      const userId = localStorage.getItem("userId");
-      fetchPendingRequests(userId);
-      alert("Request rejected");
-    } catch (error) {
-      alert(error.message || "Failed to reject request");
-    }
-  };
 
   if (loading || !user) {
     return (
@@ -383,6 +389,24 @@ export default function Profile() {
                     />
                   </div>
 
+                  {formData.password && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Current Password <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="password"
+                        value={formData.currentPassword}
+                        onChange={(e) =>
+                          setFormData({ ...formData, currentPassword: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                        placeholder="Enter your current password to confirm"
+                        required
+                      />
+                    </div>
+                  )}
+
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -393,6 +417,7 @@ export default function Profile() {
                           email: user.email,
                           username: user.username || "",
                           password: "",
+                          currentPassword: "",
                         });
                       }}
                       className="flex-1 px-4 py-2 border dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -531,203 +556,62 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Pending Requests */}
-        {pendingRequests.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 sm:p-6 border dark:border-gray-700 mt-6">
-            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-              <FiClock /> Pending Group Requests ({pendingRequests.length})
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              You've requested to join these groups. Wait for approval.
-            </p>
+        {/* Friend Requests */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 sm:p-6 border dark:border-gray-700 mt-6">
+          <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+            <FiHeart /> Friend Requests
+            {friendRequests.length > 0 && (
+              <span className="ml-1 text-sm font-bold px-2 py-0.5 rounded-full text-white" style={getGradientStyle(theme)}>
+                {friendRequests.length}
+              </span>
+            )}
+          </h3>
+          {frLoading ? (
+            <div className="flex justify-center py-6">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-500" />
+            </div>
+          ) : friendRequests.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+              <FiUserPlus size={36} className="text-gray-300 dark:text-gray-600" />
+              <p className="text-gray-500 dark:text-gray-400 text-sm">No pending friend requests</p>
+            </div>
+          ) : (
             <div className="space-y-3">
-              {pendingRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-semibold text-gray-800 dark:text-white">
-                        {request.group_name}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Created by {request.creator_name}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Requested{" "}
-                        {new Date(request.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <span className="px-3 py-1 bg-yellow-200 text-yellow-800 rounded-full text-xs font-semibold">
-                      Pending
-                    </span>
+              {friendRequests.map((r) => (
+                <div key={r._id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                  <div className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0" style={getGradientStyle(theme)}>
+                    {r.requester?.name?.[0]?.toUpperCase() || "?"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-800 dark:text-white text-sm truncate">{r.requester?.name}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{r.requester?.email}</p>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => handleAcceptFriend(r._id)}
+                      disabled={frActionLoading === r._id}
+                      className="h-8 w-8 rounded-xl flex items-center justify-center text-white shadow transition"
+                      style={getGradientStyle(theme)}
+                      title="Accept"
+                    >
+                      <FiCheck size={14} />
+                    </button>
+                    <button
+                      onClick={() => handleRejectFriend(r._id)}
+                      disabled={frActionLoading === r._id}
+                      className="h-8 w-8 rounded-xl flex items-center justify-center text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+                      title="Reject"
+                    >
+                      <FiX size={14} />
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Incoming Requests (requests to join groups you're admin of) */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 sm:p-6 border dark:border-gray-700 mt-6">
-          <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-            <FiUsers /> Incoming Requests
-          </h3>
-          <IncomingRequestsComponent userId={user.id} />
+          )}
         </div>
       </div>
       <BottomNav />
-    </div>
-  );
-}
-
-// Component for incoming requests (requests to groups where user is admin)
-function IncomingRequestsComponent({ userId }) {
-  const [requests, setRequests] = useState([]);
-  const [groups, setGroups] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchUserGroups();
-  }, [userId]);
-
-  const fetchUserGroups = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_URL}/groups?userId=${userId}`);
-      if (!response.ok) return;
-      const data = await response.json();
-      setGroups(data.groups || []);
-
-      // Fetch requests for all groups where user is creator
-      const allRequests = [];
-      for (const group of data.groups || []) {
-        if (group.createdBy?.id === userId) {
-          try {
-            const reqResponse = await fetch(
-              `${API_URL}/requests/group/${group.id}/requests`
-            );
-            if (reqResponse.ok) {
-              const reqData = await reqResponse.json();
-              allRequests.push(
-                ...(reqData.requests || []).map((r) => ({
-                  ...r,
-                  groupName: group.name,
-                }))
-              );
-            }
-          } catch (err) {
-            console.error(`Error fetching requests for group ${group.id}:`, err);
-          }
-        }
-      }
-      setRequests(allRequests);
-    } catch (error) {
-      console.error("Error fetching requests:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleApprove = async (requestId) => {
-    try {
-      const response = await fetch(
-        `${API_URL}/requests/request/${requestId}/approve`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || "Failed to approve");
-      }
-      fetchUserGroups();
-      alert("Request approved!");
-    } catch (error) {
-      alert(error.message || "Failed to approve request");
-    }
-  };
-
-  const handleReject = async (requestId) => {
-    try {
-      const response = await fetch(
-        `${API_URL}/requests/request/${requestId}/reject`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || "Failed to reject");
-      }
-      fetchUserGroups();
-      alert("Request rejected");
-    } catch (error) {
-      alert(error.message || "Failed to reject request");
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="text-center py-4">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-500 mx-auto"></div>
-      </div>
-    );
-  }
-
-  if (requests.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-8 text-center gap-3">
-        <svg className="h-16 w-16 text-gray-200" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="32" cy="32" r="30" fill="currentColor" />
-          <path d="M20 32h24M32 20v24" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.5" />
-          <circle cx="32" cy="22" r="4" fill="white" opacity="0.6" />
-          <circle cx="22" cy="38" r="4" fill="white" opacity="0.6" />
-          <circle cx="42" cy="38" r="4" fill="white" opacity="0.6" />
-        </svg>
-        <p className="text-gray-600 font-medium">All caught up!</p>
-        <p className="text-gray-400 text-sm max-w-xs">No pending join requests for your groups. When someone requests to join, you'll see it here.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {requests.map((request) => (
-        <div
-          key={request.id}
-          className="p-4 bg-blue-50 border border-blue-200 rounded-lg"
-        >
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-gray-800">{request.name}</p>
-              <p className="text-sm text-gray-600">{request.email}</p>
-              <p className="text-xs text-gray-500 mt-1">
-                Wants to join: <strong>{request.group_name}</strong>
-              </p>
-            </div>
-            <div className="flex w-full sm:w-auto gap-2">
-              <button
-                onClick={() => handleApprove(request.id)}
-                className="flex-1 sm:flex-none px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center justify-center gap-1"
-              >
-                <FiCheck /> Approve
-              </button>
-              <button
-                onClick={() => handleReject(request.id)}
-                className="flex-1 sm:flex-none px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition flex items-center justify-center gap-1"
-              >
-                <FiX /> Reject
-              </button>
-            </div>
-          </div>
-        </div>
-      ))}
     </div>
   );
 }

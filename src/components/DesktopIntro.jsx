@@ -227,7 +227,7 @@ const DesktopIntro = ({ onGetStarted }) => {
           <div className="absolute -bottom-32 -right-32 w-[400px] h-[400px] rounded-full" style={{ background: "radial-gradient(circle, rgba(249,115,22,0.05) 0%, transparent 65%)", filter: "blur(80px)" }} />
         </div>
         {/* Top bar */}
-        <div className="flex items-center justify-between px-12 pt-8">
+        <div className="flex items-center px-12 pt-8">
           <div className="flex items-center gap-3">
             <div className="relative">
               <img src="/icon.png" alt="Smart Split" className="h-10 w-10 rounded-xl shadow-lg relative z-10" />
@@ -235,13 +235,6 @@ const DesktopIntro = ({ onGetStarted }) => {
             </div>
             <span className="text-sm font-semibold text-white/60 tracking-tight">Smart Split</span>
           </div>
-          <button
-            onClick={onGetStarted}
-            className="text-sm text-white/45 hover:text-white/70 transition-colors flex items-center gap-2 px-4 py-2 rounded-xl"
-            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
-          >
-            Already a member? <span className="text-white/70 font-semibold">Log in <FiArrowRight className="inline" size={13} /></span>
-          </button>
         </div>
 
         {/* Hero center */}

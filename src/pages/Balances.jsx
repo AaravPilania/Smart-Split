@@ -339,16 +339,18 @@ export default function Balances() {
 
                             {/* Action buttons */}
                             <div className="flex gap-2 sm:flex-shrink-0">
-                              <button
-                                onClick={() => handleRemind(s, group.id, group.name)}
-                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
-                              >
-                                {reminderSent === `${s.from.id}-${s.to.id}-${group.name}` ? (
-                                  <><FiCheck className="text-green-500" size={13} /> Sent!</>
-                                ) : (
-                                  <><FiBell size={13} /> Remind</>
-                                )}
-                              </button>
+                              {isToMe && (
+                                <button
+                                  onClick={() => handleRemind(s, group.id, group.name)}
+                                  className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                                >
+                                  {reminderSent === `${s.from.id}-${s.to.id}-${group.name}` ? (
+                                    <><FiCheck className="text-green-500" size={13} /> Sent!</>
+                                  ) : (
+                                    <><FiBell size={13} /> Remind</>
+                                  )}
+                                </button>
+                              )}
                               <button
                                 onClick={() => handleSettleUp(group)}
                                 disabled={settling === group.id}

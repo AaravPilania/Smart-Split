@@ -93,6 +93,12 @@ export default function ScanReceipt({
   };
 
   const startCamera = async (facing = "environment") => {
+    // Check for camera API availability (requires HTTPS or localhost)
+    if (!navigator.mediaDevices?.getUserMedia) {
+      alert("Camera access is not available. Make sure you're using a secure connection (HTTPS) and your browser supports camera access.");
+      return;
+    }
+
     // Stop any existing stream first
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
@@ -116,9 +122,19 @@ export default function ScanReceipt({
         });
         applyStream(stream);
         return;
-      } catch (_) { /* try next */ }
+      } catch (err) {
+        if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+          alert("Camera permission was denied. Please allow camera access in your browser settings and try again.");
+          return;
+        }
+        if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+          alert("No camera found on this device.");
+          return;
+        }
+        // For other errors (OverconstrainedError etc.) try next constraint set
+      }
     }
-    alert("Unable to access camera. Please allow camera permission and try again.");
+    alert("Unable to access camera. Please check your camera is connected and try again.");
   };
 
   const flipCamera = async () => {

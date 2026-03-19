@@ -241,6 +241,10 @@ const Home = () => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || (isLogin ? "Login failed" : "Registration failed"));
       setAuthData(data.token, data.user, data.user.id, rememberMe);
+      // Re-hydrate avatar from DB profile picture
+      if (data.user.pfp) {
+        localStorage.setItem("selectedAvatar", data.user.pfp);
+      }
       const redirectTo = searchParams.get("redirect") || "/dashboard";
       navigate(redirectTo, { replace: true });
     } catch (err) {

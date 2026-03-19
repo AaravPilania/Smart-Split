@@ -24,7 +24,12 @@ export default function Navbar() {
 
   useEffect(() => {
     const saved = localStorage.getItem("selectedAvatar");
-    if (saved) setAvatar(saved);
+    if (saved) {
+      setAvatar(saved);
+    } else {
+      const pfp = getUser()?.pfp;
+      if (pfp) setAvatar(pfp);
+    }
     const onStorage = (e) => { if (e.key === "selectedAvatar") setAvatar(e.newValue); };
     const onAvatarChanged = () => setAvatar(localStorage.getItem("selectedAvatar"));
     window.addEventListener("storage", onStorage);
@@ -275,7 +280,7 @@ export default function Navbar() {
             )}
             <div className="min-w-0">
               <p className="font-bold text-gray-800 dark:text-white text-base truncate">{user?.name || "User"}</p>
-              <p className="text-sm text-gray-400 dark:text-gray-500 truncate mt-0.5">{user?.email || ""}</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 truncate mt-0.5">{user?.username ? `@${user.username}` : user?.email || ""}</p>
             </div>
           </div>
 

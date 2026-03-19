@@ -26,6 +26,7 @@ exports.signup = async (req, res) => {
         email: user.email,
         name: user.name,
         username: user.username,
+        pfp: user.pfp || '',
       }
     });
   } catch (error) {
@@ -59,6 +60,7 @@ exports.login = async (req, res) => {
         email: user.email,
         name: user.name,
         username: user.username,
+        pfp: user.pfp || '',
       }
     });
   } catch (error) {
@@ -84,7 +86,7 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.params.userId;
-    const { name, email, password, username } = req.body;
+    const { name, email, password, username, pfp, currentPassword } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -100,14 +102,26 @@ exports.updateProfile = async (req, res) => {
     }
 
     // Check if username is being changed and if it's already taken
-    if (username && username !== user.username) {
+    if (username && username.toLowerCase().trim() !== user.username) {
       const usernameTaken = await User.findByUsername(username);
-      if (usernameTaken) {
+      if (usernameTaken && usernameTaken.id?.toString() !== userId?.toString()) {
         return res.status(400).json({ message: 'Username already taken' });
       }
     }
 
-    const updatedUser = await User.updateById(userId, { name, email, password, username });
+    // Require current password verification when changing password
+    if (password) {
+      if (!currentPassword) {
+        return res.status(400).json({ message: 'Current password is required to set a new password' });
+      }
+      const userWithPwd = await User.findByEmail(user.email, true);
+      const isMatch = await User.comparePassword(currentPassword, userWithPwd.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Current password is incorrect' });
+      }
+    }
+
+    const updatedUser = await User.updateById(userId, { name, email, password, username, pfp });
 
     res.json({
       message: 'Profile updated successfully',
@@ -116,6 +130,7 @@ exports.updateProfile = async (req, res) => {
         email: updatedUser.email,
         name: updatedUser.name,
         username: updatedUser.username,
+        pfp: updatedUser.pfp || '',
       }
     });
   } catch (error) {

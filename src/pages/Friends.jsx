@@ -19,6 +19,7 @@ export default function Friends() {
   const [searchEmail, setSearchEmail] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [searchWasUsername, setSearchWasUsername] = useState(false);
   const [activeTab, setActiveTab] = useState("friends"); // friends | requests | add
   const [loading, setLoading] = useState(true);
   const [showMyQR, setShowMyQR] = useState(false);
@@ -59,10 +60,17 @@ export default function Friends() {
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!searchEmail.trim()) return;
+    const isUsername = searchEmail.trim().startsWith('@');
+    setSearchWasUsername(isUsername);
     setSearching(true);
     setSearchResults([]);
     try {
-      const res = await apiFetch(`${API_URL}/users/search?email=${encodeURIComponent(searchEmail)}`);
+      // Use ?email= for email queries (ensures backward compat with production backend)
+      // Use ?q= for @username queries (requires updated backend)
+      const param = isUsername
+        ? `q=${encodeURIComponent(searchEmail.trim())}`
+        : `email=${encodeURIComponent(searchEmail.trim())}`;
+      const res = await apiFetch(`${API_URL}/users/search?${param}`);
       if (res.ok) {
         const data = await res.json();
         setSearchResults((data.users || []).filter((u) => u._id !== userId && u.id !== userId));
@@ -272,8 +280,8 @@ export default function Friends() {
               <div>
                 <form onSubmit={handleSearch} className="flex gap-2 mb-4">
                   <input
-                    type="email"
-                    placeholder="Search by email..."
+                    type="text"
+                    placeholder="Search by email or @username..."
                     value={searchEmail}
                     onChange={(e) => setSearchEmail(e.target.value)}
                     className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-white focus:outline-none focus:ring-2 text-sm placeholder-gray-400"
@@ -319,7 +327,11 @@ export default function Friends() {
                 {searchResults.length === 0 && searchEmail && !searching && (
                   <div className="text-center py-8 text-gray-400 dark:text-gray-500">
                     <FiMail size={32} className="mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">No users found with that email</p>
+                    <p className="text-sm">
+                      {searchWasUsername
+                        ? `No user found with username "${searchEmail}"`
+                        : `No user found with email "${searchEmail}"`}
+                    </p>
                   </div>
                 )}
 

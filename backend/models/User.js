@@ -5,7 +5,8 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true, select: false },
-  username: { type: String, unique: true, sparse: true, trim: true, lowercase: true }
+  username: { type: String, unique: true, sparse: true, trim: true, lowercase: true },
+  pfp: { type: String, default: '' }
 }, { timestamps: true });
 
 const UserModel = mongoose.model('User', userSchema);
@@ -47,7 +48,7 @@ module.exports = {
       name: name ? name.trim() : '',
       username,
     });
-    return { _id: user._id.toString(), id: user._id.toString(), email: user.email, name: user.name, username: user.username };
+    return { _id: user._id.toString(), id: user._id.toString(), email: user.email, name: user.name, username: user.username, pfp: '' };
   },
 
   async findById(id) {
@@ -63,7 +64,14 @@ module.exports = {
 
   async search(emailPattern, limit = 10) {
     const users = await UserModel
-      .find({ email: { $regex: emailPattern, $options: 'i' } }, 'name email username')
+      .find({ email: { $regex: emailPattern, $options: 'i' } }, 'name email username pfp')
+      .limit(limit);
+    return users.map(doc2obj);
+  },
+
+  async searchByUsername(usernamePattern, limit = 10) {
+    const users = await UserModel
+      .find({ username: { $regex: usernamePattern, $options: 'i' } }, 'name email username pfp')
       .limit(limit);
     return users.map(doc2obj);
   },
@@ -75,6 +83,7 @@ module.exports = {
     if (updates.email !== undefined) setFields.email = updates.email.toLowerCase().trim();
     if (updates.password !== undefined) setFields.password = await bcrypt.hash(updates.password, 10);
     if (updates.username !== undefined) setFields.username = updates.username.toLowerCase().trim();
+    if (updates.pfp !== undefined) setFields.pfp = updates.pfp;
     await UserModel.findByIdAndUpdate(id, { $set: setFields });
     return this.findById(id);
   },

@@ -75,11 +75,17 @@ app.use('/api/friends', require('./routes/friendRoutes'));
 // User search endpoint
 app.get('/api/users/search', auth, async (req, res) => {
   try {
-    const { email } = req.query;
-    if (!email) {
-      return res.status(400).json({ message: 'email query param is required' });
+    const { q, email } = req.query;
+    const query = q || email;
+    if (!query) {
+      return res.status(400).json({ message: 'query param is required' });
     }
-    const users = await User.search(email, 10);
+    let users;
+    if (query.startsWith('@')) {
+      users = await User.searchByUsername(query.slice(1), 10);
+    } else {
+      users = await User.search(query, 10);
+    }
     res.json({ users });
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -240,7 +240,7 @@ export default function Dashboard() {
                 Here's your expense overview
               </p>
               <p className={`font-mono ${theme.text} text-xs`}>
-                ID: {user.id?.slice(0,6)}...{user.id?.slice(-4)}
+                {user.username ? `@${user.username}` : user.email}
               </p>
             </div>
           </div>

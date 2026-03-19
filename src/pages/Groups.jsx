@@ -145,22 +145,6 @@ export default function Groups() {
     }
   };
 
-  const handleRequestToJoin = async (groupId) => {
-    try {
-      const response = await apiFetch(`${API_URL}/requests/group/${groupId}/request`, {
-        method: "POST",
-        body: JSON.stringify({ userId }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Failed to send request");
-
-      alert("Request sent successfully! Wait for group admin to approve.");
-      fetchGroups(userId);
-    } catch (error) {
-      alert(error.message || "Failed to send request");
-    }
-  };
 
   if (loading) {
     return (
@@ -283,14 +267,7 @@ export default function Groups() {
                     >
                       <FiUserPlus /> Add Member
                     </button>
-                  ) : (
-                    <button
-                      onClick={() => handleRequestToJoin(group.id)}
-                      className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-600 transition flex items-center justify-center gap-1"
-                    >
-                      <FiUserPlus /> Request to Join
-                    </button>
-                  )}
+                  ) : null}
                   <button
                     onClick={() => handleCopyInvite(group.id, group.name)}
                     className="px-3 py-2 rounded-lg text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition text-xs font-medium flex items-center gap-1"
@@ -312,11 +289,8 @@ export default function Groups() {
           </div>
         )}
 
-        {/* All Groups Section */}
-        <AllGroupsSection userId={userId} onJoinRequest={fetchGroups} />
       </div>
 
-      {/* Simplify Debts Modal */}
       {simplifyGroupId && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
@@ -528,119 +502,3 @@ export default function Groups() {
   );
 }
 
-// Component to show all groups for discovery
-function AllGroupsSection({ userId, onJoinRequest }) {
-  const { theme, isDark } = useTheme();
-  const [allGroups, setAllGroups] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [showAll, setShowAll] = useState(false);
-
-  const fetchAllGroups = async () => {
-    try {
-      setLoading(true);
-      const response = await apiFetch(`${API_URL}/groups?all=true`);
-      if (!response.ok) throw new Error("Failed to fetch groups");
-      const data = await response.json();
-      
-      // Filter out groups where user is already a member
-      const userGroupsResponse = await apiFetch(`${API_URL}/groups?userId=${userId}`);
-      if (userGroupsResponse.ok) {
-        const userGroupsData = await userGroupsResponse.json();
-        const userGroupIds = new Set((userGroupsData.groups || []).map(g => g.id));
-        const availableGroups = (data.groups || []).filter(g => !userGroupIds.has(g.id));
-        setAllGroups(availableGroups);
-      } else {
-        setAllGroups(data.groups || []);
-      }
-    } catch (error) {
-      console.error("Error fetching all groups:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRequestToJoin = async (groupId) => {
-    try {
-      const response = await apiFetch(`${API_URL}/requests/group/${groupId}/request`, {
-        method: "POST",
-        body: JSON.stringify({ userId }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Failed to send request");
-
-      alert("Request sent successfully! Wait for group admin to approve.");
-      fetchAllGroups(); // Refresh list
-      if (onJoinRequest) onJoinRequest(userId);
-    } catch (error) {
-      alert(error.message || "Failed to send request");
-    }
-  };
-
-  if (!showAll) {
-    return (
-      <div className="mt-8 text-center">
-        <button
-          onClick={() => {
-            setShowAll(true);
-            fetchAllGroups();
-          }}
-          className={`${theme.textBtn} font-semibold`}
-        >
-          Browse All Groups to Join →
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-8">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-2xl font-bold text-gray-800 dark:text-white">All Groups</h3>
-        <button
-          onClick={() => setShowAll(false)}
-          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-        >
-          Hide
-        </button>
-      </div>
-
-      {loading ? (
-        <div className="text-center py-8">
-          <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${theme.spinner} mx-auto`}></div>
-        </div>
-      ) : allGroups.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-8 text-center text-gray-500 dark:text-gray-400 border dark:border-gray-700">
-          No other groups available to join
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {allGroups.map((group) => (
-            <div
-              key={group.id}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border dark:border-gray-700 hover:shadow-lg transition"
-            >
-              <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
-                {group.name}
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                {group.description || "No description"}
-              </p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">
-                Created by {group.createdBy?.name || "Unknown"}
-                <br />
-                {group.members?.length || 0} members
-              </p>
-              <button
-                onClick={() => handleRequestToJoin(group.id)}
-                className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-600 transition"
-              >
-                Request to Join
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
