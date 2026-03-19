@@ -62,9 +62,40 @@ function BackButtonGuard() {
   return null;
 }
 
+// Registers a periodic service worker update check so PWA users on mobile
+// always get the latest version shortly after it's deployed.
+function usePWAAutoUpdate() {
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+
+    // When the SW controller changes (new SW took over), reload the page
+    // so assets match the freshly activated service worker.
+    const handleControllerChange = () => {
+      window.location.reload();
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+
+    // Trigger an update check every 60 seconds and also when the tab regains focus.
+    // Mobile browsers don't always check for SW updates on resume from background.
+    let reg = null;
+    navigator.serviceWorker.ready.then((r) => { reg = r; });
+
+    const checkUpdate = () => { if (reg) reg.update().catch(() => {}); };
+    const interval = setInterval(checkUpdate, 60_000);
+    window.addEventListener('focus', checkUpdate);
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+      clearInterval(interval);
+      window.removeEventListener('focus', checkUpdate);
+    };
+  }, []);
+}
+
 function App() {
   // Kick off a health check immediately so cold-start happens ASAP
   useEffect(() => { wakeUpServer(); }, []);
+  usePWAAutoUpdate();
 
   return (
     <BrowserRouter>
