@@ -46,29 +46,29 @@ export default function AddFriend() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: "#030712" }}>
       <div className="w-full max-w-sm">
         <button
           onClick={() => navigate(isLoggedIn ? "/friends" : "/")}
-          className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 mb-6 hover:text-gray-700 dark:hover:text-gray-200 transition"
+          className="flex items-center gap-1.5 text-sm text-gray-400 mb-6 hover:text-gray-200 transition"
         >
           <FiArrowLeft size={14} /> Back
         </button>
 
-        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-xl p-8 text-center">
+        <div className="rounded-3xl border border-gray-800 shadow-2xl p-8 text-center" style={{ background: "#111827" }}>
           {loading ? (
             <div className="py-8">
               <div className="h-8 w-8 rounded-full border-2 border-t-transparent animate-spin mx-auto" style={{ borderColor: theme.gradFrom, borderTopColor: "transparent" }} />
             </div>
           ) : !profile ? (
-            <div className="py-4 text-gray-500">User not found.</div>
+            <div className="py-4 text-gray-400">User not found.</div>
           ) : sent ? (
             <>
               <div className="h-16 w-16 rounded-full flex items-center justify-center text-white mx-auto mb-4 shadow-lg" style={getGradientStyle(theme)}>
                 <FiCheck size={28} />
               </div>
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">Request Sent!</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+              <h2 className="text-xl font-bold text-white mb-1">Request Sent!</h2>
+              <p className="text-sm text-gray-400 mb-5">
                 Once {profile.name} accepts, you'll be friends and can add each other to groups.
               </p>
               <button onClick={() => navigate(isLoggedIn ? "/friends" : "/")} className="px-6 py-2.5 rounded-xl text-white font-semibold text-sm shadow" style={getGradientStyle(theme)}>
@@ -80,12 +80,12 @@ export default function AddFriend() {
               <div className="h-20 w-20 rounded-full flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4 shadow-lg" style={getGradientStyle(theme)}>
                 {profile.name?.[0]?.toUpperCase() || "?"}
               </div>
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">{profile.name}</h2>
-              <p className="text-sm text-gray-400 dark:text-gray-500 mb-1">{profile.email}</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mb-6">wants to connect on Smart Split</p>
+              <h2 className="text-xl font-bold text-white mb-1">{profile.name}</h2>
+              <p className="text-sm text-gray-500 mb-1">{profile.email}</p>
+              <p className="text-xs text-gray-500 mb-6">wants to connect on Smart Split</p>
 
               {error && (
-                <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm">
+                <div className="mb-4 p-3 rounded-xl text-red-400 text-sm" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)" }}>
                   {error}
                 </div>
               )}
@@ -100,7 +100,7 @@ export default function AddFriend() {
               </button>
 
               {!isLoggedIn && (
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+                <p className="text-xs text-gray-500 mt-3">
                   You need a Smart Split account to add friends.
                 </p>
               )}
