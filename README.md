@@ -10,7 +10,7 @@
 <br/>
 
 **The intelligent expense-sharing platform that makes splitting bills effortless.**
-**Real-time tracking · AI receipt scanning · One-tap settlements · QR friend invites**
+**Real-time tracking · AI receipt scanning · Smart categories · UPI settlements · QR friend invites**
 
 <br/>
 
@@ -42,9 +42,11 @@ Built for the way real friend groups actually work — messy tabs, forgotten IOU
 | | Feature | What it does |
 |:--:|:--|:--|
 | 🧾 | **AI Receipt Scanner** | Point your camera at any receipt — OCR extracts items, totals, and dates instantly |
+| 🏷️ | **Smart Categories** | AI auto-detects expense categories from receipt text; manual picker with 8 categories |
 | 👥 | **Smart Group Splits** | Create groups, add expenses, and let the algorithm calculate who owes what |
 | 📊 | **Live Dashboards** | Real-time metrics: total spend, debts owed, monthly trends, category breakdowns |
-| ⚡ | **One-Tap Settlement** | Simplify complex multi-person debts into minimal transactions |
+| ⚡ | **UPI Settle Flow** | Pick a settlement, choose your UPI app, and pay — with "set default app" support |
+| 💳 | **QR Code Payments** | Scan any UPI QR code to pay directly from within the app |
 | 📱 | **QR Friend Invites** | Share your QR code — friends scan it and connect instantly, no typing needed |
 | 🔔 | **Smart Reminders** | Nudge friends about pending payments with one tap |
 | 📥 | **CSV Export** | Download expense reports for any group — perfect for trips and shared living |
@@ -171,6 +173,7 @@ Smart Split is built **mobile-first** as a Progressive Web App — install it on
 | **Styling** | Tailwind CSS 3 | Utility-first responsive design |
 | **Animations** | Framer Motion | Smooth page transitions and micro-interactions |
 | **OCR Engine** | Tesseract.js 6 | Client-side receipt text extraction |
+| **QR Scanner** | jsQR | Real-time UPI QR code decoding from camera |
 | **QR Codes** | qrcode.react | Dynamic QR generation for friend invites |
 | **Icons** | Lucide + React Icons | Consistent icon system |
 | **Routing** | React Router 7 | Protected + public route management |
@@ -199,7 +202,7 @@ smart-split/
 │   ├── components/
 │   │   ├── Navbar.jsx       # Top nav + hamburger + notifications
 │   │   ├── BottomNav.jsx    # Mobile bottom navigation
-│   │   ├── ScanReceipt.jsx  # Camera OCR receipt scanner
+│   │   ├── ScanReceipt.jsx  # Camera OCR scanner + QR scanner + settle flow
 │   │   └── Statscard.jsx    # Reusable metric display card
 │   ├── pages/
 │   │   ├── Home.jsx         # Landing + auth (glassmorphic UI)
@@ -213,7 +216,7 @@ smart-split/
 │   └── utils/
 │       ├── api.js           # API client + auth state management
 │       ├── debts.js         # Greedy debt simplification algorithm
-│       ├── categories.js    # Expense auto-categorization (8 types)
+│       ├── categories.js    # AI expense categorization (8 types) + full-text detection
 │       ├── export.js        # CSV export with BOM encoding
 │       └── theme.js         # 6 accent presets + dark mode engine
 ├── backend/
@@ -328,7 +331,7 @@ Open **http://localhost:5173** and you're in.
 
 | Method | Endpoint | Description |
 |:-------|:---------|:------------|
-| `POST` | `/api/expenses/group/:groupId` | Add expense with split |
+| `POST` | `/api/expenses/group/:groupId` | Add expense with split + category |
 | `GET` | `/api/expenses/group/:groupId` | List group expenses |
 | `GET` | `/api/expenses/group/:groupId/balances` | Calculate balances |
 | `GET` | `/api/expenses/group/:groupId/settlements` | Optimal settlements |
@@ -381,6 +384,73 @@ Before simplification          After simplification
 ```
 
 The algorithm separates creditors from debtors, sorts them, and iteratively matches the smallest transferable amount — guaranteeing the minimum number of payments.
+
+<br/>
+
+---
+
+<br/>
+
+## 🏷️ Smart Category Detection
+
+Every expense is automatically categorized using a **two-layer AI detection system**:
+
+1. **Title-based detection** — Matches expense title against 200+ keywords across 8 categories
+2. **Full-text OCR detection** — When scanning receipts, the entire OCR text is scored for category keywords (catches "restaurant", "cinema", etc. even when the title alone doesn't match)
+
+| Category | Examples |
+|:---------|:---------|
+| 🍕 Food & Dining | Swiggy, Zomato, KFC, Dominos, Starbucks, chai, biryani, dhaba |
+| ✈️ Travel | Uber, Ola, Rapido, IRCTC, MakeMyTrip, petrol, parking, flights |
+| 🏠 Home & Rent | Rent, society, furniture, IKEA, plumber, packers & movers |
+| 🎬 Entertainment | PVR, INOX, Netflix, Spotify, gaming, birthdays, festivals |
+| 🛍️ Shopping | Amazon, Flipkart, Myntra, Croma, electronics, fashion |
+| 💊 Health | Apollo, Fortis, gym, pharmacy, 1mg, salon, spa |
+| 💡 Utilities | Airtel, Jio, electricity, EMI, insurance, mutual funds |
+| 💼 Other | Anything that doesn't match the above |
+
+Categories are **stored with each expense** in the database, so the Dashboard donut chart and expense list always show the correct category — even for manually-created expenses.
+
+<br/>
+
+---
+
+<br/>
+
+## 💳 UPI Settlement Flow
+
+Settle debts directly from the app with the **built-in UPI integration**:
+
+```
+┌─ Settle Payment ─────────────────┐
+│                                  │
+│  Select a payment to settle:     │
+│                                  │
+│  ┌────────────────────────────┐  │
+│  │ Pay Rahul        ₹450.00  │→ │
+│  │ Weekend Trip  rahul@upi   │  │
+│  └────────────────────────────┘  │
+│  ┌────────────────────────────┐  │
+│  │ Pay Priya        ₹200.00  │→ │
+│  │ House Expenses             │  │
+│  └────────────────────────────┘  │
+│                                  │
+│  ──── Choose UPI app ────────    │
+│  ┌──────────┐  ┌──────────┐     │
+│  │ Google   │  │ PhonePe  │     │
+│  │  Pay     │  │          │     │
+│  │[Use Once]│  │[Use Once]│     │
+│  │[Default ]│  │[Default ]│     │
+│  └──────────┘  └──────────┘     │
+│                                  │
+│  [ Scan QR Instead ]             │
+└──────────────────────────────────┘
+```
+
+- Fetches all pending settlements across every group
+- Shows payee UPI ID (fetched from their profile)
+- **Set Default** saves your preferred UPI app for one-tap future payments
+- Falls back to **QR code scanning** if the payee hasn't set their UPI ID
 
 <br/>
 

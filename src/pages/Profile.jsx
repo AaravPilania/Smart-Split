@@ -46,7 +46,13 @@ export default function Profile() {
   const [idExpanded, setIdExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [toast, setToast] = useState(null); // { message, type: 'success'|'error' }
   const navigate = useNavigate();
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const saveAccent = (key) => {
     setLocalAccentKey(key);
@@ -186,7 +192,7 @@ export default function Profile() {
     try {
       // Frontend guard for password change
       if (formData.password && !formData.currentPassword.trim()) {
-        alert("Please enter your current password to set a new one.");
+        showToast("Please enter your current password to set a new one.", "error");
         return;
       }
 
@@ -217,9 +223,9 @@ export default function Profile() {
       localStorage.setItem("user", JSON.stringify(data.user));
       setEditing(false);
       setFormData({ ...formData, password: "", currentPassword: "" });
-      alert("Profile updated successfully!");
+      showToast("Profile updated successfully!");
     } catch (error) {
-      alert(error.message || "Failed to update profile");
+      showToast(error.message || "Failed to update profile", "error");
     }
   };
 
@@ -639,6 +645,16 @@ export default function Profile() {
         </div>
       </div>
       <BottomNav />
+
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed bottom-24 inset-x-0 mx-auto max-w-sm z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl text-white text-sm font-semibold pointer-events-none transition-all ${
+          toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'
+        }`} style={{ width: 'calc(100% - 2rem)', left: '1rem', right: '1rem', margin: '0 auto' }}>
+          {toast.type === 'error' ? <FiX size={16} /> : <FiCheck size={16} />}
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }

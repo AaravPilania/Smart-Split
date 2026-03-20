@@ -9,6 +9,7 @@ import {
   FiCheck,
   FiUser,
   FiDownload,
+  FiTrash2,
 } from "react-icons/fi";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
@@ -21,6 +22,7 @@ export default function Expenses() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [userId, setUserId] = useState(null);
+  const [deletingExpense, setDeletingExpense] = useState(null);
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -147,6 +149,24 @@ export default function Expenses() {
     }
   };
 
+  const handleDeleteExpense = async (expenseId) => {
+    if (!window.confirm('Delete this expense? This cannot be undone.')) return;
+    setDeletingExpense(expenseId);
+    try {
+      const res = await apiFetch(`${API_URL}/expenses/${expenseId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setExpenses(prev => prev.filter(e => e.id !== expenseId));
+      } else {
+        const d = await res.json();
+        alert(d.message || 'Failed to delete expense');
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDeletingExpense(null);
+    }
+  };
+
   const handleCreateExpense = async (e) => {
     e.preventDefault();
     if (!createForm.title.trim() || !createForm.amount || !selectedGroupId) {
@@ -185,6 +205,7 @@ export default function Expenses() {
             amount: amount,
             paidBy: createForm.paidBy,
             splitBetween: splitBetween,
+            category: createForm.category || "other",
           }),
         }
       );
@@ -377,7 +398,7 @@ export default function Expenses() {
                       <h3 className="text-lg font-bold text-gray-800 dark:text-white truncate">
                         {expense.title}
                       </h3>
-                      {(() => { const cat = getCategoryInfo(detectCategory(expense.title)); return <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cat.badge}`}>{cat.icon} {cat.label}</span>; })()}
+                      {(() => { const cat = getCategoryInfo(expense.category || detectCategory(expense.title)); return <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cat.badge}`}>{cat.icon} {cat.label}</span>; })()}
                       {expense.settled && (
                         <span className="px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded text-xs font-semibold">
                           <FiCheck className="inline mr-1" />
@@ -399,6 +420,16 @@ export default function Expenses() {
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       Paid by {expense.paidBy?.name || "Unknown"}
                     </p>
+                    {(expense.paidBy?.id?.toString() === userId || selectedGroup?.createdBy?.id?.toString() === userId) && (
+                      <button
+                        onClick={() => handleDeleteExpense(expense.id)}
+                        disabled={deletingExpense === expense.id}
+                        className="mt-1.5 text-red-400 hover:text-red-600 dark:hover:text-red-300 transition p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40"
+                        title="Delete expense"
+                      >
+                        <FiTrash2 size={15} />
+                      </button>
+                    )}
                   </div>
                 </div>
 

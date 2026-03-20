@@ -11,7 +11,7 @@ const GroupModel = mongoose.model('Group', groupSchema);
 
 const POPULATE_GROUP = [
   { path: 'createdBy', select: 'name email' },
-  { path: 'members', select: 'name email' }
+  { path: 'members', select: 'name email upiId' }
 ];
 
 function doc2obj(doc) {
@@ -70,5 +70,11 @@ module.exports = {
     if (!mongoose.Types.ObjectId.isValid(groupId)) return null;
     await GroupModel.findByIdAndUpdate(groupId, { $addToSet: { members: { $each: userIds } } });
     return this.findByIdPopulated(groupId);
+  },
+
+  async deleteById(id) {
+    if (!mongoose.Types.ObjectId.isValid(id)) return false;
+    const result = await GroupModel.findByIdAndDelete(id);
+    return !!result;
   }
 };

@@ -2,6 +2,7 @@ const Expense = require('../models/Expense');
 const Group = require('../models/Group');
 const User = require('../models/User');
 const ActivityLog = require('../models/ActivityLog');
+const Payment = require('../models/Payment');
 
 // Helper: silently log activity
 async function logActivity(groupId, actorId, actorName, action, details, meta = {}) {
@@ -13,13 +14,24 @@ async function logActivity(groupId, actorId, actorName, action, details, meta = 
 // Add expense
 exports.addExpense = async (req, res) => {
   try {
-    const { title, amount, paidBy, splitBetween } = req.body;
+    const { title, amount, paidBy, splitBetween, category } = req.body;
     const groupId = req.params.groupId;
 
     // Validate group exists
     const group = await Group.findById(groupId);
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
+    }
+
+    // Validate amount
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ message: 'Amount must be greater than 0' });
+    }
+
+    // Validate caller is a group member
+    const callerIsMember = await Group.isMember(groupId, req.user.id);
+    if (!callerIsMember) {
+      return res.status(403).json({ message: 'You must be a group member to add expenses' });
     }
 
     // Validate split amounts add up to total
@@ -29,7 +41,7 @@ exports.addExpense = async (req, res) => {
     }
 
     // Create expense
-    const expense = await Expense.createExpense(title, amount, groupId, paidBy, splitBetween);
+    const expense = await Expense.createExpense(title, amount, groupId, paidBy, splitBetween, category);
 
     // Log activity
     const actor = await User.findById(paidBy);
@@ -107,6 +119,15 @@ exports.getBalances = async (req, res) => {
       });
     });
 
+    // Offset recorded direct payments
+    const payments = await Payment.findByGroup(groupId);
+    payments.forEach(payment => {
+      const fromId = payment.from._id?.toString() || payment.from.toString();
+      const toId   = payment.to._id?.toString()   || payment.to.toString();
+      if (balances[fromId]) balances[fromId].balance += payment.amount;
+      if (balances[toId])   balances[toId].balance   -= payment.amount;
+    });
+
     const balanceDetails = Object.values(balances).map(entry => ({
       user: {
         id: entry.user._id,
@@ -155,6 +176,15 @@ exports.getSettlements = async (req, res) => {
       });
     });
 
+    // Offset recorded direct payments
+    const payments = await Payment.findByGroup(groupId);
+    payments.forEach(payment => {
+      const fromId = payment.from._id?.toString() || payment.from.toString();
+      const toId   = payment.to._id?.toString()   || payment.to.toString();
+      if (balanceMap[fromId]) balanceMap[fromId].balance += payment.amount;
+      if (balanceMap[toId])   balanceMap[toId].balance   -= payment.amount;
+    });
+
     // Calculate settlements (who owes whom)
     const settlements = [];
     const creditors = [];
@@ -186,12 +216,14 @@ exports.getSettlements = async (req, res) => {
         from: {
           id: debtor.user._id,
           name: debtor.user.name,
-          email: debtor.user.email
+          email: debtor.user.email,
+          upiId: debtor.user.upiId || ''
         },
         to: {
           id: creditor.user._id,
           name: creditor.user.name,
-          email: creditor.user.email
+          email: creditor.user.email,
+          upiId: creditor.user.upiId || ''
         },
         amount: parseFloat(amount.toFixed(2))
       });
@@ -224,6 +256,17 @@ exports.settleExpense = async (req, res) => {
       return res.status(404).json({ message: 'Expense not found' });
     }
 
+    // Ensure requester can only settle for themselves
+    if (settledBy !== req.user.id) {
+      return res.status(403).json({ message: 'You can only record your own payments' });
+    }
+
+    // Prevent duplicate settlement by the same user
+    const alreadySettled = expense.settledBy && expense.settledBy.some(s => s.user.toString() === req.user.id);
+    if (alreadySettled) {
+      return res.status(409).json({ message: 'You have already settled this expense' });
+    }
+
     // Add settlement
     const updatedExpense = await Expense.addSettlement(
       expenseId,
@@ -245,6 +288,67 @@ exports.settleExpense = async (req, res) => {
       message: 'Payment settled successfully',
       expense: updatedExpense
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Record an "I Paid It" direct payment
+exports.recordPayment = async (req, res) => {
+  try {
+    const groupId = req.params.groupId;
+    const { toUserId, amount } = req.body;
+
+    if (!toUserId || !amount || amount <= 0) {
+      return res.status(400).json({ message: 'toUserId and a positive amount are required' });
+    }
+
+    const group = await Group.findById(groupId);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+
+    const isMember = await Group.isMember(groupId, req.user.id);
+    if (!isMember) return res.status(403).json({ message: 'You must be a group member' });
+
+    const payment = await Payment.create(groupId, req.user.id, toUserId, amount);
+
+    const actor = await User.findById(req.user.id);
+    logActivity(groupId, req.user.id, actor?.name || 'Unknown',
+      'paid',
+      `Paid ₹${parseFloat(amount).toFixed(2)}`,
+      { paymentId: payment.id, to: toUserId, amount });
+
+    res.status(201).json({ payment });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get recorded payments for a group
+exports.getPayments = async (req, res) => {
+  try {
+    const payments = await Payment.findByGroup(req.params.groupId);
+    res.json({ payments });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Delete an expense
+exports.deleteExpense = async (req, res) => {
+  try {
+    const expense = await Expense.findById(req.params.expenseId);
+    if (!expense) return res.status(404).json({ message: 'Expense not found' });
+
+    const paidById = expense.paidBy?._id?.toString() || expense.paidBy?.toString();
+    const group    = await Group.findById(expense.group?._id || expense.group);
+    const isCreator = group?.createdBy?.toString() === req.user.id;
+
+    if (paidById !== req.user.id && !isCreator) {
+      return res.status(403).json({ message: 'Not authorized to delete this expense' });
+    }
+
+    await Expense.deleteOne(req.params.expenseId);
+    res.json({ message: 'Expense deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

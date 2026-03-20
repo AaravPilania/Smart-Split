@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { FiCamera, FiUpload, FiX, FiCheck, FiPlus, FiRefreshCw } from "react-icons/fi";
+import { FiCamera, FiUpload, FiX, FiCheck, FiPlus, FiRefreshCw, FiCreditCard, FiChevronRight } from "react-icons/fi";
+import jsQR from "jsqr";
 import Tesseract from "tesseract.js";
 import { apiFetch } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
+import { CATEGORIES, detectCategory, detectCategoryFromText, getCategoryInfo } from "../utils/categories";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -13,24 +15,46 @@ export default function ScanReceipt({
   onClose 
 }) {
   const { theme } = useTheme();
-  const [mode, setMode] = useState(null); // 'camera' or 'upload'
+  const [mode, setMode] = useState(null); // 'camera', 'upload', or 'qrscan'
   const [image, setImage] = useState(null);
   const [imageUrl, setImageUrl] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [extractedData, setExtractedData] = useState(null);
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null);
+  const [qrResult, setQrResult] = useState(null); // { pa, pn, am, rawUrl } when a UPI QR is decoded
+  const [qrPayAmount, setQrPayAmount] = useState("");  // editable amount for QR pay confirmation
+
+  // ── Settle Payment flow state ──
+  const [settleStep, setSettleStep] = useState(null); // null | "pick" | "appPicker"
+  const [settleLoading, setSettleLoading] = useState(false);
+  const [settleList, setSettleList] = useState([]);
+  const [selectedSettle, setSelectedSettle] = useState(null);
+  const [defaultUpiApp, setDefaultUpiApp] = useState(() => {
+    try { return localStorage.getItem("smartsplit_default_upi_app") || null; } catch { return null; }
+  });
+
+  const UPI_APPS = [
+    { key: "gpay",    label: "Google Pay", scheme: "tez://upi/pay" },
+    { key: "phonepe", label: "PhonePe",    scheme: "phonepe://pay" },
+    { key: "paytm",   label: "Paytm",      scheme: "paytm://upi/pay" },
+    { key: "generic", label: "Other UPI",   scheme: "upi://pay" },
+  ];
+
   const [formData, setFormData] = useState({
     title: "",
     amount: "",
     paidBy: userId,
     splits: [],
+    category: "other",
   });
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
   const hintTimerRef = useRef(null);
+  const qrLoopRef = useRef(null);   // holds requestAnimationFrame id for QR scan loop
+  const qrCanvasRef = useRef(null); // off-screen canvas for QR scanning
   const [facingMode, setFacingMode] = useState("environment");
   const [showHint, setShowHint] = useState(false);
 
@@ -49,7 +73,11 @@ export default function ScanReceipt({
       const t = setTimeout(attachStream, 50);
       return () => clearTimeout(t);
     }
-  }, [mode, attachStream]);
+    if (mode === "qrscan") {
+      const t = setTimeout(() => { attachStream(); startQRLoop(); }, 100);
+      return () => clearTimeout(t);
+    }
+  }, [mode, attachStream]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (selectedGroupId) {
@@ -70,6 +98,7 @@ export default function ScanReceipt({
         URL.revokeObjectURL(imageUrl);
       }
       if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+      if (qrLoopRef.current) cancelAnimationFrame(qrLoopRef.current);
     };
   }, [imageUrl]);
 
@@ -85,11 +114,13 @@ export default function ScanReceipt({
       videoRef.current.srcObject = stream;
       videoRef.current.play().catch(() => {});
     }
-    if (mode !== "camera") setMode("camera");
-    // Show 5-second photo-tip overlay
-    setShowHint(true);
-    if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-    hintTimerRef.current = setTimeout(() => setShowHint(false), 5000);
+    // Only show the receipt hint when in receipt-camera mode (not QR scan)
+    if (mode !== "qrscan") {
+      if (mode !== "camera") setMode("camera");
+      setShowHint(true);
+      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+      hintTimerRef.current = setTimeout(() => setShowHint(false), 5000);
+    }
   };
 
   const startCamera = async (facing = "environment") => {
@@ -173,8 +204,197 @@ export default function ScanReceipt({
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
+    if (qrLoopRef.current) {
+      cancelAnimationFrame(qrLoopRef.current);
+      qrLoopRef.current = null;
+    }
     setMode(null);
   };
+
+  // ── QR Scan helpers ────────────────────────────────────────────────────────
+
+  // Parse a UPI deep-link string into { pa, pn, am, rawUrl }
+  const parseUpiUrl = (raw) => {
+    try {
+      const url = new URL(raw.replace(/^upi:\/\/pay\?/, "https://x.com?"));
+      return {
+        pa: url.searchParams.get("pa") || "",
+        pn: url.searchParams.get("pn") || "",
+        am: url.searchParams.get("am") || "",
+        rawUrl: raw,
+      };
+    } catch {
+      return { pa: raw, pn: "", am: "", rawUrl: raw };
+    }
+  };
+
+  // Start the RAF loop that reads frames and looks for a QR code
+  const startQRLoop = () => {
+    if (!qrCanvasRef.current) {
+      qrCanvasRef.current = document.createElement("canvas");
+    }
+    const canvas = qrCanvasRef.current;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+    const tick = () => {
+      const video = videoRef.current;
+      if (!video || video.readyState < 2) {
+        qrLoopRef.current = requestAnimationFrame(tick);
+        return;
+      }
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const found = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: "dontInvert",
+      });
+      if (found) {
+        const raw = found.data;
+        if (raw.toLowerCase().startsWith("upi://")) {
+          // Stop the loop + camera, then show result
+          cancelAnimationFrame(qrLoopRef.current);
+          qrLoopRef.current = null;
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach((t) => t.stop());
+            streamRef.current = null;
+          }
+          if (videoRef.current) videoRef.current.srcObject = null;
+          const parsed = parseUpiUrl(raw);
+          setQrResult(parsed);
+          setQrPayAmount(parsed.am || "");
+          setMode(null); // close fullscreen camera, show modal body
+          return;
+        }
+      }
+      qrLoopRef.current = requestAnimationFrame(tick);
+    };
+    qrLoopRef.current = requestAnimationFrame(tick);
+  };
+
+  const startQRScan = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      alert("Camera access is not available. Make sure you're on HTTPS.");
+      return;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      const track = stream.getVideoTracks()[0];
+      if (track?.getSettings().facingMode) setFacingMode(track.getSettings().facingMode);
+      setMode("qrscan"); // triggers useEffect → attachStream + startQRLoop
+    } catch (err) {
+      if (err.name === "NotAllowedError") {
+        alert("Camera permission denied. Allow camera access and try again.");
+      } else {
+        alert("Unable to access camera.");
+      }
+    }
+  };
+
+  const resetQRScan = () => {
+    setQrResult(null);
+    setQrPayAmount("");
+    startQRScan();
+  };
+
+  // ── Settle Payment helpers ──────────────────────────────────────────────
+
+  const startSettleFlow = async () => {
+    setSettleStep("pick");
+    setSettleLoading(true);
+    setSettleList([]);
+    try {
+      // Fetch settlements for every group the user belongs to
+      const all = [];
+      for (const g of groups) {
+        try {
+          const res = await apiFetch(`${API_URL}/expenses/group/${g.id}/settlements`);
+          if (res.ok) {
+            const data = await res.json();
+            (data.settlements || []).forEach((s) => {
+              if (String(s.from?.id) === String(userId)) {
+                all.push({ ...s, groupName: g.name, groupId: g.id });
+              }
+            });
+          }
+        } catch (_) { /* skip group on error */ }
+      }
+      // Fetch payee UPI IDs when missing
+      const seen = new Set();
+      for (const s of all) {
+        const payeeId = s.to?.id;
+        if (!payeeId || seen.has(payeeId) || s.to.upiId) continue;
+        seen.add(payeeId);
+        try {
+          const r = await apiFetch(`${API_URL}/auth/profile/${payeeId}`);
+          if (r.ok) {
+            const p = await r.json();
+            const upi = p.user?.upiId || p.upiId || "";
+            all.forEach((item) => { if (String(item.to?.id) === String(payeeId)) item.to.upiId = upi; });
+          }
+        } catch (_) {}
+      }
+      setSettleList(all);
+    } catch (_) {
+      setSettleList([]);
+    }
+    setSettleLoading(false);
+  };
+
+  const pickSettlement = (settle) => {
+    setSelectedSettle(settle);
+    // If user has a default UPI app and payee has UPI ID, open directly
+    if (defaultUpiApp && settle.to?.upiId) {
+      openWithApp(defaultUpiApp, false);
+      return;
+    }
+    setSettleStep("appPicker");
+  };
+
+  const openWithApp = (appKey, setAsDefault) => {
+    const app = UPI_APPS.find((a) => a.key === appKey) || UPI_APPS[3];
+    const s = selectedSettle;
+    if (!s) return;
+    const upiId = s.to?.upiId;
+    if (!upiId) {
+      alert(`${s.to?.name || "This person"} hasn't set their UPI ID yet.`);
+      return;
+    }
+    if (setAsDefault) {
+      try { localStorage.setItem("smartsplit_default_upi_app", appKey); } catch {}
+      setDefaultUpiApp(appKey);
+    }
+    const params = new URLSearchParams({
+      pa: upiId,
+      pn: s.to?.name || "",
+      am: parseFloat(s.amount).toFixed(2),
+      cu: "INR",
+      tn: `SmartSplit: ${s.groupName || ""}`,
+    });
+    window.location.href = `${app.scheme}?${params.toString()}`;
+  };
+
+  const clearDefaultApp = () => {
+    try { localStorage.removeItem("smartsplit_default_upi_app"); } catch {}
+    setDefaultUpiApp(null);
+  };
+
+  const resetSettleFlow = () => {
+    setSettleStep(null);
+    setSettleLoading(false);
+    setSettleList([]);
+    setSelectedSettle(null);
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -264,15 +484,21 @@ export default function ScanReceipt({
       /^fax/i, /^www\./i, /^http/i, /^[\d#]/, /^[€£₹$¥]/,
       /^(qty|description|price|total|amount|payment|subtotal|tax|vat|tva|service)/i,
       /^(discount|early\s+bird|taxable)/i,
+      /\b\d{6}\b/,                     // Indian pin codes
+      /\d{10,}/,                        // Phone numbers, GSTIN etc.
+      /GST|GSTIN|CIN|FSSAI|PAN\s*:/i,  // Registration numbers
+      /,.*,.*,/,                        // Lines with 3+ commas (addresses)
+      /\b(road|street|lane|nagar|colony|sector|block|floor|plot|marg|circle|chowk|avenue|city|town|dist)\b/i,
+      /^\+?\d{2,4}[\s-]\d/,            // Phone numbers at start
     ];
 
     let title = "";
     for (const line of lines.slice(0, 10)) {
       if (skipRx.some(p => p.test(line))) continue;
-      if (line.length < 3 || line.length > 70) continue;
+      if (line.length < 3 || line.length > 50) continue;
       if (/^\d+$/.test(line) || /@/.test(line)) continue;
-      // Prefer ALL-CAPS lines (restaurant/store name pattern)
-      if (line === line.toUpperCase() && /[A-Z]{2,}/.test(line)) { title = line; break; }
+      // Prefer ALL-CAPS lines (restaurant/store name pattern) — but not too long
+      if (line === line.toUpperCase() && /[A-Z]{2,}/.test(line) && line.length <= 40) { title = line; break; }
       if (!title) title = line;
     }
 
@@ -368,11 +594,14 @@ export default function ScanReceipt({
         rawText: data.text,
       });
 
+      const autoCategory = detectCategoryFromText(data.text) || detectCategory(extracted.title);
+
       setFormData({
         title: extracted.title,
         amount: extracted.amount > 0 ? extracted.amount.toString() : "",
         paidBy: userId,
         splits: splits,
+        category: autoCategory,
       });
 
       setScanning(false);
@@ -439,6 +668,7 @@ export default function ScanReceipt({
             amount: amount,
             paidBy: formData.paidBy,
             splitBetween: splitBetween,
+            category: formData.category || "other",
           }),
         }
       );
@@ -480,7 +710,7 @@ export default function ScanReceipt({
 
   return (
     <>
-      {/* ── Fullscreen Camera UI ── */}
+      {/* ── Fullscreen Camera UI (receipt) ── */}
       {mode === "camera" && (
         <div className="fixed inset-0 z-[60] bg-black flex flex-col">
           {/* Video feed */}
@@ -534,37 +764,262 @@ export default function ScanReceipt({
         </div>
       )}
 
+      {/* ── Fullscreen QR Scan UI ── */}
+      {mode === "qrscan" && (
+        <div className="fixed inset-0 z-[60] bg-black flex flex-col">
+          <div className="flex-1 relative overflow-hidden">
+            <video
+              ref={(el) => { videoRef.current = el; if (el && streamRef.current) { el.srcObject = streamRef.current; el.play().catch(() => {}); } }}
+              autoPlay
+              playsInline
+              muted
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            {/* Square QR guide overlay */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="relative w-64 h-64">
+                {/* Dark vignette around guide */}
+                <div className="absolute inset-0 shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]" />
+                {/* Animated corner brackets */}
+                <div className="absolute inset-0 border-2 border-white/30 rounded-lg" />
+                <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-lg" />
+                <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-lg" />
+                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-lg" />
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-lg" />
+                {/* Scanning beam */}
+                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-gradient-to-r from-transparent via-green-400 to-transparent opacity-80 animate-pulse" />
+              </div>
+            </div>
+            {/* Top bar */}
+            <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center">
+              <button
+                onClick={stopCamera}
+                className="bg-black/50 text-white p-2 rounded-full"
+              >
+                <FiX className="text-xl" />
+              </button>
+              <span className="text-white/80 text-sm font-medium">Point camera at UPI QR Code</span>
+              <div className="w-10" />{/* spacer */}
+            </div>
+          </div>
+          {/* Bottom label */}
+          <div className="bg-black h-24 flex flex-col items-center justify-center gap-1">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-white/70 text-sm">Scanning for QR code…</span>
+            </div>
+            <span className="text-white/40 text-xs">Works with GPay, PhonePe, Paytm, any UPI QR</span>
+          </div>
+        </div>
+      )}
+
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-3xl w-full p-4 sm:p-6 my-8 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-2xl font-bold text-gray-800 dark:text-white">Scan Receipt</h3>
+          <h3 className="text-2xl font-bold text-gray-800 dark:text-white">
+            {settleStep ? "Settle Payment" : qrResult ? "Pay via UPI" : "Scan Receipt"}
+          </h3>
           <button
-            onClick={onClose}
+            onClick={() => { setQrResult(null); setQrPayAmount(""); resetSettleFlow(); onClose(); }}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
           >
             <FiX className="text-xl" />
           </button>
         </div>
 
-        {mode !== "camera" && !image ? (
+        {/* ── QR Result Confirmation ── */}
+        {qrResult && (
+          <div className="space-y-4">
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl p-4 flex items-center gap-3">
+              <FiCheck className="text-green-500 text-xl flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-green-800 dark:text-green-300 text-sm">QR Code Detected!</p>
+                <p className="text-xs text-green-700 dark:text-green-400 font-mono mt-0.5">{qrResult.pa}</p>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-4 space-y-3">
+              {qrResult.pn && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Paying to</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{qrResult.pn}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-500 dark:text-gray-400">UPI ID</span>
+                <span className="font-mono text-sm text-gray-700 dark:text-gray-300">{qrResult.pa}</span>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">Amount (₹)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={qrPayAmount}
+                  onChange={(e) => setQrPayAmount(e.target.value)}
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 text-lg font-semibold"
+                  placeholder="Enter amount"
+                  autoFocus
+                />
+                {qrResult.am && (
+                  <p className="text-xs text-gray-400 mt-1">Pre-filled from QR · you can adjust if needed</p>
+                )}
+              </div>
+            </div>
+
+            <a
+              href={qrPayAmount && parseFloat(qrPayAmount) > 0
+                ? `upi://pay?pa=${encodeURIComponent(qrResult.pa)}&pn=${encodeURIComponent(qrResult.pn)}&am=${parseFloat(qrPayAmount).toFixed(2)}&cu=INR&tn=SmartSplit`
+                : `upi://pay?pa=${encodeURIComponent(qrResult.pa)}&pn=${encodeURIComponent(qrResult.pn)}&cu=INR&tn=SmartSplit`
+              }
+              className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm ${
+                (!qrPayAmount || parseFloat(qrPayAmount) <= 0) ? "opacity-50 pointer-events-none" : ""
+              }`}
+              style={getGradientStyle(theme)}
+              onClick={(e) => {
+                if (!qrPayAmount || parseFloat(qrPayAmount) <= 0) { e.preventDefault(); }
+              }}
+            >
+              <FiCreditCard size={16} /> Open UPI App &amp; Pay
+            </a>
+
+            <button
+              onClick={resetQRScan}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium transition"
+            >
+              <FiRefreshCw size={14} /> Scan Again
+            </button>
+
+            <button
+              onClick={() => { setQrResult(null); setQrPayAmount(""); onClose(); }}
+              className="w-full py-2 text-xs text-gray-400 hover:text-gray-600 transition"
+            >
+              Close
+            </button>
+          </div>
+        )}
+
+        {/* ── Settle Payment: Pick Settlement ── */}
+        {settleStep === "pick" && (
+          <div className="space-y-4">
+            {settleLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <div className={`animate-spin rounded-full h-10 w-10 border-b-2 ${theme.spinner}`}></div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Loading settlements…</p>
+              </div>
+            ) : settleList.length === 0 ? (
+              <div className="text-center py-10">
+                <p className="text-gray-500 dark:text-gray-400 text-lg font-semibold mb-1">All settled up!</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mb-4">You don&apos;t owe anyone right now.</p>
+                <button onClick={resetSettleFlow} className="text-sm font-medium" style={{ color: theme.gradFrom }}>Go Back</button>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Select a payment to settle:</p>
+                <div className="space-y-2">
+                  {settleList.map((s, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => pickSettlement(s)}
+                      className="w-full flex items-center gap-3 p-4 rounded-xl border dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition text-left"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-800 dark:text-white truncate">Pay {s.to?.name || "Unknown"}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">{s.groupName}</p>
+                        {s.to?.upiId && <p className="text-xs font-mono text-gray-400 mt-0.5">{s.to.upiId}</p>}
+                        {!s.to?.upiId && <p className="text-xs text-amber-500 mt-0.5">No UPI ID set</p>}
+                      </div>
+                      <span className="text-lg font-bold text-gray-900 dark:text-white flex-shrink-0">₹{parseFloat(s.amount).toFixed(2)}</span>
+                      <FiChevronRight className="text-gray-400 flex-shrink-0" />
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => { resetSettleFlow(); startQRScan(); }}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium transition"
+                >
+                  <FiCreditCard size={14} /> Scan QR Instead
+                </button>
+                <button onClick={resetSettleFlow} className="w-full py-2 text-xs text-gray-400 hover:text-gray-600 transition">Back</button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── Settle Payment: UPI App Picker ── */}
+        {settleStep === "appPicker" && selectedSettle && (
+          <div className="space-y-4">
+            <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Paying</p>
+                  <p className="font-semibold text-gray-800 dark:text-white">{selectedSettle.to?.name}</p>
+                  {selectedSettle.to?.upiId && <p className="text-xs font-mono text-gray-400 mt-0.5">{selectedSettle.to.upiId}</p>}
+                </div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">₹{parseFloat(selectedSettle.amount).toFixed(2)}</p>
+              </div>
+            </div>
+
+            {!selectedSettle.to?.upiId ? (
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-4 text-center">
+                <p className="text-amber-700 dark:text-amber-300 font-semibold text-sm mb-1">{selectedSettle.to?.name} hasn&apos;t set their UPI ID</p>
+                <p className="text-xs text-amber-600 dark:text-amber-400">Ask them to update their profile, or scan their QR code instead.</p>
+                <button onClick={() => { resetSettleFlow(); startQRScan(); }} className="mt-3 text-sm font-medium" style={{ color: theme.gradFrom }}>Scan QR Instead</button>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Choose UPI app:</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {UPI_APPS.map((app) => (
+                    <div key={app.key} className="border dark:border-gray-700 rounded-xl p-3 space-y-2">
+                      <p className="font-semibold text-sm text-gray-800 dark:text-white text-center">{app.label}</p>
+                      <button
+                        onClick={() => openWithApp(app.key, false)}
+                        className="w-full py-2 text-xs font-medium rounded-lg text-white"
+                        style={getGradientStyle(theme)}
+                      >
+                        Use Once
+                      </button>
+                      <button
+                        onClick={() => openWithApp(app.key, true)}
+                        className="w-full py-1.5 text-xs font-medium rounded-lg border dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                      >
+                        Set as Default
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {defaultUpiApp && (
+                  <button onClick={clearDefaultApp} className="w-full text-center text-xs text-red-400 hover:text-red-600 transition py-1">
+                    Clear default app ({UPI_APPS.find(a => a.key === defaultUpiApp)?.label})
+                  </button>
+                )}
+              </>
+            )}
+
+            <button onClick={() => setSettleStep("pick")} className="w-full py-2 text-xs text-gray-400 hover:text-gray-600 transition">← Back to settlements</button>
+          </div>
+        )}
+
+        {!qrResult && !settleStep && mode !== "camera" && mode !== "qrscan" && !image ? (
           <>
           {/* Initial Mode Selection */}
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <button
                 onClick={startCamera}
-                className="p-8 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-3"
+                className="p-6 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-3"
                 style={{ borderColor: theme.gradFrom }}
               >
                 <FiCamera className="text-4xl" style={{ color: theme.gradFrom }} />
                 <span className="font-semibold text-gray-800 dark:text-white">Open Camera</span>
-                <span className="text-sm text-gray-500 dark:text-gray-400">Take a photo of receipt</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400 text-center">Take a photo of receipt</span>
               </button>
 
-              <label className="p-8 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-3 cursor-pointer" style={{ borderColor: theme.gradTo }}>
+              <label className="p-6 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-3 cursor-pointer" style={{ borderColor: theme.gradTo }}>
                 <FiUpload className="text-4xl" style={{ color: theme.gradTo }} />
                 <span className="font-semibold text-gray-800 dark:text-white">Upload Photo</span>
-                <span className="text-sm text-gray-500 dark:text-gray-400">Select from device</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400 text-center">Select from device</span>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -573,6 +1028,16 @@ export default function ScanReceipt({
                   className="hidden"
                 />
               </label>
+
+              <button
+                onClick={startSettleFlow}
+                className="p-6 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-3"
+                style={{ borderColor: "#22c55e" }}
+              >
+                <FiCreditCard className="text-4xl" style={{ color: "#22c55e" }} />
+                <span className="font-semibold text-gray-800 dark:text-white">Settle Payment</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400 text-center">Pay what you owe via UPI</span>
+              </button>
             </div>
           </div>
           </>
@@ -709,12 +1174,45 @@ export default function ScanReceipt({
                       <input
                         type="text"
                         value={formData.title}
-                        onChange={(e) =>
-                          setFormData({ ...formData, title: e.target.value })
-                        }
+                        onChange={(e) => {
+                          const t = e.target.value;
+                          const aiCat = detectCategory(t);
+                          setFormData({ ...formData, title: t, category: aiCat });
+                        }}
                         className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                         required
                       />
+                      {formData.title.length > 2 && (() => {
+                        const cat = getCategoryInfo(formData.category);
+                        return (
+                          <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+                            <span className="text-blue-400 dark:text-blue-300 text-xs font-semibold">✨ AI suggests:</span>
+                            <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${cat.badge}`}>{cat.icon} {cat.label}</span>
+                            <span className="ml-auto text-[10px] text-blue-300 dark:text-blue-400">tap below to change</span>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Category picker */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
+                      <div className="flex flex-wrap gap-2">
+                        {CATEGORIES.map((cat) => (
+                          <button
+                            key={cat.key}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, category: cat.key })}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
+                              formData.category === cat.key
+                                ? cat.badge + " border-current scale-105"
+                                : "border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-400"
+                            }`}
+                          >
+                            {cat.icon} {cat.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
                     {/* Amount */}

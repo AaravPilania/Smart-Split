@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
-import { FiUsers, FiPlus, FiX, FiUserPlus, FiLink, FiZap, FiHeart, FiClock } from "react-icons/fi";
-import { groupAPI, API_URL, apiFetch, getUserId } from "../utils/api";
+import { FiUsers, FiPlus, FiX, FiUserPlus, FiLink, FiZap, FiHeart, FiClock, FiTrash2 } from "react-icons/fi";
+import { API_URL, apiFetch, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
 import { simplifyDebts } from "../utils/debts";
 
@@ -17,6 +17,7 @@ export default function Groups() {
   const navigate = useNavigate();
   const { theme, isDark } = useTheme();
   const [copiedGroupId, setCopiedGroupId] = useState(null);
+  const [deletingGroup, setDeletingGroup] = useState(null);
   const [simplifyGroupId, setSimplifyGroupId] = useState(null);
   const [simplifiedDebts, setSimplifiedDebts] = useState([]);
   const [simplifying, setSimplifying] = useState(false);
@@ -66,6 +67,24 @@ export default function Groups() {
       console.error(e);
     } finally {
       setActivityLoading(false);
+    }
+  };
+
+  const handleDeleteGroup = async (group) => {
+    if (!window.confirm(`Delete "${group.name}"? This will permanently delete all expenses and payment records in this group.`)) return;
+    setDeletingGroup(group.id);
+    try {
+      const res = await apiFetch(`${API_URL}/groups/${group.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setGroups(prev => prev.filter(g => g.id !== group.id));
+      } else {
+        const d = await res.json();
+        alert(d.message || 'Failed to delete group');
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDeletingGroup(null);
     }
   };
 
@@ -310,6 +329,16 @@ export default function Groups() {
                   >
                     <FiClock size={13} /> Activity
                   </button>
+                  {group.createdBy?.id === userId && (
+                    <button
+                      onClick={() => handleDeleteGroup(group)}
+                      disabled={deletingGroup === group.id}
+                      className="px-3 py-2 rounded-lg text-red-400 hover:text-red-600 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 transition text-xs font-medium flex items-center gap-1 disabled:opacity-40"
+                      title="Delete this group"
+                    >
+                      <FiTrash2 size={13} /> Delete
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

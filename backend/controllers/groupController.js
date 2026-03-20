@@ -73,12 +73,38 @@ exports.addMembers = async (req, res) => {
       return res.status(404).json({ message: 'Group not found' });
     }
 
+    if (group.createdBy.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Only the group creator can add members' });
+    }
+
     const updatedGroup = await Group.addMembers(groupId, memberIds);
 
     res.json({
       message: 'Members added successfully',
       group: updatedGroup
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Delete group (creator only, cascades expenses + payments)
+exports.deleteGroup = async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+
+    if (group.createdBy.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Only the group creator can delete this group' });
+    }
+
+    const Expense = require('../models/Expense');
+    const Payment = require('../models/Payment');
+    await Expense.deleteByGroup(req.params.id);
+    await Payment.deleteByGroup(req.params.id);
+    await Group.deleteById(req.params.id);
+
+    res.json({ message: 'Group deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

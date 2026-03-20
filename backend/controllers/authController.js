@@ -1,5 +1,8 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Group = require('../models/Group');
+const Expense = require('../models/Expense');
+const Payment = require('../models/Payment');
 
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -135,6 +138,116 @@ exports.updateProfile = async (req, res) => {
         pfp: updatedUser.pfp || '',
         upiId: updatedUser.upiId || '',
       }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// GET /api/auth/dashboard/summary — parallel fetch of all dashboard data
+exports.getDashboardSummary = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userGroups = await Group.findByUser(userId);
+
+    if (!userGroups.length) {
+      return res.json({
+        groups: [], allExpenses: [], perGroupSpending: [],
+        stats: { totalExpenses: 0, youOwe: 0, owedToYou: 0 },
+        userSettlements: []
+      });
+    }
+
+    // Fetch all group data in parallel
+    const groupResults = await Promise.all(userGroups.map(async (group) => {
+      const [expenses, unsettledExpenses, payments] = await Promise.all([
+        Expense.findByGroup(group.id),
+        Expense.findUnsettledByGroup(group.id),
+        Payment.findByGroup(group.id)
+      ]);
+      return { group, expenses, unsettledExpenses, payments };
+    }));
+
+    let allExpenses = [];
+    let totalExpensesAmount = 0;
+    let userOweTotal = 0;
+    let owedToUserTotal = 0;
+    const allSettlements = [];
+    const perGroupSpending = [];
+
+    for (const { group, expenses, unsettledExpenses, payments } of groupResults) {
+      allExpenses = allExpenses.concat(expenses);
+      const groupTotal = expenses.reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+      totalExpensesAmount += groupTotal;
+      if (groupTotal > 0) perGroupSpending.push({ name: group.name, amount: groupTotal });
+
+      // Build balance map for group members
+      const balanceMap = {};
+      (group.members || []).forEach(m => {
+        const id = m._id?.toString() || m.id?.toString();
+        if (id) balanceMap[id] = 0;
+      });
+
+      unsettledExpenses.forEach(exp => {
+        const paidById = exp.paidBy?._id?.toString() || exp.paidBy?.toString();
+        if (balanceMap[paidById] !== undefined) balanceMap[paidById] += parseFloat(exp.amount || 0);
+        (exp.splitBetween || []).forEach(split => {
+          const uid = split.user?._id?.toString() || split.user?.toString();
+          if (balanceMap[uid] !== undefined) balanceMap[uid] -= parseFloat(split.amount || 0);
+        });
+      });
+
+      // Factor in recorded payments
+      payments.forEach(p => {
+        const fromId = p.from?._id?.toString() || p.from?.toString();
+        const toId   = p.to?._id?.toString()   || p.to?.toString();
+        if (balanceMap[fromId] !== undefined) balanceMap[fromId] += parseFloat(p.amount || 0);
+        if (balanceMap[toId]   !== undefined) balanceMap[toId]   -= parseFloat(p.amount || 0);
+      });
+
+      const userBalance = parseFloat((balanceMap[userId] || 0).toFixed(2));
+      if (userBalance < 0) userOweTotal += Math.abs(userBalance);
+      else if (userBalance > 0) owedToUserTotal += userBalance;
+
+      // Greedy settlement algorithm
+      const creditors = [], debtors = [];
+      Object.entries(balanceMap).forEach(([uid, bal]) => {
+        const b = parseFloat(bal.toFixed(2));
+        const member = (group.members || []).find(m => (m._id?.toString() || m.id?.toString()) === uid);
+        if (!member) return;
+        const user = { id: member._id || member.id, name: member.name, email: member.email };
+        if (b > 0.01) creditors.push({ user, balance: b });
+        else if (b < -0.01) debtors.push({ user, balance: Math.abs(b) });
+      });
+      creditors.sort((a, b) => b.balance - a.balance);
+      debtors.sort((a, b) => b.balance - a.balance);
+      let ci = 0, di = 0;
+      while (ci < creditors.length && di < debtors.length) {
+        const c = creditors[ci], d = debtors[di];
+        const amount = parseFloat(Math.min(c.balance, d.balance).toFixed(2));
+        allSettlements.push({ from: d.user, to: c.user, amount, groupId: group.id });
+        c.balance -= amount; d.balance -= amount;
+        if (c.balance < 0.01) ci++;
+        if (d.balance < 0.01) di++;
+      }
+    }
+
+    allExpenses.sort((a, b) =>
+      new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at)
+    );
+
+    res.json({
+      groups: userGroups,
+      allExpenses,
+      perGroupSpending: perGroupSpending.sort((a, b) => b.amount - a.amount),
+      stats: {
+        totalExpenses: parseFloat(totalExpensesAmount.toFixed(2)),
+        youOwe: parseFloat(userOweTotal.toFixed(2)),
+        owedToYou: parseFloat(owedToUserTotal.toFixed(2))
+      },
+      userSettlements: allSettlements
+        .filter(s => s.from.id?.toString() === userId || s.to.id?.toString() === userId)
+        .slice(0, 10)
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

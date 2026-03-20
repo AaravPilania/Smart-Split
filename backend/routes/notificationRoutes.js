@@ -35,6 +35,16 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
+// PATCH /api/notifications/read-all — mark all as read (must be before /:id/read)
+router.patch('/read-all', auth, async (req, res) => {
+  try {
+    await Notification.updateMany({ to: req.user.id, read: false }, { read: true });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // PATCH /api/notifications/:id/read — mark one as read
 router.patch('/:id/read', auth, async (req, res) => {
   try {
@@ -42,16 +52,6 @@ router.patch('/:id/read', auth, async (req, res) => {
       { _id: req.params.id, to: req.user.id },
       { read: true }
     );
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// PATCH /api/notifications/read-all — mark all as read
-router.patch('/read-all', auth, async (req, res) => {
-  try {
-    await Notification.updateMany({ to: req.user.id, read: false }, { read: true });
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ message: err.message });

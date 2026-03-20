@@ -14,6 +14,7 @@ const settlementSchema = new mongoose.Schema({
 const expenseSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
   amount: { type: Number, required: true },
+  category: { type: String, default: 'other' },
   group: { type: mongoose.Schema.Types.ObjectId, ref: 'Group', required: true },
   paidBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   splitBetween: [splitSchema],
@@ -40,10 +41,11 @@ function doc2obj(doc) {
 }
 
 module.exports = {
-  async createExpense(title, amount, groupId, paidById, splitBetween) {
+  async createExpense(title, amount, groupId, paidById, splitBetween, category) {
     const expense = await ExpenseModel.create({
       title: title.trim(),
       amount,
+      category: category || 'other',
       group: groupId,
       paidBy: paidById,
       splitBetween: splitBetween.map(s => ({ user: s.user, amount: s.amount })),
@@ -86,5 +88,16 @@ module.exports = {
       $set: { settled: isFullySettled }
     });
     return this.findByIdPopulated(expenseId);
+  },
+
+  async deleteOne(expenseId) {
+    if (!mongoose.Types.ObjectId.isValid(expenseId)) return false;
+    const result = await ExpenseModel.findByIdAndDelete(expenseId);
+    return !!result;
+  },
+
+  async deleteByGroup(groupId) {
+    if (!mongoose.Types.ObjectId.isValid(groupId)) return;
+    await ExpenseModel.deleteMany({ group: groupId });
   }
 };

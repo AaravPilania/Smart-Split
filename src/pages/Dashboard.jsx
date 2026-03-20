@@ -103,14 +103,51 @@ export default function Dashboard() {
     try {
       setLoading(true);
 
-      // Fetch user's groups
+      // Try new summary endpoint first (available once backend is deployed)
+      // Falls back to parallel per-group fetching for the current production backend
+      const summaryRes = await apiFetch(`${API_URL}/auth/dashboard/summary`);
+      if (summaryRes.ok) {
+        const { groups: userGroups, allExpenses, perGroupSpending, stats, userSettlements } = await summaryRes.json();
+        setGroups(userGroups);
+        setGroupSpending(perGroupSpending.slice(0, 6));
+        setStats({ totalExpenses: stats.totalExpenses, youOwe: stats.youOwe, owedToYou: stats.owedToYou });
+        setRecentExpenses(allExpenses.slice(0, 5));
+        setSettlements(userSettlements.slice(0, 5));
+        buildCharts(allExpenses, userId);
+        setFetchError(false);
+        return;
+      }
+
+      // ── Fallback: fetch groups then all group data in parallel ──────────────
       const groupsResponse = await apiFetch(`${API_URL}/groups?userId=${userId}`);
       if (!groupsResponse.ok) throw new Error("Failed to fetch groups");
       const groupsData = await groupsResponse.json();
       const userGroups = groupsData.groups || [];
       setGroups(userGroups);
 
-      // Fetch expenses from all groups
+      if (!userGroups.length) {
+        setStats({ totalExpenses: 0, youOwe: 0, owedToYou: 0 });
+        setFetchError(false);
+        return;
+      }
+
+      // Fetch all group data in parallel
+      const groupDataArr = await Promise.all(
+        userGroups.map(async (group) => {
+          const [expRes, balRes, setRes] = await Promise.all([
+            apiFetch(`${API_URL}/expenses/group/${group.id}`),
+            apiFetch(`${API_URL}/expenses/group/${group.id}/balances`),
+            apiFetch(`${API_URL}/expenses/group/${group.id}/settlements`),
+          ]);
+          return {
+            group,
+            expenses:    expRes.ok  ? (await expRes.json()).expenses    || [] : [],
+            balances:    balRes.ok  ? (await balRes.json()).balances     || [] : [],
+            settlements: setRes.ok  ? (await setRes.json()).settlements  || [] : [],
+          };
+        })
+      );
+
       let allExpenses = [];
       let totalExpensesAmount = 0;
       let userOweTotal = 0;
@@ -118,130 +155,91 @@ export default function Dashboard() {
       let allSettlements = [];
       const perGroupSpending = [];
 
-      for (const group of userGroups) {
-        try {
-          // Fetch expenses
-          const expensesResponse = await apiFetch(
-            `${API_URL}/expenses/group/${group.id}`
-          );
-          if (expensesResponse.ok) {
-            const expensesData = await expensesResponse.json();
-            const groupExpenses = expensesData.expenses || [];
-            allExpenses = [...allExpenses, ...groupExpenses];
-            const groupTotal = groupExpenses.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0);
-            totalExpensesAmount += groupTotal;
-            if (groupTotal > 0) perGroupSpending.push({ name: group.name, amount: groupTotal });
-          }
+      for (const { group, expenses, balances, settlements } of groupDataArr) {
+        allExpenses = allExpenses.concat(expenses);
+        const groupTotal = expenses.reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+        totalExpensesAmount += groupTotal;
+        if (groupTotal > 0) perGroupSpending.push({ name: group.name, amount: groupTotal });
 
-          // Fetch balances
-          const balancesResponse = await apiFetch(
-            `${API_URL}/expenses/group/${group.id}/balances`
-          );
-          if (balancesResponse.ok) {
-            const balancesData = await balancesResponse.json();
-            const balances = balancesData.balances || [];
-            const userBalance = balances.find((b) => b.user.id === userId);
-            if (userBalance) {
-              const balance = parseFloat(userBalance.balance || 0);
-              if (balance < 0) {
-                userOweTotal += Math.abs(balance);
-              } else if (balance > 0) {
-                owedToUserTotal += balance;
-              }
-            }
-          }
-
-          // Fetch settlements
-          const settlementsResponse = await apiFetch(
-            `${API_URL}/expenses/group/${group.id}/settlements`
-          );
-          if (settlementsResponse.ok) {
-            const settlementsData = await settlementsResponse.json();
-            const groupSettlements = settlementsData.settlements || [];
-            allSettlements = [...allSettlements, ...groupSettlements];
-          }
-        } catch (error) {
-          console.error(`Error fetching data for group ${group.id}:`, error);
+        const userBalance = balances.find((b) => b.user.id === userId);
+        if (userBalance) {
+          const bal = parseFloat(userBalance.balance || 0);
+          if (bal < 0) userOweTotal += Math.abs(bal);
+          else if (bal > 0) owedToUserTotal += bal;
         }
+        allSettlements = allSettlements.concat(settlements);
       }
 
-      // Sort expenses by date (most recent first)
-      allExpenses.sort((a, b) => {
-        const dateA = new Date(a.createdAt || a.created_at);
-        const dateB = new Date(b.createdAt || b.created_at);
-        return dateB - dateA;
-      });
-
-      // Get recent 5 expenses
-      setRecentExpenses(allExpenses.slice(0, 5));
-
-      // Filter settlements where user is involved
-      const userSettlements = allSettlements.filter(
-        (s) => s.from.id === userId || s.to.id === userId
+      allExpenses.sort((a, b) =>
+        new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at)
       );
-      setSettlements(userSettlements.slice(0, 5));
 
-      // Update stats
+      setRecentExpenses(allExpenses.slice(0, 5));
+      setSettlements(
+        allSettlements
+          .filter((s) => s.from.id === userId || s.to.id === userId)
+          .slice(0, 5)
+      );
       setStats({
         totalExpenses: totalExpensesAmount,
         youOwe: userOweTotal,
         owedToYou: owedToUserTotal,
       });
       setGroupSpending(perGroupSpending.sort((a, b) => b.amount - a.amount).slice(0, 6));
-
-      // Monthly chart — last 6 months
-      const now = new Date();
-      const monthBuckets = {};
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const key = `${d.getFullYear()}-${d.getMonth()}`;
-        monthBuckets[key] = {
-          label: d.toLocaleDateString("en-US", { month: "short" }),
-          amount: 0,
-          userShare: 0,
-          isCurrent: i === 0,
-        };
-      }
-      allExpenses.forEach((exp) => {
-        const d = new Date(exp.createdAt || exp.created_at);
-        const key = `${d.getFullYear()}-${d.getMonth()}`;
-        if (monthBuckets[key]) {
-          monthBuckets[key].amount += parseFloat(exp.amount || 0);
-          const userSplit = exp.splitBetween?.find((s) => s.user?.id === userId);
-          if (userSplit) monthBuckets[key].userShare += parseFloat(userSplit.amount || 0);
-        }
-      });
-      setMonthlyChartData(Object.values(monthBuckets));
-
-      // Category spending breakdown
-      const catTotals = {};
-      allExpenses.forEach((exp) => {
-        const cat = detectCategory(exp.title || "");
-        catTotals[cat] = (catTotals[cat] || 0) + parseFloat(exp.amount || 0);
-      });
-      const catArr = Object.entries(catTotals)
-        .map(([key, amount]) => ({ key, amount, ...getCategoryInfo(key) }))
-        .filter((c) => c.amount > 0)
-        .sort((a, b) => b.amount - a.amount);
-      setCategoryData(catArr);
+      buildCharts(allExpenses, userId);
       setFetchError(false);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
       setFetchError(true);
-      // Auto-retry countdown: tick every second, retry when it hits 0
       setRetryIn(45);
     } finally {
       setLoading(false);
     }
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-IN", {
+  // Builds monthly chart + category breakdown from a flat expense array
+  const buildCharts = (allExpenses, userId) => {
+    const now = new Date();
+    const monthBuckets = {};
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      monthBuckets[key] = {
+        label: d.toLocaleDateString("en-US", { month: "short" }),
+        amount: 0,
+        userShare: 0,
+        isCurrent: i === 0,
+      };
+    }
+    allExpenses.forEach((exp) => {
+      const d = new Date(exp.createdAt || exp.created_at);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      if (monthBuckets[key]) {
+        monthBuckets[key].amount += parseFloat(exp.amount || 0);
+        const userSplit = exp.splitBetween?.find((s) => s.user?.id === userId);
+        if (userSplit) monthBuckets[key].userShare += parseFloat(userSplit.amount || 0);
+      }
+    });
+    setMonthlyChartData(Object.values(monthBuckets));
+
+    const catTotals = {};
+    allExpenses.forEach((exp) => {
+      const cat = exp.category || detectCategory(exp.title || "");
+      catTotals[cat] = (catTotals[cat] || 0) + parseFloat(exp.amount || 0);
+    });
+    const catArr = Object.entries(catTotals)
+      .map(([key, amount]) => ({ key, amount, ...getCategoryInfo(key) }))
+      .filter((c) => c.amount > 0)
+      .sort((a, b) => b.amount - a.amount);
+    setCategoryData(catArr);
+  };
+
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: "INR",
       minimumFractionDigits: 2,
     }).format(amount);
-  };
 
   const formatDate = (dateString) => {
     if (!dateString) return "Unknown date";

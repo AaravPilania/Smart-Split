@@ -25,9 +25,11 @@ export default function Balances() {
   const [expandedGroups, setExpandedGroups] = useState({});
   const [settling, setSettling] = useState(null);
   const [reminderSent, setReminderSent] = useState(null);
+  const [paying, setPaying] = useState(null);
+  const [paidNotice, setPaidNotice] = useState(null);
   const [viewMode, setViewMode] = useState("standard"); // "standard" | "simplified"
   const [simplifiedByGroup, setSimplifiedByGroup] = useState({});
-  const [upiModal, setUpiModal] = useState(null); // { amount, toName, upiId }
+  const [upiModal, setUpiModal] = useState(null); // { amount, toName, toId, settlement, group }
   const navigate = useNavigate();
   const userId = getUserId();
   const { theme, isDark } = useTheme();
@@ -98,6 +100,25 @@ export default function Balances() {
     }
   };
 
+  const handleIPaid = async (settlement, group) => {
+    const key = `${settlement.from.id}-${settlement.to.id}-${group.id}`;
+    setPaying(key);
+    try {
+      const res = await apiFetch(`${API_URL}/expenses/group/${group.id}/payment`, {
+        method: "POST",
+        body: JSON.stringify({ toUserId: settlement.to.id, amount: settlement.amount }),
+      });
+      if (res.ok) {
+        setPaidNotice(key);
+        setTimeout(() => { setPaidNotice(null); fetchAllBalances(); }, 1800);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setPaying(null);
+    }
+  };
+
   const handleSettleUp = async (group) => {
     if (
       !window.confirm(
@@ -132,6 +153,21 @@ export default function Balances() {
       currency: "INR",
       minimumFractionDigits: 2,
     }).format(amount);
+
+  // Fetch the payee's profile to get their latest UPI ID, then open modal
+  const openUpiModal = async (s, group) => {
+    let toUpiId = s.to.upiId || '';
+    if (!toUpiId) {
+      try {
+        const res = await apiFetch(`${API_URL}/auth/profile/${s.to.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          toUpiId = data.user?.upiId || '';
+        }
+      } catch {}
+    }
+    setUpiModal({ toName: s.to.name, toId: s.to.id, toUpiId, amount: s.amount, settlement: s, group });
+  };
 
   const allSettlements = groupBalances.flatMap((g) => g.settlements);
   const totalOwed = allSettlements
@@ -373,10 +409,24 @@ export default function Balances() {
                             <div className="flex gap-2 sm:flex-shrink-0 flex-wrap">
                               {isFromMe && (
                                 <button
-                                  onClick={() => setUpiModal({ toName: s.to.name, amount: s.amount })}
+                                  onClick={() => openUpiModal(s, group)}
                                   className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                                 >
                                   <FiSmartphone size={13} /> Pay UPI
+                                </button>
+                              )}
+                              {isFromMe && (
+                                <button
+                                  onClick={() => handleIPaid(s, group)}
+                                  disabled={paying === reminderKey || paidNotice === reminderKey}
+                                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-white transition disabled:opacity-60"
+                                  style={getGradientStyle(theme)}
+                                >
+                                  {paying === reminderKey
+                                    ? <FiRefreshCw size={13} className="animate-spin" />
+                                    : paidNotice === reminderKey
+                                    ? <><FiCheck size={13} /> Paid!</>
+                                    : <><FiCheck size={13} /> I Paid It</>}
                                 </button>
                               )}
                               {isToMe && (
@@ -424,21 +474,42 @@ export default function Balances() {
             <p className="text-2xl font-bold mb-4" style={{ color: theme.gradFrom }}>
               {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(upiModal.amount)}
             </p>
-            {/* QR Code */}
-            <div className="inline-block bg-white p-3 rounded-2xl shadow mb-4">
-              <QRCodeSVG
-                value={`upi://pay?pn=${encodeURIComponent(upiModal.toName)}&am=${upiModal.amount.toFixed(2)}&cu=INR&tn=SmartSplit`}
-                size={160}
-              />
-            </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Scan with any UPI app (GPay, PhonePe, Paytm…)</p>
+            {/* QR Code — only shown when payee has a UPI ID */}
+            {upiModal.toUpiId ? (
+              <>
+                <div className="inline-block bg-white p-3 rounded-2xl shadow mb-2">
+                  <QRCodeSVG
+                    value={`upi://pay?pa=${encodeURIComponent(upiModal.toUpiId)}&pn=${encodeURIComponent(upiModal.toName)}&am=${upiModal.amount.toFixed(2)}&cu=INR&tn=SmartSplit`}
+                    size={160}
+                  />
+                </div>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-1 font-mono">{upiModal.toUpiId}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Scan with any UPI app (GPay, PhonePe, Paytm…)</p>
+              </>
+            ) : (
+              <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl px-4 py-3 mb-4 text-left">
+                <span className="text-amber-500 text-base mt-0.5">⚠️</span>
+                <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+                  <strong>{upiModal.toName}</strong> hasn&apos;t set a UPI ID yet.<br />
+                  Ask them to add it in <strong>Profile → UPI ID</strong> field so you can pay directly.
+                </p>
+              </div>
+            )}
             <a
-              href={`upi://pay?pn=${encodeURIComponent(upiModal.toName)}&am=${upiModal.amount.toFixed(2)}&cu=INR&tn=SmartSplit`}
+              href={upiModal.toUpiId
+                ? `upi://pay?pa=${encodeURIComponent(upiModal.toUpiId)}&pn=${encodeURIComponent(upiModal.toName)}&am=${upiModal.amount.toFixed(2)}&cu=INR&tn=SmartSplit`
+                : `upi://pay?pn=${encodeURIComponent(upiModal.toName)}&am=${upiModal.amount.toFixed(2)}&cu=INR&tn=SmartSplit`}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm mb-2"
               style={getGradientStyle(theme)}
             >
               <FiSmartphone size={15} /> Open UPI App
             </a>
+            <button
+              onClick={() => { handleIPaid(upiModal.settlement, upiModal.group); setUpiModal(null); }}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm mb-2 border border-green-400 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition"
+            >
+              <FiCheck size={15} /> I&apos;ve Paid — Mark as Done
+            </button>
             <button onClick={() => setUpiModal(null)} className="w-full py-2.5 rounded-xl text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-medium">
               Close
             </button>

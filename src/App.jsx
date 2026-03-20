@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home";
@@ -92,6 +92,27 @@ function usePWAAutoUpdate() {
   }, []);
 }
 
+// Offline indicator banner
+function OfflineBanner() {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const goOnline  = () => setIsOnline(true);
+    const goOffline = () => setIsOnline(false);
+    window.addEventListener('online',  goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online',  goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, []);
+  if (isOnline) return null;
+  return (
+    <div className="fixed top-0 inset-x-0 z-[200] bg-amber-500 text-white text-center text-sm font-semibold py-2 px-4 shadow-md">
+      ⚠ You&apos;re offline — changes won&apos;t save
+    </div>
+  );
+}
+
 function App() {
   // Kick off a health check immediately so cold-start happens ASAP
   useEffect(() => { wakeUpServer(); }, []);
@@ -99,6 +120,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <OfflineBanner />
       <BackButtonGuard />
       <PageTransition>
         <Routes>

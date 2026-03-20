@@ -289,19 +289,6 @@ const MobileOnboarding = ({ onGetStarted }) => {
     <div className="flex flex-col h-full w-full relative" style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
       {/* Grain overlay */}
       <div className="intro-grain" />
-      {/* Ghost login — only on slide 0 */}
-      {current === 0 && (
-        <div className="flex justify-end px-5 pt-4 relative z-20">
-          <button
-            onClick={onGetStarted}
-            className="text-xs text-white/35 hover:text-white/60 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
-            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}
-          >
-            Log in <FiArrowRight size={12} />
-          </button>
-        </div>
-      )}
-
       {/* Slide area */}
       <div className="flex-1 relative overflow-hidden">
         <AnimatePresence initial={false} custom={direction} mode="wait">
