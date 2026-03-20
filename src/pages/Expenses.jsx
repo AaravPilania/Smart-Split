@@ -362,7 +362,7 @@ export default function Expenses() {
 
         {/* Expenses List */}
         {!selectedGroupId ? (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-md p-14 flex flex-col items-center justify-center min-h-[250px]">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm p-10 sm:p-14 flex flex-col items-center justify-center min-h-[220px]">
             <div className="text-gray-400 text-5xl mb-4">
               <FiFile />
             </div>
@@ -374,7 +374,7 @@ export default function Expenses() {
             </p>
           </div>
         ) : expenses.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-md p-14 flex flex-col items-center justify-center min-h-[250px]">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm p-10 sm:p-14 flex flex-col items-center justify-center min-h-[220px]">
             <div className="text-gray-400 text-5xl mb-4">
               <FiFile />
             </div>
@@ -390,9 +390,9 @@ export default function Expenses() {
             {expenses.map((expense) => (
               <div
                 key={expense.id}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 border border-gray-100 dark:border-gray-800 hover:shadow-md transition"
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-5 border border-gray-100 dark:border-gray-800 hover:shadow-md transition"
               >
-              <div className="flex justify-between items-start mb-3 gap-2">
+                <div className="flex justify-between items-start mb-3 gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h3 className="text-lg font-bold text-gray-800 dark:text-white truncate">

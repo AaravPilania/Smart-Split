@@ -237,7 +237,7 @@ export default function Groups() {
             </div>
           </div>
         ) : groups.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm p-14 flex flex-col items-center justify-center">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm p-10 sm:p-14 flex flex-col items-center justify-center">
             <div className="text-gray-400 text-5xl mb-3">
               <FiUsers />
             </div>
@@ -253,16 +253,21 @@ export default function Groups() {
             {groups.map((group) => (
               <div
                 key={group.id}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 border border-gray-100 dark:border-gray-800 hover:shadow-md transition flex flex-col"
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-5 border border-gray-100 dark:border-gray-800 hover:shadow-md transition flex flex-col"
               >
                 <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1">
+                  <div
+                    className="flex-1 cursor-pointer"
+                    onClick={() => navigate(`/expenses?group=${group.id}`)}
+                  >
+                    <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1 hover:opacity-75 transition-opacity">
                       {group.name}
                     </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                      {group.description || "No description"}
-                    </p>
+                    {group.description && group.description !== "No description" ? (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{group.description}</p>
+                    ) : (
+                      <p className="text-sm text-gray-400 dark:text-gray-600 italic mb-2">No description</p>
+                    )}
                     <p className="text-xs text-gray-400 dark:text-gray-500">
                       Created by {group.createdBy?.name || "Unknown"}
                     </p>
@@ -291,53 +296,61 @@ export default function Groups() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2 mt-4">
+                {/* Actions */}
+                <div className="mt-4 space-y-2">
+                  {/* Primary action */}
                   <button
                     onClick={() => navigate(`/expenses?group=${group.id}`)}
-                    className="flex-1 text-white px-3 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition flex items-center justify-center gap-1"
+                    className="w-full min-h-[44px] text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 active:opacity-80 transition-all flex items-center justify-center gap-2"
                     style={getGradientStyle(theme)}
                   >
-                    <span className="font-bold">₹</span> Expenses
+                    <span className="font-bold text-base leading-none">₹</span> View Expenses
                   </button>
-                  {group.createdBy?.id === userId ? (
+
+                  {/* Secondary actions — always 3 equal columns */}
+                  <div className="grid grid-cols-3 gap-2">
                     <button
-                      onClick={() => setShowAddMemberModal(group.id)}
-                      className={`flex-1 bg-white dark:bg-gray-700 border ${theme.border} ${theme.text} px-4 py-2 rounded-lg text-sm font-semibold ${theme.bgHover} transition flex items-center justify-center gap-1`}
+                      onClick={() => handleCopyInvite(group.id, group.name)}
+                      className="min-h-[38px] px-2 py-2 rounded-lg text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/80 hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-95 transition text-xs font-medium flex items-center justify-center gap-1"
+                      title="Copy Group ID to share"
                     >
-                      <FiUserPlus /> Add Member
+                      <FiLink size={12} />
+                      {copiedGroupId === group.id ? "Copied!" : "Invite"}
                     </button>
-                  ) : null}
-                  <button
-                    onClick={() => handleCopyInvite(group.id, group.name)}
-                    className="px-3 py-2 rounded-lg text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition text-xs font-medium flex items-center gap-1"
-                    title="Copy Group ID to share"
-                  >
-                    <FiLink size={13} />
-                    {copiedGroupId === group.id ? "Copied!" : "Invite"}
-                  </button>
-                  <button
-                    onClick={() => handleSimplifyDebts(group.id)}
-                    className="px-3 py-2 rounded-lg text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition text-xs font-medium flex items-center gap-1"
-                    title="Show minimum transactions to settle all debts"
-                  >
-                    <FiZap size={13} /> Simplify
-                  </button>
-                  <button
-                    onClick={() => fetchActivity(group.id)}
-                    className="px-3 py-2 rounded-lg text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition text-xs font-medium flex items-center gap-1"
-                    title="View activity log for this group"
-                  >
-                    <FiClock size={13} /> Activity
-                  </button>
+                    <button
+                      onClick={() => handleSimplifyDebts(group.id)}
+                      className="min-h-[38px] px-2 py-2 rounded-lg text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/80 hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-95 transition text-xs font-medium flex items-center justify-center gap-1"
+                      title="Show minimum transactions to settle all debts"
+                    >
+                      <FiZap size={12} /> Simplify
+                    </button>
+                    <button
+                      onClick={() => fetchActivity(group.id)}
+                      className="min-h-[38px] px-2 py-2 rounded-lg text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/80 hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-95 transition text-xs font-medium flex items-center justify-center gap-1"
+                      title="View activity log for this group"
+                    >
+                      <FiClock size={12} /> Activity
+                    </button>
+                  </div>
+
+                  {/* Creator-only actions */}
                   {group.createdBy?.id === userId && (
-                    <button
-                      onClick={() => handleDeleteGroup(group)}
-                      disabled={deletingGroup === group.id}
-                      className="px-3 py-2 rounded-lg text-red-400 hover:text-red-600 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 transition text-xs font-medium flex items-center gap-1 disabled:opacity-40"
-                      title="Delete this group"
-                    >
-                      <FiTrash2 size={13} /> Delete
-                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => setShowAddMemberModal(group.id)}
+                        className={`min-h-[38px] bg-white dark:bg-gray-700 border ${theme.border} ${theme.text} px-3 py-2 rounded-lg text-xs font-semibold ${theme.bgHover} active:scale-95 transition flex items-center justify-center gap-1.5`}
+                      >
+                        <FiUserPlus size={13} /> Add Member
+                      </button>
+                      <button
+                        onClick={() => handleDeleteGroup(group)}
+                        disabled={deletingGroup === group.id}
+                        className="min-h-[38px] px-3 py-2 rounded-lg text-red-400 hover:text-red-600 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 active:scale-95 transition text-xs font-medium flex items-center justify-center gap-1.5 disabled:opacity-40 border border-red-100 dark:border-red-900/30"
+                        title="Delete this group"
+                      >
+                        <FiTrash2 size={13} /> {deletingGroup === group.id ? "Deleting…" : "Delete"}
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>

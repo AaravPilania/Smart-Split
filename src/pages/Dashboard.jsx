@@ -266,10 +266,10 @@ export default function Dashboard() {
     <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
       <Navbar />
 
-      <div className="max-w-7xl mx-auto mt-4 sm:mt-8 px-4 sm:px-6 pb-10">
+      <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-10">
         {/* Header */}
-        <div className="flex justify-between items-start mb-6 sm:mb-8">
-          <div className="flex items-center gap-4 min-w-0 flex-1">
+        <div className="flex justify-between items-start mb-5 sm:mb-6">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             {/* Avatar */}
             {avatar ? (
               <img src={avatar} alt="avatar" className={`h-14 w-14 rounded-full border-2 ${theme.border} shadow flex-shrink-0 object-cover`} />
@@ -322,7 +322,7 @@ export default function Dashboard() {
         ) : (
           <>
             {/* Stats Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6">
               <StatsCard
                 title="Total Expenses"
                 value={formatCurrency(stats.totalExpenses)}
@@ -354,7 +354,7 @@ export default function Dashboard() {
             </div>
 
             {/* Buttons Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               {/* Add Expense */}
               <button
                 onClick={() => navigate("/expenses")}
@@ -387,7 +387,7 @@ export default function Dashboard() {
 
             {/* Spending by Group chart */}
             {groupSpending.length > 0 && (
-              <div className="rounded-2xl p-5 mt-6" style={isDark ? {
+              <div className="rounded-2xl p-4 sm:p-5 mt-6" style={isDark ? {
                 background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
                 border: "1px solid rgba(255,255,255,0.10)",
                 backdropFilter: "blur(16px)",
@@ -423,7 +423,7 @@ export default function Dashboard() {
 
             {/* Monthly Expense Chart */}
             {monthlyChartData.some((m) => m.amount > 0) && (
-              <div className="rounded-2xl p-5 mt-6 mb-6" style={isDark ? {
+              <div className="rounded-2xl p-4 sm:p-5 mt-6" style={isDark ? {
                 background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
                 border: "1px solid rgba(255,255,255,0.10)",
                 backdropFilter: "blur(16px)",
@@ -476,7 +476,7 @@ export default function Dashboard() {
 
             {/* Category Spending Chart */}
             {categoryData.length > 0 && (
-              <div className="rounded-2xl p-5 mt-6" style={isDark ? {
+              <div className="rounded-2xl p-4 sm:p-5 mt-6" style={isDark ? {
                 background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
                 border: "1px solid rgba(255,255,255,0.10)",
                 backdropFilter: "blur(16px)",
@@ -519,9 +519,9 @@ export default function Dashboard() {
             )}
 
             {/* Bottom sections */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-6">
               {/* Recent Expenses */}
-              <div className="rounded-2xl p-5" style={isDark ? {
+              <div className="rounded-2xl p-4 sm:p-5" style={isDark ? {
                 background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
                 border: "1px solid rgba(255,255,255,0.10)",
                 backdropFilter: "blur(16px)",
@@ -589,7 +589,7 @@ export default function Dashboard() {
               </div>
 
               {/* Outstanding Balances */}
-              <div className="rounded-2xl p-5" style={isDark ? {
+              <div className="rounded-2xl p-4 sm:p-5" style={isDark ? {
                 background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)",
                 border: "1px solid rgba(255,255,255,0.10)",
                 backdropFilter: "blur(16px)",
@@ -627,7 +627,7 @@ export default function Dashboard() {
                       return (
                         <div
                           key={index}
-                          className="border-b border-gray-100 pb-3 last:border-0 last:pb-0"
+                          className="border-b border-gray-100 dark:border-gray-700 pb-3 last:border-0 last:pb-0"
                         >
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
