@@ -12,6 +12,29 @@ const app = express();
 // Security headers
 app.use(helmet());
 
+// CORS — must be before all route handlers so every response gets proper headers
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+  : ['http://localhost:5173', 'http://localhost:3000'];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    // Always allow localhost on any port in development
+    if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return callback(null, true);
+    // Allow explicitly listed origins
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    // Always allow Netlify deployments for this project
+    if (/^https:\/\/.*\.netlify\.app$/.test(origin)) return callback(null, true);
+    // Always allow Render deployments for this project
+    if (/^https:\/\/.*\.onrender\.com$/.test(origin)) return callback(null, true);
+    callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  credentials: true,
+}));
+
 // ── Health check (BEFORE rate limiter so keep-alive pings never get throttled) ─
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
@@ -36,29 +59,6 @@ const authLimiter = rateLimit({
   message: { message: 'Too many auth attempts, please try again later.' }
 });
 app.use('/api/auth/', authLimiter);
-
-// CORS
-const allowedOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-  : ['http://localhost:5173', 'http://localhost:3000'];
-
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Postman)
-    if (!origin) return callback(null, true);
-    // Always allow localhost on any port in development
-    if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return callback(null, true);
-    // Allow explicitly listed origins
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    // Always allow Netlify deployments for this project
-    if (/^https:\/\/.*\.netlify\.app$/.test(origin)) return callback(null, true);
-    // Always allow Render deployments for this project
-    if (/^https:\/\/.*\.onrender\.com$/.test(origin)) return callback(null, true);
-    callback(new Error(`CORS: origin ${origin} not allowed`));
-  },
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  credentials: true,
-}));
 
 // Body parsing
 app.use(express.json({ limit: '10kb' }));
