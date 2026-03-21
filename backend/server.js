@@ -50,18 +50,18 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// Progressive slowdown — starts adding latency after 50 requests/15min
+// Progressive slowdown — starts adding latency after 200 requests/15min
 const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000,
-  delayAfter: 50,
-  delayMs: (used) => Math.min((used - 50) * 100, 5000), // +100ms per req, capped at 5s
+  delayAfter: 200,
+  delayMs: (used) => Math.min((used - 200) * 50, 2000), // +50ms per req over 200, capped at 2s
 });
 app.use('/api/', speedLimiter);
 
 // Hard rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 600,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many requests, please try again later.' }

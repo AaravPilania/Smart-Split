@@ -36,12 +36,13 @@ export default function ScanReceipt({
   const [defaultUpiApp, setDefaultUpiApp] = useState(() => {
     try { return localStorage.getItem("smartsplit_default_upi_app") || null; } catch { return null; }
   });
+  const [showAllApps, setShowAllApps] = useState(false);
 
   const UPI_APPS = [
-    { key: "gpay",    label: "Google Pay",  scheme: "upi://pay" },
-    { key: "phonepe", label: "PhonePe",     scheme: "upi://pay" },
-    { key: "paytm",   label: "Paytm",       scheme: "upi://pay" },
-    { key: "generic", label: "Other UPI",    scheme: "upi://pay" },
+    { key: "gpay",    label: "Google Pay",  scheme: "upi://pay", initial: "G", bg: "bg-blue-500" },
+    { key: "phonepe", label: "PhonePe",     scheme: "upi://pay", initial: "P", bg: "bg-purple-600" },
+    { key: "paytm",   label: "Paytm",       scheme: "upi://pay", initial: "₹", bg: "bg-sky-500" },
+    { key: "generic", label: "Other UPI",   scheme: "upi://pay", initial: "U", bg: "bg-gray-500" },
   ];
 
   const [formData, setFormData] = useState({
@@ -397,11 +398,7 @@ export default function ScanReceipt({
 
   const pickSettlement = (settle) => {
     setSelectedSettle(settle);
-    // If user has a default UPI app and payee has UPI ID, open directly
-    if (defaultUpiApp && settle.to?.upiId) {
-      openWithApp(defaultUpiApp, false);
-      return;
-    }
+    setShowAllApps(false);
     setSettleStep("appPicker");
   };
 
@@ -438,6 +435,7 @@ export default function ScanReceipt({
     setSettleLoading(false);
     setSettleList([]);
     setSelectedSettle(null);
+    setShowAllApps(false);
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1061,6 +1059,7 @@ export default function ScanReceipt({
         {/* ── Settle Payment: UPI App Picker ── */}
         {settleStep === "appPicker" && selectedSettle && (
           <div className="space-y-4">
+            {/* Payment summary */}
             <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-4">
               <div className="flex justify-between items-center">
                 <div>
@@ -1078,47 +1077,91 @@ export default function ScanReceipt({
                 <p className="text-xs text-amber-600 dark:text-amber-400">Ask them to update their profile, or scan their QR code instead.</p>
                 <button onClick={() => { resetSettleFlow(); startQRScan(); }} className="mt-3 text-sm font-medium" style={{ color: theme.gradFrom }}>Scan QR Instead</button>
               </div>
-            ) : (
-              <>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Choose UPI app:</p>
-                <div className="grid grid-cols-2 gap-3">
-                  {UPI_APPS.map((app) => (
-                    <div key={app.key} className="border dark:border-gray-700 rounded-xl p-3 space-y-2">
-                      <p className="font-semibold text-sm text-gray-800 dark:text-white text-center">{app.label}</p>
-                      <button
-                        onClick={() => openWithApp(app.key, false)}
-                        className="w-full py-2 text-xs font-medium rounded-lg text-white"
-                        style={getGradientStyle(theme)}
-                      >
-                        Use Once
-                      </button>
-                      <button
-                        onClick={() => openWithApp(app.key, true)}
-                        className="w-full py-1.5 text-xs font-medium rounded-lg border dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-                      >
-                        Set as Default
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                {defaultUpiApp && (
-                  <button onClick={clearDefaultApp} className="w-full text-center text-xs text-red-400 hover:text-red-600 transition py-1">
-                    Clear default app ({UPI_APPS.find(a => a.key === defaultUpiApp)?.label})
-                  </button>
-                )}
-                {/* Copy UPI details fallback */}
+            ) : defaultUpiApp && !showAllApps ? (
+              /* ── Default app view ── */
+              <div className="space-y-3">
+                <p className="text-xs text-center text-gray-400 dark:text-gray-500 uppercase tracking-wide">Your default app</p>
                 <button
-                  onClick={() => {
-                    const s = selectedSettle;
-                    if (!s?.to?.upiId) return;
-                    const text = `UPI ID: ${s.to.upiId} | Name: ${s.to.name} | Amount: ₹${parseFloat(s.amount).toFixed(2)}`;
-                    navigator.clipboard?.writeText(text).then(() => alert('Copied! Open your UPI app and paste.'));
-                  }}
-                  className="w-full flex items-center justify-center gap-2 py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 transition border dark:border-gray-700 rounded-lg"
+                  onClick={() => openWithApp(defaultUpiApp, false)}
+                  className="w-full py-4 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-3 shadow-lg active:scale-[0.98] transition-transform"
+                  style={getGradientStyle(theme)}
                 >
-                  <FiCopy size={13} /> Copy UPI details
+                  <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                    UPI_APPS.find(a => a.key === defaultUpiApp)?.bg || "bg-white/20"
+                  }`}>
+                    {UPI_APPS.find(a => a.key === defaultUpiApp)?.initial}
+                  </span>
+                  Pay with {UPI_APPS.find(a => a.key === defaultUpiApp)?.label}
                 </button>
-              </>
+                <div className="flex justify-center gap-6 pt-0.5">
+                  <button
+                    onClick={() => setShowAllApps(true)}
+                    className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition underline-offset-2 hover:underline"
+                  >
+                    Use a different app
+                  </button>
+                  <button
+                    onClick={() => { clearDefaultApp(); setShowAllApps(false); }}
+                    className="text-xs text-red-400 hover:text-red-600 dark:hover:text-red-300 transition underline-offset-2 hover:underline"
+                  >
+                    Remove default
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* ── All apps list ── */
+              <div className="space-y-2">
+                <p className="text-xs text-gray-400 dark:text-gray-500">Choose a payment app:</p>
+                {UPI_APPS.map((app) => (
+                  <div key={app.key} className="flex items-center gap-3 p-3 pr-4 rounded-xl border dark:border-gray-700 bg-white dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                    <div className={`w-10 h-10 rounded-full ${app.bg} flex items-center justify-center text-white font-bold text-base flex-shrink-0`}>
+                      {app.initial}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-semibold text-sm text-gray-800 dark:text-white">{app.label}</p>
+                        {defaultUpiApp === app.key && (
+                          <span className="text-[10px] bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-1.5 py-0.5 rounded-full font-medium">Default</span>
+                        )}
+                      </div>
+                      {defaultUpiApp !== app.key && (
+                        <button
+                          onClick={() => {
+                            try { localStorage.setItem("smartsplit_default_upi_app", app.key); } catch {}
+                            setDefaultUpiApp(app.key);
+                            setShowAllApps(false);
+                          }}
+                          className="text-[11px] text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition mt-0.5 block"
+                        >
+                          Set as default
+                        </button>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => openWithApp(app.key, false)}
+                      className="px-4 py-2 rounded-xl text-white text-sm font-semibold flex-shrink-0"
+                      style={getGradientStyle(theme)}
+                    >
+                      Pay
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Copy UPI details fallback */}
+            {selectedSettle.to?.upiId && (
+              <button
+                onClick={() => {
+                  const s = selectedSettle;
+                  if (!s?.to?.upiId) return;
+                  const text = `UPI ID: ${s.to.upiId} | Name: ${s.to.name} | Amount: ₹${parseFloat(s.amount).toFixed(2)}`;
+                  navigator.clipboard?.writeText(text).then(() => alert('Copied! Open your UPI app and paste.'));
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition border dark:border-gray-700 rounded-lg"
+              >
+                <FiCopy size={13} /> Copy UPI details
+              </button>
             )}
 
             <button onClick={() => setSettleStep("pick")} className="w-full py-2 text-xs text-gray-400 hover:text-gray-600 transition">← Back to settlements</button>
