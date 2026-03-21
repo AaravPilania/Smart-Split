@@ -148,6 +148,16 @@ export const expenseAPI = {
       method: 'POST',
       body: JSON.stringify({ settledBy, amount }),
     }),
+  updateExpense: (expenseId, body) =>
+    apiCall(`/expenses/${expenseId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  suggestCategory: (title, ocrText = '') =>
+    apiCall('/expenses/suggest-category', {
+      method: 'POST',
+      body: JSON.stringify({ title, ocrText }),
+    }),
 };
 
 export default { authAPI, groupAPI, expenseAPI };

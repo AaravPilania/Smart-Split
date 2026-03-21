@@ -11,6 +11,13 @@ const settlementSchema = new mongoose.Schema({
   settledAt: { type: Date, default: Date.now }
 }, { _id: false });
 
+const editHistorySchema = new mongoose.Schema({
+  editedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  editedAt: { type: Date, default: Date.now },
+  prevTitle: String,
+  prevAmount: Number,
+}, { _id: false });
+
 const expenseSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
   amount: { type: Number, required: true },
@@ -19,7 +26,8 @@ const expenseSchema = new mongoose.Schema({
   paidBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   splitBetween: [splitSchema],
   settled: { type: Boolean, default: false },
-  settledBy: [settlementSchema]
+  settledBy: [settlementSchema],
+  editHistory: [editHistorySchema],
 }, { timestamps: true });
 
 const ExpenseModel = mongoose.model('Expense', expenseSchema);
@@ -99,5 +107,29 @@ module.exports = {
   async deleteByGroup(groupId) {
     if (!mongoose.Types.ObjectId.isValid(groupId)) return;
     await ExpenseModel.deleteMany({ group: groupId });
-  }
+  },
+
+  async updateExpense(id, { title, amount, category, splitBetween }, editorId) {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    const existing = await ExpenseModel.findById(id);
+    if (!existing) return null;
+
+    const historyEntry = {
+      editedBy: editorId,
+      editedAt: new Date(),
+      prevTitle: existing.title,
+      prevAmount: existing.amount,
+    };
+
+    const updateOp = { $push: { editHistory: historyEntry }, $set: {} };
+    if (title !== undefined) updateOp.$set.title = title.trim();
+    if (amount !== undefined) updateOp.$set.amount = amount;
+    if (category !== undefined) updateOp.$set.category = category;
+    if (splitBetween !== undefined) {
+      updateOp.$set.splitBetween = splitBetween.map((s) => ({ user: s.user, amount: s.amount }));
+    }
+
+    await ExpenseModel.findByIdAndUpdate(id, updateOp);
+    return this.findByIdPopulated(id);
+  },
 };

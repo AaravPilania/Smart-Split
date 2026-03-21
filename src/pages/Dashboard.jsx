@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
 import StatsCard from "../components/Statscard";
+import InsightsPanel from "../components/InsightsPanel";
 import { FiTrendingUp, FiTrendingDown, FiPlus, FiClock, FiUser } from "react-icons/fi";
 import { BsPeopleFill } from "react-icons/bs";
 import { API_URL, apiFetch, getUser, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 import { detectCategory, getCategoryInfo } from "../utils/categories";
+import { computeInsights } from "../utils/insights";
 
 const CAT_COLORS = [
   "#ec4899", "#f59e0b", "#3b82f6", "#8b5cf6",
@@ -59,6 +61,7 @@ export default function Dashboard() {
   const [groupSpending, setGroupSpending] = useState([]);
   const [monthlyChartData, setMonthlyChartData] = useState([]);
   const [categoryData, setCategoryData] = useState([]);
+  const [insights, setInsights] = useState([]);
   const [avatar, setAvatar] = useState(localStorage.getItem("selectedAvatar") || "");
   const navigate = useNavigate();
   const { theme, isDark } = useTheme();
@@ -232,6 +235,10 @@ export default function Dashboard() {
       .filter((c) => c.amount > 0)
       .sort((a, b) => b.amount - a.amount);
     setCategoryData(catArr);
+
+    // Compute insights from current data
+    const currentUserId = userId;
+    setInsights(computeInsights({ expenses: allExpenses, categoryData: catArr, currentUserId }));
   };
 
   const formatCurrency = (amount) =>
@@ -352,6 +359,9 @@ export default function Dashboard() {
                 icon={<FiTrendingDown className="text-green-600 text-xl" />}
               />
             </div>
+
+            {/* Spending Insights */}
+            <InsightsPanel insights={insights} />
 
             {/* Buttons Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">

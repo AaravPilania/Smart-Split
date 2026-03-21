@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const validate = require('../middleware/validate');
+const { suggestCategorySchema, updateExpenseSchema } = require('../validators/expenseSchema');
 const {
   addExpense,
   getExpenses,
@@ -9,7 +11,9 @@ const {
   settleExpense,
   recordPayment,
   getPayments,
-  deleteExpense
+  deleteExpense,
+  suggestCategory,
+  updateExpense,
 } = require('../controllers/expenseController');
 
 router.post('/group/:groupId', auth, addExpense);
@@ -20,5 +24,7 @@ router.post('/group/:groupId/payment', auth, recordPayment);
 router.get('/group/:groupId/payments', auth, getPayments);
 router.post('/:expenseId/settle', auth, settleExpense);
 router.delete('/:expenseId', auth, deleteExpense);
+router.post('/suggest-category', auth, validate(suggestCategorySchema), suggestCategory);
+router.put('/:expenseId', auth, validate(updateExpenseSchema), updateExpense);
 
 module.exports = router;

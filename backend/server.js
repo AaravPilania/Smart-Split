@@ -2,10 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const slowDown = require('express-slow-down');
 require('dotenv').config();
 const { connectDB } = require('./config/database');
 const User = require('./models/User');
 const auth = require('./middleware/auth');
+const validate = require('./middleware/validate');
+const { signupSchema, loginSchema } = require('./validators/authSchema');
+const { createGroupSchema } = require('./validators/groupSchema');
 
 const app = express();
 
@@ -46,10 +50,18 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// Rate limiting
+// Progressive slowdown — starts adding latency after 50 requests/15min
+const speedLimiter = slowDown({
+  windowMs: 15 * 60 * 1000,
+  delayAfter: 50,
+  delayMs: (used) => Math.min((used - 50) * 100, 5000), // +100ms per req, capped at 5s
+});
+app.use('/api/', speedLimiter);
+
+// Hard rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
-  max: 300,
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many requests, please try again later.' }
@@ -58,7 +70,7 @@ app.use('/api/', limiter);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many auth attempts, please try again later.' }

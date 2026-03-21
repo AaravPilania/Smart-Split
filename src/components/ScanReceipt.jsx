@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { FiCamera, FiUpload, FiX, FiCheck, FiPlus, FiRefreshCw, FiCreditCard, FiChevronRight } from "react-icons/fi";
+import { FiCamera, FiUpload, FiX, FiCheck, FiPlus, FiRefreshCw, FiCreditCard, FiChevronRight, FiUserPlus, FiCopy } from "react-icons/fi";
 import jsQR from "jsqr";
 import Tesseract from "tesseract.js";
 import { apiFetch } from "../utils/api";
@@ -24,6 +24,9 @@ export default function ScanReceipt({
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [qrResult, setQrResult] = useState(null); // { pa, pn, am, rawUrl } when a UPI QR is decoded
   const [qrPayAmount, setQrPayAmount] = useState("");  // editable amount for QR pay confirmation
+  const [friendQrResult, setFriendQrResult] = useState(null); // { id, name, email } when a friend QR is detected
+  const [friendQrSending, setFriendQrSending] = useState(false);
+  const [friendQrSent, setFriendQrSent] = useState(false);
 
   // ── Settle Payment flow state ──
   const [settleStep, setSettleStep] = useState(null); // null | "pick" | "appPicker"
@@ -35,10 +38,10 @@ export default function ScanReceipt({
   });
 
   const UPI_APPS = [
-    { key: "gpay",    label: "Google Pay", scheme: "tez://upi/pay" },
-    { key: "phonepe", label: "PhonePe",    scheme: "phonepe://pay" },
-    { key: "paytm",   label: "Paytm",      scheme: "paytm://upi/pay" },
-    { key: "generic", label: "Other UPI",   scheme: "upi://pay" },
+    { key: "gpay",    label: "Google Pay",  scheme: "upi://pay" },
+    { key: "phonepe", label: "PhonePe",     scheme: "upi://pay" },
+    { key: "paytm",   label: "Paytm",       scheme: "upi://pay" },
+    { key: "generic", label: "Other UPI",    scheme: "upi://pay" },
   ];
 
   const [formData, setFormData] = useState({
@@ -266,6 +269,20 @@ export default function ScanReceipt({
           setMode(null); // close fullscreen camera, show modal body
           return;
         }
+        // Detect friend QR codes (e.g. https://thesmartsplit.netlify.app/add-friend/<24-hex-id>)
+        const friendMatch = raw.match(/\/add-friend\/([a-f0-9]{24})/i);
+        if (friendMatch) {
+          cancelAnimationFrame(qrLoopRef.current);
+          qrLoopRef.current = null;
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach((t) => t.stop());
+            streamRef.current = null;
+          }
+          if (videoRef.current) videoRef.current.srcObject = null;
+          setMode(null);
+          handleFriendQrDetected(friendMatch[1]);
+          return;
+        }
       }
       qrLoopRef.current = requestAnimationFrame(tick);
     };
@@ -302,7 +319,36 @@ export default function ScanReceipt({
   const resetQRScan = () => {
     setQrResult(null);
     setQrPayAmount("");
+    setFriendQrResult(null);
+    setFriendQrSending(false);
+    setFriendQrSent(false);
     startQRScan();
+  };
+
+  // Fetch profile after a friend QR is detected and show add-friend UI
+  const handleFriendQrDetected = async (friendId) => {
+    try {
+      const resp = await fetch(`${API_URL}/auth/profile/${friendId}`);
+      const data = await resp.json();
+      setFriendQrResult({ id: friendId, name: data.user?.name || '', email: data.user?.email || '' });
+    } catch {
+      setFriendQrResult({ id: friendId, name: '', email: '' });
+    }
+  };
+
+  const sendFriendQrRequest = async () => {
+    if (!friendQrResult?.id) return;
+    setFriendQrSending(true);
+    try {
+      const res = await apiFetch(`${API_URL}/friends/request/${friendQrResult.id}`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) { alert(data.message); return; }
+      setFriendQrSent(true);
+    } catch {
+      alert('Something went wrong. Please try again.');
+    } finally {
+      setFriendQrSending(false);
+    }
   };
 
   // ── Settle Payment helpers ──────────────────────────────────────────────
@@ -604,6 +650,22 @@ export default function ScanReceipt({
         category: autoCategory,
       });
 
+      // Fire Gemini AI suggestion — updates category silently if AI has higher confidence
+      (async () => {
+        try {
+          const sgRes = await apiFetch(`${API_URL}/expenses/suggest-category`, {
+            method: 'POST',
+            body: JSON.stringify({ title: extracted.title, ocrText: data.text.slice(0, 500) }),
+          });
+          if (sgRes.ok) {
+            const sgData = await sgRes.json();
+            if (sgData.source === 'ai' && sgData.category) {
+              setFormData(f => ({ ...f, category: sgData.category }));
+            }
+          }
+        } catch (_) { /* fail silently — local detection already set */ }
+      })();
+
       setScanning(false);
     } catch (error) {
       console.error("OCR Error:", error);
@@ -817,15 +879,65 @@ export default function ScanReceipt({
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-3xl w-full p-4 sm:p-6 my-8 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-2xl font-bold text-gray-800 dark:text-white">
-            {settleStep ? "Settle Payment" : qrResult ? "Pay via UPI" : "Scan Receipt"}
+            {settleStep ? "Settle Payment" : friendQrResult ? "Add Friend" : qrResult ? "Pay via UPI" : "Scan Receipt"}
           </h3>
           <button
-            onClick={() => { setQrResult(null); setQrPayAmount(""); resetSettleFlow(); onClose(); }}
+            onClick={() => { setQrResult(null); setQrPayAmount(""); setFriendQrResult(null); setFriendQrSent(false); resetSettleFlow(); onClose(); }}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
           >
             <FiX className="text-xl" />
           </button>
         </div>
+
+        {/* ── Friend QR Result ── */}
+        {friendQrResult && !qrResult && (
+          <div className="space-y-4">
+            <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-xl p-4 flex items-center gap-3">
+              <FiUserPlus className="text-purple-500 text-xl flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-purple-800 dark:text-purple-300 text-sm">Friend QR Detected!</p>
+                <p className="text-xs text-purple-600 dark:text-purple-400 mt-0.5">Scan your friend's QR to connect</p>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-5 flex flex-col items-center gap-3">
+              <div className="h-16 w-16 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg" style={getGradientStyle(theme)}>
+                {friendQrResult.name?.[0]?.toUpperCase() || "?"}
+              </div>
+              {friendQrResult.name && <p className="text-lg font-bold text-gray-900 dark:text-white">{friendQrResult.name}</p>}
+              {friendQrResult.email && <p className="text-sm text-gray-500 dark:text-gray-400">{friendQrResult.email}</p>}
+            </div>
+
+            {friendQrSent ? (
+              <div className="py-4 text-center">
+                <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-3">
+                  <FiCheck className="text-green-600 dark:text-green-400 text-xl" />
+                </div>
+                <p className="font-semibold text-green-700 dark:text-green-400">Request Sent!</p>
+                <p className="text-sm text-gray-500 mt-1">You'll be friends once they accept.</p>
+              </div>
+            ) : (
+              <button
+                onClick={sendFriendQrRequest}
+                disabled={friendQrSending}
+                className="w-full py-3 rounded-xl text-white font-bold flex items-center justify-center gap-2 disabled:opacity-70"
+                style={getGradientStyle(theme)}
+              >
+                {friendQrSending
+                  ? <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                  : <FiUserPlus size={16} />}
+                {friendQrSending ? 'Sending…' : 'Send Friend Request'}
+              </button>
+            )}
+
+            <button
+              onClick={() => { setFriendQrResult(null); setFriendQrSent(false); startQRScan(); }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-medium transition"
+            >
+              <FiRefreshCw size={14} /> Scan Again
+            </button>
+          </div>
+        )}
 
         {/* ── QR Result Confirmation ── */}
         {qrResult && (
@@ -994,6 +1106,18 @@ export default function ScanReceipt({
                     Clear default app ({UPI_APPS.find(a => a.key === defaultUpiApp)?.label})
                   </button>
                 )}
+                {/* Copy UPI details fallback */}
+                <button
+                  onClick={() => {
+                    const s = selectedSettle;
+                    if (!s?.to?.upiId) return;
+                    const text = `UPI ID: ${s.to.upiId} | Name: ${s.to.name} | Amount: ₹${parseFloat(s.amount).toFixed(2)}`;
+                    navigator.clipboard?.writeText(text).then(() => alert('Copied! Open your UPI app and paste.'));
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 transition border dark:border-gray-700 rounded-lg"
+                >
+                  <FiCopy size={13} /> Copy UPI details
+                </button>
               </>
             )}
 

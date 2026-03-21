@@ -10,6 +10,7 @@ export default function AddFriend() {
   const { theme } = useTheme();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
   const isLoggedIn = !!getToken();
@@ -27,7 +28,6 @@ export default function AddFriend() {
 
   const handleSendRequest = async () => {
     if (!isLoggedIn) {
-      // Redirect to login, then come back
       navigate(`/?redirect=/add-friend/${recipientId}`);
       return;
     }
@@ -35,6 +35,8 @@ export default function AddFriend() {
       setError("That's your own QR code!");
       return;
     }
+    setSending(true);
+    setError("");
     try {
       const res = await apiFetch(`${API_URL}/friends/request/${recipientId}`, { method: "POST" });
       const data = await res.json();
@@ -42,6 +44,8 @@ export default function AddFriend() {
       setSent(true);
     } catch {
       setError("Something went wrong. Please try again.");
+    } finally {
+      setSending(false);
     }
   };
 
@@ -92,11 +96,16 @@ export default function AddFriend() {
 
               <button
                 onClick={handleSendRequest}
-                className="w-full py-3 rounded-xl text-white font-bold shadow-lg hover:shadow-xl hover:opacity-95 transition flex items-center justify-center gap-2"
+                disabled={sending}
+                className="w-full py-3 rounded-xl text-white font-bold shadow-lg hover:shadow-xl hover:opacity-95 transition flex items-center justify-center gap-2 disabled:opacity-70"
                 style={getGradientStyle(theme)}
               >
-                <FiUserPlus size={16} />
-                {isLoggedIn ? "Send Friend Request" : "Sign in to Add Friend"}
+                {sending ? (
+                  <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                ) : (
+                  <FiUserPlus size={16} />
+                )}
+                {sending ? 'Sending…' : isLoggedIn ? "Send Friend Request" : "Sign in to Add Friend"}
               </button>
 
               {!isLoggedIn && (

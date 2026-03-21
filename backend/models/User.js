@@ -21,6 +21,11 @@ function doc2obj(doc) {
   return plain;
 }
 
+// Escape special regex characters to prevent regex injection
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 async function generateUniqueUsername(name) {
   const base = name
     .toLowerCase()
@@ -64,17 +69,35 @@ module.exports = {
   },
 
   async search(emailPattern, limit = 10) {
-    const users = await UserModel
-      .find({ email: { $regex: emailPattern, $options: 'i' } }, 'name email username pfp')
-      .limit(limit);
-    return users.map(doc2obj);
+    const escaped = escapeRegex(emailPattern);
+    // Prefix matches first, then contains
+    const startsWith = await UserModel
+      .find({ email: { $regex: `^${escaped}`, $options: 'i' } }, 'name email username pfp')
+      .limit(limit)
+      .lean();
+    if (startsWith.length >= limit) return startsWith.map(doc2obj);
+    const ids = startsWith.map((u) => u._id);
+    const contains = await UserModel
+      .find({ email: { $regex: escaped, $options: 'i' }, _id: { $nin: ids } }, 'name email username pfp')
+      .limit(limit - startsWith.length)
+      .lean();
+    return [...startsWith, ...contains].map(doc2obj);
   },
 
   async searchByUsername(usernamePattern, limit = 10) {
-    const users = await UserModel
-      .find({ username: { $regex: usernamePattern, $options: 'i' } }, 'name email username pfp')
-      .limit(limit);
-    return users.map(doc2obj);
+    const escaped = escapeRegex(usernamePattern);
+    // Prefix matches first, then contains
+    const startsWith = await UserModel
+      .find({ username: { $regex: `^${escaped}`, $options: 'i' } }, 'name email username pfp')
+      .limit(limit)
+      .lean();
+    if (startsWith.length >= limit) return startsWith.map(doc2obj);
+    const ids = startsWith.map((u) => u._id);
+    const contains = await UserModel
+      .find({ username: { $regex: escaped, $options: 'i' }, _id: { $nin: ids } }, 'name email username pfp')
+      .limit(limit - startsWith.length)
+      .lean();
+    return [...startsWith, ...contains].map(doc2obj);
   },
 
   async updateById(id, updates) {

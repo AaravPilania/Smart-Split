@@ -383,7 +383,7 @@ Before simplification          After simplification
   C ──₹200──→ A                  3 txns → 2 txns ✓
 ```
 
-The algorithm separates creditors from debtors, sorts them, and iteratively matches the smallest transferable amount — guaranteeing the minimum number of payments.
+The algorithm separates creditors from debtors, sorts them, and iteratively matches the smallest transferable amount — efficiently reducing transactions using a greedy heuristic. This is optimal in most real-world cases.
 
 <br/>
 

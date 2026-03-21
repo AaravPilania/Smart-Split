@@ -3,6 +3,7 @@ const Group = require('../models/Group');
 const User = require('../models/User');
 const ActivityLog = require('../models/ActivityLog');
 const Payment = require('../models/Payment');
+const { classifyExpenseCategory } = require('../utils/gemini');
 
 // Helper: silently log activity
 async function logActivity(groupId, actorId, actorName, action, details, meta = {}) {
@@ -349,6 +350,59 @@ exports.deleteExpense = async (req, res) => {
 
     await Expense.deleteOne(req.params.expenseId);
     res.json({ message: 'Expense deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Suggest category using Gemini AI
+exports.suggestCategory = async (req, res) => {
+  try {
+    const { title, ocrText } = req.body;
+    const category = await classifyExpenseCategory(title || '', ocrText || '');
+    res.json({ category: category || 'other', source: category ? 'ai' : 'fallback' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Update an existing expense
+exports.updateExpense = async (req, res) => {
+  try {
+    const { expenseId } = req.params;
+    const { title, amount, category, splitBetween } = req.body;
+
+    const existing = await Expense.findById(expenseId);
+    if (!existing) return res.status(404).json({ message: 'Expense not found' });
+
+    const groupId = existing.group?._id || existing.group;
+    const group = await Group.findById(groupId);
+    const callerId = req.user.id;
+    const paidById = existing.paidBy?._id?.toString() || existing.paidBy?.toString();
+    const isPayer = paidById === callerId;
+    const isCreator = group?.createdBy?.toString() === callerId;
+
+    if (!isPayer && !isCreator) {
+      return res.status(403).json({ message: 'Only the payer or group creator can edit this expense' });
+    }
+
+    if (amount !== undefined && splitBetween !== undefined) {
+      const total = splitBetween.reduce((s, x) => s + parseFloat(x.amount || 0), 0);
+      if (Math.abs(total - parseFloat(amount)) > 0.01) {
+        return res.status(400).json({ message: 'Split amounts must equal total amount' });
+      }
+    }
+
+    const updated = await Expense.updateExpense(expenseId, { title, amount, category, splitBetween }, callerId);
+
+    logActivity(
+      groupId, callerId, req.user.name || 'Unknown',
+      'edited_expense',
+      `Edited "${updated.title}" — ₹${parseFloat(updated.amount).toFixed(2)}`,
+      { expenseId }
+    );
+
+    res.json({ message: 'Expense updated', expense: updated });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

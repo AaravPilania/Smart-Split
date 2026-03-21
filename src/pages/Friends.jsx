@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
 import {
@@ -24,12 +24,25 @@ export default function Friends() {
   const [loading, setLoading] = useState(true);
   const [showMyQR, setShowMyQR] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
+  const debounceRef = useRef(null);
 
   const myQRValue = `${APP_URL}/add-friend/${userId}`;
 
   useEffect(() => {
     fetchAll();
   }, []);
+
+  // Live debounced search — fires 400ms after user stops typing (min 2 chars)
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const q = searchEmail.trim();
+    if (q.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    debounceRef.current = setTimeout(() => runSearch(q), 400);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchEmail]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchAll = async () => {
     setLoading(true);
@@ -57,19 +70,14 @@ export default function Friends() {
     } catch {}
   };
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!searchEmail.trim()) return;
-    const isUsername = searchEmail.trim().startsWith('@');
+  const runSearch = async (q) => {
+    const isUsername = q.startsWith('@');
     setSearchWasUsername(isUsername);
     setSearching(true);
-    setSearchResults([]);
     try {
-      // Use ?email= for email queries (ensures backward compat with production backend)
-      // Use ?q= for @username queries (requires updated backend)
       const param = isUsername
-        ? `q=${encodeURIComponent(searchEmail.trim())}`
-        : `email=${encodeURIComponent(searchEmail.trim())}`;
+        ? `q=${encodeURIComponent(q)}`
+        : `email=${encodeURIComponent(q)}`;
       const res = await apiFetch(`${API_URL}/users/search?${param}`);
       if (res.ok) {
         const data = await res.json();
@@ -78,6 +86,12 @@ export default function Friends() {
     } finally {
       setSearching(false);
     }
+  };
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchEmail.trim()) return;
+    runSearch(searchEmail.trim());
   };
 
   const sendRequest = async (recipientId) => {

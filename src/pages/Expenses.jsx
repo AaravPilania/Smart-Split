@@ -10,6 +10,7 @@ import {
   FiUser,
   FiDownload,
   FiTrash2,
+  FiEdit2,
 } from "react-icons/fi";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
@@ -23,6 +24,9 @@ export default function Expenses() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [userId, setUserId] = useState(null);
   const [deletingExpense, setDeletingExpense] = useState(null);
+  const [editingExpense, setEditingExpense] = useState(null);
+  const [editForm, setEditForm] = useState({ title: '', amount: '', category: 'other' });
+  const [submittingEdit, setSubmittingEdit] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -164,6 +168,48 @@ export default function Expenses() {
       console.error(e);
     } finally {
       setDeletingExpense(null);
+    }
+  };
+
+  const openEditModal = (expense) => {
+    setEditingExpense(expense);
+    setEditForm({ title: expense.title, amount: String(expense.amount), category: expense.category || 'other' });
+  };
+
+  const handleEditExpense = async (e) => {
+    e.preventDefault();
+    setSubmittingEdit(true);
+    try {
+      const newAmount = parseFloat(editForm.amount);
+      const updates = { title: editForm.title.trim(), category: editForm.category };
+
+      if (!isNaN(newAmount) && newAmount > 0) {
+        updates.amount = newAmount;
+        const originalTotal = parseFloat(editingExpense.amount);
+        const splits = editingExpense.splitBetween.map((s) => ({
+          user: s.user?.id || s.user,
+          amount: parseFloat(((s.amount / originalTotal) * newAmount).toFixed(2)),
+        }));
+        const splitTotal = splits.reduce((sum, s) => sum + s.amount, 0);
+        const diff = parseFloat((newAmount - splitTotal).toFixed(2));
+        if (Math.abs(diff) > 0.001 && splits.length > 0) {
+          splits[splits.length - 1].amount = parseFloat((splits[splits.length - 1].amount + diff).toFixed(2));
+        }
+        updates.splitBetween = splits;
+      }
+
+      const res = await apiFetch(`${API_URL}/expenses/${editingExpense.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to update expense');
+      setExpenses(prev => prev.map(ex => ex.id === editingExpense.id ? data.expense : ex));
+      setEditingExpense(null);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSubmittingEdit(false);
     }
   };
 
@@ -334,7 +380,7 @@ export default function Expenses() {
           <select
             value={selectedGroupId || ""}
             onChange={(e) => {
-              const groupId = parseInt(e.target.value);
+              const groupId = e.target.value;
               setSelectedGroupId(groupId);
               fetchExpenses(groupId);
             }}
@@ -421,14 +467,23 @@ export default function Expenses() {
                       Paid by {expense.paidBy?.name || "Unknown"}
                     </p>
                     {(expense.paidBy?.id?.toString() === userId || selectedGroup?.createdBy?.id?.toString() === userId) && (
-                      <button
-                        onClick={() => handleDeleteExpense(expense.id)}
-                        disabled={deletingExpense === expense.id}
-                        className="mt-1.5 text-red-400 hover:text-red-600 dark:hover:text-red-300 transition p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40"
-                        title="Delete expense"
-                      >
-                        <FiTrash2 size={15} />
-                      </button>
+                      <div className="flex items-center gap-1 mt-1.5">
+                        <button
+                          onClick={() => openEditModal(expense)}
+                          className="text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition p-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                          title="Edit expense"
+                        >
+                          <FiEdit2 size={15} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteExpense(expense.id)}
+                          disabled={deletingExpense === expense.id}
+                          className="text-red-400 hover:text-red-600 dark:hover:text-red-300 transition p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40"
+                          title="Delete expense"
+                        >
+                          <FiTrash2 size={15} />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -750,6 +805,79 @@ export default function Expenses() {
                   style={getGradientStyle(theme)}
                 >
                   Create Expense
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Edit Expense Modal */}
+      {editingExpense && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Edit Expense</h3>
+              <button onClick={() => setEditingExpense(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                <FiX className="text-xl" />
+              </button>
+            </div>
+            <form onSubmit={handleEditExpense} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
+                <input
+                  type="text"
+                  value={editForm.title}
+                  onChange={(e) => setEditForm(f => ({ ...f, title: e.target.value }))}
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount (₹)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editForm.amount}
+                  onChange={(e) => setEditForm(f => ({ ...f, amount: e.target.value }))}
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2"
+                  required
+                />
+                <p className="text-xs text-gray-400 mt-1">Splits will be adjusted proportionally</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.key}
+                      type="button"
+                      onClick={() => setEditForm(f => ({ ...f, category: cat.key }))}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
+                        editForm.category === cat.key
+                          ? cat.badge + " border-current scale-105"
+                          : "border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400"
+                      }`}
+                    >
+                      {cat.icon} {cat.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingExpense(null)}
+                  className="flex-1 px-4 py-2 border dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingEdit}
+                  className="flex-1 px-4 py-2 text-white rounded-lg hover:opacity-90 disabled:opacity-60"
+                  style={getGradientStyle(theme)}
+                >
+                  {submittingEdit ? 'Saving…' : 'Save Changes'}
                 </button>
               </div>
             </form>
