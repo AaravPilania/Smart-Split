@@ -12,7 +12,7 @@ const app = express();
 // Security headers
 app.use(helmet());
 
-// CORS — must be before all route handlers so every response gets proper headers
+// CORS — Updated for Cloudflare Pages
 const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
   : ['http://localhost:5173', 'http://localhost:3000'];
@@ -21,28 +21,34 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, curl, Postman)
     if (!origin) return callback(null, true);
-    // Always allow localhost on any port in development
+    
+    // Always allow localhost in development
     if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return callback(null, true);
-    // Allow explicitly listed origins
+    
+    // Allow explicitly listed origins (from .env)
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    // Always allow Netlify deployments for this project
-    if (/^https:\/\/.*\.netlify\.app$/.test(origin)) return callback(null, true);
-    // Always allow Render deployments for this project
+    
+    // Allow Cloudflare Pages deployments
+    if (/^https:\/\/thesmartsplit\.pages\.dev$/.test(origin)) return callback(null, true);
+    if (/^https:\/\/.*\.pages\.dev$/.test(origin)) return callback(null, true); // Matches previews
+
+    // Allow Render deployments (for backend-to-backend communication if needed)
     if (/^https:\/\/.*\.onrender\.com$/.test(origin)) return callback(null, true);
+
     callback(new Error(`CORS: origin ${origin} not allowed`));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   credentials: true,
 }));
 
-// ── Health check (BEFORE rate limiter so keep-alive pings never get throttled) ─
+// ── Health check ──
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000, 
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
@@ -50,7 +56,6 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Stricter rate limit for auth endpoints
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -72,23 +77,19 @@ app.use('/api/requests', require('./routes/groupRequestRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/friends', require('./routes/friendRoutes'));
 
-// User search endpoint — matches @username, email, or bare name/username prefix
+// User search endpoint
 app.get('/api/users/search', auth, async (req, res) => {
   try {
     const { q, email } = req.query;
     const query = q || email;
-    if (!query) {
-      return res.status(400).json({ message: 'query param is required' });
-    }
+    if (!query) return res.status(400).json({ message: 'query param is required' });
+    
     let users;
     if (query.startsWith('@')) {
-      // Explicit username search
       users = await User.searchByUsername(query.slice(1), 10);
     } else if (query.includes('@')) {
-      // Looks like an email address
       users = await User.search(query, 10);
     } else {
-      // Ambiguous — search both email and username, then merge+dedupe
       const [byEmail, byUsername] = await Promise.all([
         User.search(query, 10),
         User.searchByUsername(query, 10),
@@ -139,11 +140,7 @@ connectDB()
   .then(() => {
     app.listen(PORT, () => {
       console.log(`✅ Server running on http://localhost:${PORT}`);
-      console.log(`   Health check: http://localhost:${PORT}/api/health`);
-
-      // ── Keep-alive self-ping ──────────────────────────────────────────────
-      // Render free tier spins down after ~15 min of inactivity.
-      // We ping our own /api/health every 14 minutes to stay awake.
+      
       const SELF_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
       setInterval(async () => {
         try {
@@ -152,7 +149,7 @@ connectDB()
         } catch (e) {
           console.warn('[keep-alive] ping failed:', e.message);
         }
-      }, 14 * 60 * 1000); // every 14 minutes
+      }, 14 * 60 * 1000); 
     });
   })
   .catch((err) => {
