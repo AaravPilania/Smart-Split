@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { FiCamera, FiUpload, FiX, FiCheck, FiPlus, FiRefreshCw, FiCreditCard, FiChevronRight, FiUserPlus, FiCopy } from "react-icons/fi";
 import jsQR from "jsqr";
 import Tesseract from "tesseract.js";
-import { apiFetch } from "../utils/api";
+import { apiFetch, getToken } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
 import { CATEGORIES, detectCategory, detectCategoryFromText, getCategoryInfo } from "../utils/categories";
 
@@ -20,6 +20,7 @@ export default function ScanReceipt({
   const [imageUrl, setImageUrl] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [extractedData, setExtractedData] = useState(null);
+  const [aiScanSource, setAiScanSource] = useState(null); // null | 'gemini' | 'tesseract'
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [qrResult, setQrResult] = useState(null); // { pa, pn, am, rawUrl } when a UPI QR is decoded
@@ -595,79 +596,63 @@ export default function ScanReceipt({
   };
 
   const scanReceipt = async () => {
-    if (!image) {
-      alert("Please take a photo or upload an image first");
-      return;
-    }
-
-    if (!selectedGroupId) {
-      alert("Please select a group first");
-      return;
-    }
-
+    if (!image) { alert("Please take a photo or upload an image first"); return; }
+    if (!selectedGroupId) { alert("Please select a group first"); return; }
+    setScanning(true);
     try {
-      setScanning(true);
+      // ── Gemini Vision (primary) ──────────────────────────────────
+      try {
+        const fd = new FormData();
+        fd.append('image', image);
+        const token = getToken();
+        const gemRes = await fetch(`${API_URL}/expenses/analyze-receipt`, {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: fd,
+        });
+        if (gemRes.ok) {
+          const { title, amount, category } = await gemRes.json();
+          const splits = [];
+          if (selectedGroup?.members && amount > 0) {
+            const each = amount / selectedGroup.members.length;
+            selectedGroup.members.forEach(m => splits.push({ userId: m.id, amount: parseFloat(each.toFixed(2)) }));
+          }
+          setExtractedData({ aiScanned: true });
+          setAiScanSource('gemini');
+          setFormData({ title, amount: amount.toString(), paidBy: userId, splits, category });
+          return;
+        }
+      } catch (_) { /* fall through to Tesseract */ }
 
-      // Preprocess for better OCR (especially handwriting)
+      // ── Tesseract fallback ───────────────────────────────────────
       const processedImage = await preprocessImage(image);
-
-      // Run OCR — PSM 4 (single column) handles receipt layouts better than PSM 6
       const { data } = await Tesseract.recognize(processedImage, "eng", {
         logger: () => {},
-        tessedit_pageseg_mode: "4",       // Single column of text of variable sizes
-        tessedit_ocr_engine_mode: "1",    // Neural net LSTM only
+        tessedit_pageseg_mode: "4",
+        tessedit_ocr_engine_mode: "1",
         preserve_interword_spaces: "1",
       });
-
       const extracted = extractExpenseData(data.text);
-      
-      // Auto-split evenly among all group members if amount found
       const splits = [];
-      if (selectedGroup && selectedGroup.members && extracted.amount > 0) {
-        const splitAmount = extracted.amount / selectedGroup.members.length;
-        selectedGroup.members.forEach((member) => {
-          splits.push({
-            userId: member.id,
-            amount: parseFloat(splitAmount.toFixed(2)),
-          });
-        });
+      if (selectedGroup?.members && extracted.amount > 0) {
+        const each = extracted.amount / selectedGroup.members.length;
+        selectedGroup.members.forEach(m => splits.push({ userId: m.id, amount: parseFloat(each.toFixed(2)) }));
       }
-
-      setExtractedData({
-        ...extracted,
-        rawText: data.text,
-      });
-
+      setExtractedData({ rawText: data.text });
+      setAiScanSource('tesseract');
       const autoCategory = detectCategoryFromText(data.text) || detectCategory(extracted.title);
-
-      setFormData({
-        title: extracted.title,
-        amount: extracted.amount > 0 ? extracted.amount.toString() : "",
-        paidBy: userId,
-        splits: splits,
-        category: autoCategory,
-      });
-
-      // Fire Gemini AI suggestion — updates category silently if AI has higher confidence
+      setFormData({ title: extracted.title, amount: extracted.amount > 0 ? extracted.amount.toString() : "", paidBy: userId, splits, category: autoCategory });
+      // Silent Gemini category refinement (Tesseract path only)
       (async () => {
         try {
-          const sgRes = await apiFetch(`${API_URL}/expenses/suggest-category`, {
-            method: 'POST',
-            body: JSON.stringify({ title: extracted.title, ocrText: data.text.slice(0, 500) }),
-          });
-          if (sgRes.ok) {
-            const sgData = await sgRes.json();
-            if (sgData.source === 'ai' && sgData.category) {
-              setFormData(f => ({ ...f, category: sgData.category }));
-            }
-          }
-        } catch (_) { /* fail silently — local detection already set */ }
+          const sgRes = await apiFetch(`${API_URL}/expenses/suggest-category`, { method: 'POST', body: JSON.stringify({ title: extracted.title, ocrText: data.text.slice(0, 500) }) });
+          if (sgRes.ok) { const sg = await sgRes.json(); if (sg.source === 'ai' && sg.category) setFormData(f => ({ ...f, category: sg.category })); }
+        } catch (_) {}
       })();
-
-      setScanning(false);
     } catch (error) {
       console.error("OCR Error:", error);
       alert("Failed to scan receipt. Please try again or enter manually.");
+    } finally {
       setScanning(false);
     }
   };
@@ -1277,6 +1262,7 @@ export default function ScanReceipt({
                         setImage(null);
                         setImageUrl(null);
                         setExtractedData(null);
+                        setAiScanSource(null);
                         if (imageUrl) URL.revokeObjectURL(imageUrl);
                       }}
                       className="px-6 py-3 border-2 rounded-lg font-semibold transition hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
@@ -1291,7 +1277,7 @@ export default function ScanReceipt({
                 {scanning && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <p className="text-blue-800 text-sm">
-                      Analyzing receipt image... This may take a few seconds.
+                      Reading your receipt with Gemini…
                     </p>
                   </div>
                 )}
@@ -1300,16 +1286,23 @@ export default function ScanReceipt({
                 {extractedData && (
                   <form onSubmit={handleCreateExpense} className="space-y-4">
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <p className="text-green-800 text-sm font-semibold mb-2">
-                        ✓ Receipt scanned successfully!
-                      </p>
-                      {extractedData.rawText && (
-                        <details className="text-xs text-green-700">
-                          <summary className="cursor-pointer">View extracted text</summary>
-                          <pre className="mt-2 whitespace-pre-wrap max-h-32 overflow-y-auto">
-                            {extractedData.rawText.substring(0, 500)}
-                          </pre>
-                        </details>
+                      {aiScanSource === 'gemini' ? (
+                        <>
+                          <p className="text-green-800 text-sm font-semibold mb-1">✦ Read by Gemini</p>
+                          <p className="text-green-700 text-xs">Title, amount and category auto-filled from your receipt.</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-green-800 text-sm font-semibold mb-2">✓ Receipt scanned successfully!</p>
+                          {extractedData.rawText && (
+                            <details className="text-xs text-green-700">
+                              <summary className="cursor-pointer">View extracted text</summary>
+                              <pre className="mt-2 whitespace-pre-wrap max-h-32 overflow-y-auto">
+                                {extractedData.rawText.substring(0, 500)}
+                              </pre>
+                            </details>
+                          )}
+                        </>
                       )}
                     </div>
 

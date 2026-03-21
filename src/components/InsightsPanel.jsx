@@ -20,9 +20,7 @@ export default function InsightsPanel({ insights = [] }) {
         <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
           Insights
         </h3>
-        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white" style={{ background: theme.gradFrom }}>
-          AI
-        </span>
+
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

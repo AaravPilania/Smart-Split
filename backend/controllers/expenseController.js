@@ -3,7 +3,7 @@ const Group = require('../models/Group');
 const User = require('../models/User');
 const ActivityLog = require('../models/ActivityLog');
 const Payment = require('../models/Payment');
-const { classifyExpenseCategory } = require('../utils/gemini');
+const { classifyExpenseCategory, analyzeReceiptImage, parseNaturalLanguageExpense } = require('../utils/gemini');
 
 // Helper: silently log activity
 async function logActivity(groupId, actorId, actorName, action, details, meta = {}) {
@@ -361,6 +361,31 @@ exports.suggestCategory = async (req, res) => {
     const { title, ocrText } = req.body;
     const category = await classifyExpenseCategory(title || '', ocrText || '');
     res.json({ category: category || 'other', source: category ? 'ai' : 'fallback' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Analyze a receipt image using Gemini Vision
+exports.analyzeReceipt = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No image provided' });
+    const result = await analyzeReceiptImage(req.file.buffer, req.file.mimetype);
+    if (!result) return res.status(422).json({ message: 'Could not analyze receipt — falling back to OCR' });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Parse natural-language expense text using Gemini
+exports.parseExpenseText = async (req, res) => {
+  try {
+    const { text, friends } = req.body;
+    if (!text?.trim()) return res.status(400).json({ message: 'text is required' });
+    const result = await parseNaturalLanguageExpense(text.trim(), Array.isArray(friends) ? friends : []);
+    if (!result) return res.status(422).json({ message: 'Could not parse expense' });
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

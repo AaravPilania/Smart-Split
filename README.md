@@ -10,7 +10,7 @@
 <br/>
 
 **The intelligent expense-sharing platform that makes splitting bills effortless.**
-**Real-time tracking · AI receipt scanning · Smart categories · UPI settlements · QR friend invites**
+**Real-time tracking · Gemini Vision receipt scan · Aaru NL expense chatbot · UPI settlements · QR friend invites**
 
 <br/>
 
@@ -41,8 +41,9 @@ Built for the way real friend groups actually work — messy tabs, forgotten IOU
 
 | | Feature | What it does |
 |:--:|:--|:--|
-| 🧾 | **AI Receipt Scanner** | Point your camera at any receipt — OCR extracts items, totals, and dates instantly |
-| 🏷️ | **Smart Categories** | AI auto-detects expense categories from receipt text; manual picker with 8 categories |
+| ✦ | **Gemini Vision Scanner** | Point your camera at any receipt — Gemini reads the image natively and returns merchant name, total, and category instantly. Tesseract OCR is the automatic fallback. |
+| ✦ | **Aaru — Expense Assistant** | Floating chatbot (bottom-right). Type any natural-language description like "Pizza ₹500 with Priya" and Aaru parses it into a ready-to-confirm expense card. |
+| 🏷️ | **Smart Categories** | Gemini auto-detects expense categories from receipt text; manual picker with 8 categories |
 | 👥 | **Smart Group Splits** | Create groups, add expenses, and let the algorithm calculate who owes what |
 | 📊 | **Live Dashboards** | Real-time metrics: total spend, debts owed, monthly trends, category breakdowns |
 | ⚡ | **UPI Settle Flow** | Pick a settlement, choose your UPI app, and pay — with "set default app" support |

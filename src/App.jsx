@@ -9,7 +9,8 @@ import Profile from "./pages/Profile";
 import Balances from "./pages/Balances";
 import Friends from "./pages/Friends";
 import AddFriend from "./pages/AddFriend";
-import { getToken, wakeUpServer } from "./utils/api";
+import { getToken, wakeUpServer, getUserId, API_URL, apiFetch } from "./utils/api";
+import Aaru from "./components/Aaru";
 
 // Redirects to / if not logged in
 function ProtectedRoute({ element }) {
@@ -92,6 +93,31 @@ function usePWAAutoUpdate() {
   }, []);
 }
 
+// Provides Aaru with live groups + friend names; renders nothing when logged out
+function AaruContainer() {
+  const [groups, setGroups] = useState([]);
+  const [friends, setFriends] = useState([]);
+  const userId = getUserId();
+
+  useEffect(() => {
+    if (!getToken()) return;
+    apiFetch(`${API_URL}/groups?userId=${userId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.groups) setGroups(d.groups); })
+      .catch(() => {});
+    apiFetch(`${API_URL}/friends`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const list = d?.friends || [];
+        setFriends(list.map((f) => f.name || f.email || "").filter(Boolean));
+      })
+      .catch(() => {});
+  }, [userId]);
+
+  if (!getToken()) return null;
+  return <Aaru groups={groups} userId={userId} friends={friends} />;
+}
+
 // Offline indicator banner
 function OfflineBanner() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -121,6 +147,7 @@ function App() {
   return (
     <BrowserRouter>
       <OfflineBanner />
+      <AaruContainer />
       <BackButtonGuard />
       <PageTransition>
         <Routes>
