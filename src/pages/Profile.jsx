@@ -22,7 +22,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
 import { ACCENT_PRESETS, getGradientStyle, useTheme, toggleDarkMode } from "../utils/theme";
 
-const APP_URL = import.meta.env.VITE_APP_URL || "https://thesmartsplit.netlify.app";
+const APP_URL = import.meta.env.VITE_APP_URL || "https://thesmartsplit.pages.dev";
 
 export default function Profile() {
   const [user, setUser] = useState(null);

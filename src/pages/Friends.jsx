@@ -9,7 +9,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
 
-const APP_URL = import.meta.env.VITE_APP_URL || "https://thesmartsplit.netlify.app";
+const APP_URL = import.meta.env.VITE_APP_URL || "https://thesmartsplit.pages.dev";
 
 export default function Friends() {
   const { theme } = useTheme();

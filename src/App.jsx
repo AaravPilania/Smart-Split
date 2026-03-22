@@ -95,12 +95,14 @@ function usePWAAutoUpdate() {
 
 // Provides Aaru with live groups + friend names; renders nothing when logged out
 function AaruContainer() {
+  const { pathname } = useLocation(); // re-render on every navigation (e.g. after login)
   const [groups, setGroups] = useState([]);
   const [friends, setFriends] = useState([]);
   const userId = getUserId();
+  const token = getToken();
 
   useEffect(() => {
-    if (!getToken()) return;
+    if (!token) return;
     apiFetch(`${API_URL}/groups?userId=${userId}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (d?.groups) setGroups(d.groups); })
@@ -112,9 +114,9 @@ function AaruContainer() {
         setFriends(list.map((f) => f.name || f.email || "").filter(Boolean));
       })
       .catch(() => {});
-  }, [userId]);
+  }, [token, userId, pathname]); // re-fetch when token appears or route changes
 
-  if (!getToken()) return null;
+  if (!token) return null;
   return <Aaru groups={groups} userId={userId} friends={friends} />;
 }
 

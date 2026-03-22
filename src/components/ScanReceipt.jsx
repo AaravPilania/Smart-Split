@@ -271,7 +271,7 @@ export default function ScanReceipt({
           setMode(null); // close fullscreen camera, show modal body
           return;
         }
-        // Detect friend QR codes (e.g. https://thesmartsplit.netlify.app/add-friend/<24-hex-id>)
+        // Detect friend QR codes (e.g. https://thesmartsplit.pages.dev/add-friend/<24-hex-id>)
         const friendMatch = raw.match(/\/add-friend\/([a-f0-9]{24})/i);
         if (friendMatch) {
           cancelAnimationFrame(qrLoopRef.current);
@@ -423,7 +423,14 @@ export default function ScanReceipt({
       cu: "INR",
       tn: `SmartSplit: ${s.groupName || ""}`,
     });
-    window.location.href = `${app.scheme}?${params.toString()}`;
+    // Use anchor click instead of window.location.href — browsers block
+    // custom-scheme navigation initiated via window.location but allow <a> clicks
+    const a = document.createElement('a');
+    a.href = `${app.scheme}?${params.toString()}`;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { try { document.body.removeChild(a); } catch (_) {} }, 500);
   };
 
   const clearDefaultApp = () => {
