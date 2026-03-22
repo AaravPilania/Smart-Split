@@ -114,12 +114,76 @@ async function analyzeReceiptImage(imageBuffer, mimeType) {
 }
 
 /**
+ * Local regex-based expense parser — no AI needed.
+ * Handles patterns like:
+ *   "pizza rs 500 with aarushi"
+ *   "Pizza ₹400 split with Aarushi and Rahul"
+ *   "Movie tickets 800 split 3 ways"
+ */
+function localParseExpense(text) {
+  let s = text.trim();
+
+  // Normalise currency words → ₹ prefix so amount detection is uniform
+  s = s.replace(/\b(rs\.?|inr|rupees?)\s*(\d)/gi, '₹$2');
+  s = s.replace(/(\d)\s*(rs\.?|inr|rupees?)\b/gi, '$1');
+
+  // Extract amount (first number that looks like money)
+  const amountMatch = s.match(/₹\s*(\d+(?:\.\d{1,2})?)|(\d+(?:\.\d{1,2})?)/);
+  const amount = amountMatch ? parseFloat(amountMatch[1] || amountMatch[2]) : null;
+  if (!amount || amount <= 0) return null;
+
+  // Extract split count: "split 3 ways" / "3 ways"
+  const splitMatch = s.match(/(?:split\s+)?(\d+)\s+ways?/i);
+  const splitCount = splitMatch ? parseInt(splitMatch[1]) : null;
+
+  // Extract people listed after "with / for / between"
+  let people = [];
+  const withMatch = s.match(/(?:with|for|between)\s+([a-zA-Z][a-zA-Z ,&and]*)(?=\s*(?:₹|\d|split|$))/i);
+  if (withMatch) {
+    people = withMatch[1]
+      .split(/\s+and\s+|\s*[,&]\s*/i)
+      .map(p => p.replace(/\b(split|ways?|me|myself)\b/gi, '').trim())
+      .filter(p => p.length > 1);
+  }
+
+  // Title: everything before the first number/₹ AND before "with/split/for"
+  let title = s
+    .replace(/(?:with|for|between)\s.*/i, '')
+    .replace(/\bsplit\b.*/i, '')
+    .replace(/₹\s*\d+(?:\.\d+)?/g, '')
+    .replace(/\b\d+(?:\.\d+)?\b/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/[,.\s]+$/, '')
+    .trim();
+  if (!title) return null;
+
+  // Guess category from full text
+  const hay = (title + ' ' + text).toLowerCase();
+  const catMap = [
+    ['food',          /pizza|food|lunch|dinner|breakfast|meal|restaurant|cafe|coffee|tea|biryani|burger|noodle|chai|snack|eat|drink|swiggy|zomato|dominos?/],
+    ['travel',        /uber|ola|taxi|cab|fuel|petrol|diesel|bus|train|flight|metro|auto|travel|trip|rapido|rickshaw/],
+    ['entertainment', /movie|film|netflix|spotify|game|cricket|concert|show|ticket|ott|prime|hotstar|cinema/],
+    ['shopping',      /shopping|amazon|clothes|shirt|shoes|grocery|groceries|mall|store|flipkart|myntra|market/],
+    ['health',        /medicine|doctor|hospital|medical|pharmacy|gym|fitness|chemist|clinic/],
+    ['utilities',     /electricity|water|wifi|internet|phone|recharge|gas|bill|jio|airtel|bsnl/],
+    ['home',          /rent|flat|house|apartment|room|maintenance|furniture|repair/],
+  ];
+  let category = 'other';
+  for (const [cat, re] of catMap) {
+    if (re.test(hay)) { category = cat; break; }
+  }
+
+  return { title, amount, category, splitCount, people };
+}
+
+/**
  * Parse a natural-language expense description using Gemini.
+ * Falls back to localParseExpense if Gemini is unavailable or fails.
  * Returns { title, amount, category, splitCount, people } or null.
  */
 async function parseNaturalLanguageExpense(text, friends = []) {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) return localParseExpense(text);
 
   const friendHint = friends.length
     ? `Some of the user's friends are: ${friends.slice(0, 10).join(', ')}.\n`
@@ -156,7 +220,7 @@ async function parseNaturalLanguageExpense(text, friends = []) {
     });
 
     clearTimeout(timeoutId);
-    if (!res.ok) return null;
+    if (!res.ok) return localParseExpense(text);
 
     const data = await res.json();
     const raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
@@ -168,11 +232,11 @@ async function parseNaturalLanguageExpense(text, friends = []) {
     } catch {
       // Fallback: extract first JSON object in case of extra text
       const match = raw.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/);
-      if (!match) return null;
+      if (!match) return localParseExpense(text);
       parsed = JSON.parse(match[0]);
     }
     const title = (parsed.title || '').trim();
-    if (!title) return null; // need at least a title
+    if (!title) return localParseExpense(text); // Gemini gave us nothing useful
 
     return {
       title,
@@ -182,7 +246,7 @@ async function parseNaturalLanguageExpense(text, friends = []) {
       people: Array.isArray(parsed.people) ? parsed.people : [],
     };
   } catch {
-    return null;
+    return localParseExpense(text);
   }
 }
 
