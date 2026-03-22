@@ -18,6 +18,7 @@ const {
   updateExpense,
   analyzeReceipt,
   parseExpenseText,
+  aaruAdvice,
 } = require('../controllers/expenseController');
 
 router.post('/group/:groupId', auth, addExpense);
@@ -28,6 +29,7 @@ router.post('/group/:groupId/payment', auth, recordPayment);
 router.get('/group/:groupId/payments', auth, getPayments);
 router.post('/analyze-receipt', auth, upload.single('image'), analyzeReceipt);
 router.post('/parse-text', auth, parseExpenseText);
+router.post('/aaru-advice', auth, aaruAdvice);
 router.post('/:expenseId/settle', auth, settleExpense);
 router.delete('/:expenseId', auth, deleteExpense);
 router.post('/suggest-category', auth, validate(suggestCategorySchema), suggestCategory);

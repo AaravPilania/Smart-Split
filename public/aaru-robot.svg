@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 112" fill="none">
+
+  <!-- Antenna -->
+  <rect x="47.5" y="2" width="5" height="12" rx="2.5" fill="#5EEAD4"/>
+  <circle cx="50" cy="2" r="5" fill="#5EEAD4"/>
+
+  <!-- Head -->
+  <rect x="14" y="12" width="72" height="50" rx="18" fill="#DCF4F8" stroke="#2888A8" stroke-width="2"/>
+  <!-- Ear nubs -->
+  <circle cx="14" cy="37" r="7.5" fill="#B2E8F2" stroke="#2888A8" stroke-width="1.8"/>
+  <circle cx="86" cy="37" r="7.5" fill="#B2E8F2" stroke="#2888A8" stroke-width="1.8"/>
+
+  <!-- Face visor -->
+  <rect x="21" y="18" width="58" height="38" rx="12" fill="#1B3C5C"/>
+
+  <!-- Rosy cheeks -->
+  <circle cx="27" cy="44" r="5.5" fill="#F9A8D4" opacity="0.6"/>
+  <circle cx="73" cy="44" r="5.5" fill="#F9A8D4" opacity="0.6"/>
+
+  <!-- Happy eyes (upward arcs = squinting happy) -->
+  <path d="M32 32 Q38.5 25 45 32" stroke="#7EE7DC" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M55 32 Q61.5 25 68 32" stroke="#7EE7DC" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+  <!-- Smile -->
+  <path d="M35 46 Q50 56 65 46" stroke="#7EE7DC" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+  <!-- Neck -->
+  <rect x="43" y="61" width="14" height="8" rx="3.5" fill="#B2E8F2" stroke="#2888A8" stroke-width="1.5"/>
+
+  <!-- Body -->
+  <rect x="20" y="67" width="60" height="36" rx="14" fill="#DCF4F8" stroke="#2888A8" stroke-width="2"/>
+
+  <!-- Belly circle -->
+  <circle cx="50" cy="82" r="8.5" fill="#5EEAD4" stroke="#2888A8" stroke-width="1.5"/>
+
+  <!-- Left arm (hanging down) -->
+  <rect x="2" y="69" width="16" height="24" rx="8" fill="#B2E8F2" stroke="#2888A8" stroke-width="1.8"/>
+
+  <!-- Right arm (raised — holding coin) -->
+  <g transform="rotate(-28 84 72)">
+    <rect x="82" y="60" width="16" height="24" rx="8" fill="#B2E8F2" stroke="#2888A8" stroke-width="1.8"/>
+  </g>
+
+  <!-- Coin -->
+  <circle cx="93" cy="52" r="11.5" fill="#FCD34D" stroke="#B45309" stroke-width="2"/>
+  <text x="93" y="57" text-anchor="middle" fill="#78350F" font-size="13" font-weight="bold" font-family="Arial, sans-serif">₹</text>
+
+  <!-- Legs -->
+  <rect x="27" y="99" width="17" height="10" rx="5" fill="#B2E8F2" stroke="#2888A8" stroke-width="1.8"/>
+  <rect x="56" y="99" width="17" height="10" rx="5" fill="#B2E8F2" stroke="#2888A8" stroke-width="1.8"/>
+
+</svg>

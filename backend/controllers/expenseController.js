@@ -3,7 +3,7 @@ const Group = require('../models/Group');
 const User = require('../models/User');
 const ActivityLog = require('../models/ActivityLog');
 const Payment = require('../models/Payment');
-const { classifyExpenseCategory, analyzeReceiptImage, parseNaturalLanguageExpense } = require('../utils/gemini');
+const { classifyExpenseCategory, analyzeReceiptImage, parseNaturalLanguageExpense, generateAaruAdvice } = require('../utils/gemini');
 
 // Helper: silently log activity
 async function logActivity(groupId, actorId, actorName, action, details, meta = {}) {
@@ -386,6 +386,19 @@ exports.parseExpenseText = async (req, res) => {
     const result = await parseNaturalLanguageExpense(text.trim(), Array.isArray(friends) ? friends : []);
     if (!result) return res.status(422).json({ message: 'Could not parse expense' });
     res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Aaru chatbot — advice/question answering
+exports.aaruAdvice = async (req, res) => {
+  try {
+    const { text, context } = req.body;
+    if (!text?.trim()) return res.status(400).json({ message: 'text is required' });
+    const message = await generateAaruAdvice(text.trim(), context || {});
+    if (!message) return res.status(422).json({ message: "I couldn't think of an answer right now. Check your Dashboard for detailed stats!" });
+    res.json({ message });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

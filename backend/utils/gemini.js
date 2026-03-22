@@ -146,7 +146,11 @@ async function parseNaturalLanguageExpense(text, friends = []) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0, maxOutputTokens: 200 },
+        generationConfig: {
+          temperature: 0,
+          maxOutputTokens: 200,
+          responseMimeType: 'application/json',
+        },
       }),
       signal: controller.signal,
     });
@@ -157,12 +161,16 @@ async function parseNaturalLanguageExpense(text, friends = []) {
     const data = await res.json();
     const raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
 
-    // Extract the first complete JSON object from the response
-    // (handles cases where Gemini adds surrounding text or code fences)
-    const match = raw.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/);
-    if (!match) return null;
-
-    const parsed = JSON.parse(match[0]);
+    // With responseMimeType:json, raw IS valid JSON — parse directly
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      // Fallback: extract first JSON object in case of extra text
+      const match = raw.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/);
+      if (!match) return null;
+      parsed = JSON.parse(match[0]);
+    }
     const title = (parsed.title || '').trim();
     if (!title) return null; // need at least a title
 
@@ -178,4 +186,47 @@ async function parseNaturalLanguageExpense(text, friends = []) {
   }
 }
 
-module.exports = { classifyExpenseCategory, analyzeReceiptImage, parseNaturalLanguageExpense };
+/**
+ * Generate a helpful expense/budget advice response for Aaru chatbot.
+ * Returns a plain-text message string, or null on failure.
+ */
+async function generateAaruAdvice(text, context = {}) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  const groupInfo = context.groupNames?.length
+    ? `User is in ${context.groupCount} group(s): ${context.groupNames.join(', ')}.`
+    : 'User has no groups yet.';
+
+  const prompt =
+    `You are Aaru, a friendly and helpful expense assistant inside "Smart Split" — an expense-sharing app for friend groups.\n` +
+    `${groupInfo}\n` +
+    `Answer the user's question helpfully in 1-3 short sentences. Be warm, practical, and concise.\n` +
+    `Do NOT make up specific numbers you don't know. If you don't have enough data, suggest the user check their Dashboard.\n` +
+    `User question: "${text.slice(0, 300)}"`;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.4, maxOutputTokens: 150 },
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    return (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+module.exports = { classifyExpenseCategory, analyzeReceiptImage, parseNaturalLanguageExpense, generateAaruAdvice };
