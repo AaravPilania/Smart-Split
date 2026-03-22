@@ -127,6 +127,49 @@ img[data-fit="contain"], .img-contain {
   animation: glowDrift3 28s ease-in-out infinite;
 }
 
+/* ─── Aaru orbiting-gradient button (ChatGPT voice-style) ───────── */
+/* A pseudo-element conic-gradient spins behind the button */
+@property --aaru-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes aaruSpin {
+  to { --aaru-angle: 360deg; }
+}
+@keyframes aaruPulse {
+  0%, 100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  50%       { transform: scale(1.07); box-shadow: 0 0 22px 6px var(--aaru-glow, rgba(236,72,153,0.55)); }
+}
+
+.aaru-orb {
+  --aaru-glow: rgba(236,72,153,0.55);
+  position: relative;
+  background:
+    conic-gradient(
+      from var(--aaru-angle),
+      var(--aaru-c1, #ec4899) 0%,
+      var(--aaru-c2, #7c3aed) 25%,
+      var(--aaru-c3, #f59e0b) 50%,
+      var(--aaru-c1, #ec4899) 75%,
+      var(--aaru-c2, #7c3aed) 100%
+    ) !important;
+  animation:
+    aaruSpin 4s linear infinite,
+    aaruPulse 3s ease-in-out infinite;
+}
+.aaru-orb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+  filter: blur(10px);
+  opacity: 0.6;
+  z-index: -1;
+}
+
 @keyframes glowDrift1 {
   0%, 100% { transform: translate(0, 0) scale(1); }
   33%      { transform: translate(5%, 4%) scale(1.04); }

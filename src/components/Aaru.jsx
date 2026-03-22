@@ -161,11 +161,16 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
 
   return (
     <>
-      {/* Floating toggle button */}
+      {/* Floating toggle button — animated orb */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="fixed bottom-[4.5rem] sm:bottom-6 right-4 z-[110] w-12 h-12 rounded-full text-white shadow-lg flex items-center justify-center text-xl font-bold hover:opacity-90 transition-opacity"
-        style={getGradientStyle(theme)}
+        className="aaru-orb fixed bottom-[4.5rem] sm:bottom-6 right-4 z-[110] w-12 h-12 rounded-full text-white shadow-lg flex items-center justify-center text-xl font-bold"
+        style={{
+          "--aaru-c1": theme.gradFrom,
+          "--aaru-c2": theme.gradTo,
+          "--aaru-c3": theme.gradFrom + "99",
+          "--aaru-glow": `${theme.gradFrom}88`,
+        }}
         aria-label="Open Aaru expense assistant"
       >
         {open ? <FiX /> : "✦"}

@@ -122,25 +122,31 @@ async function parseNaturalLanguageExpense(text, friends = []) {
   if (!apiKey) return null;
 
   const friendHint = friends.length
-    ? `Known friends in the user's group: ${friends.slice(0, 10).join(', ')}.\n`
+    ? `Some of the user's friends are: ${friends.slice(0, 10).join(', ')}.\n`
     : '';
 
+  // Use a two-shot example so the model knows exactly what output shape we want.
+  // Avoid angle-bracket placeholders inside JSON — they make Gemini produce invalid JSON.
   const prompt =
     friendHint +
-    'Parse this expense description and reply with ONLY valid JSON (no markdown):\n' +
-    '{"title":"<short expense title>","amount":<number or null>,"category":"<food|travel|home|entertainment|shopping|health|utilities|other>","splitCount":<number of people or null>,"people":[<names mentioned>]}\n' +
-    `Expense description: "${text.slice(0, 300)}"`;
+    'Extract expense details from the description below and reply with ONLY a raw JSON object, ' +
+    'no markdown, no explanation, no code fences.\n' +
+    'JSON shape (use null when a field cannot be determined):\n' +
+    '{"title":"string","amount":number_or_null,"category":"food|travel|home|entertainment|shopping|health|utilities|other","splitCount":number_or_null,"people":["string"]}\n' +
+    'Example input: "Pizza 500 split with Priya and Rahul"\n' +
+    'Example output: {"title":"Pizza","amount":500,"category":"food","splitCount":3,"people":["Priya","Rahul"]}\n' +
+    `Description: "${text.slice(0, 300)}"`;
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 200 },
+        generationConfig: { temperature: 0, maxOutputTokens: 200 },
       }),
       signal: controller.signal,
     });
@@ -150,13 +156,19 @@ async function parseNaturalLanguageExpense(text, friends = []) {
 
     const data = await res.json();
     const raw = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
-    const match = raw.match(/\{[\s\S]*\}/);
+
+    // Extract the first complete JSON object from the response
+    // (handles cases where Gemini adds surrounding text or code fences)
+    const match = raw.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/);
     if (!match) return null;
 
     const parsed = JSON.parse(match[0]);
+    const title = (parsed.title || '').trim();
+    if (!title) return null; // need at least a title
+
     return {
-      title: (parsed.title || '').trim(),
-      amount: parsed.amount != null ? parseFloat(parsed.amount) : null,
+      title,
+      amount: parsed.amount != null && !isNaN(parseFloat(parsed.amount)) ? parseFloat(parsed.amount) : null,
       category: VALID_CATEGORIES.includes(parsed.category) ? parsed.category : 'other',
       splitCount: parsed.splitCount ? parseInt(parsed.splitCount) : null,
       people: Array.isArray(parsed.people) ? parsed.people : [],
