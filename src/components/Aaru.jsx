@@ -8,7 +8,7 @@ import { getCategoryInfo } from "../utils/categories";
 function RobotAvatar({ size = 28 }) {
   return (
     <img
-      src="/aaru-robot.png"
+      src="/aaru-robot.svg"
       alt="Aaru"
       width={size}
       height={size}
@@ -35,9 +35,9 @@ function ConfirmCard({ card, groups, userId, theme, onExpenseCreated }) {
       let splitBetween;
       if (members.length > 0) {
         const each = parseFloat((card.amount / members.length).toFixed(2));
-        splitBetween = members.map((m) => ({ userId: m.id, amount: each }));
+        splitBetween = members.map((m) => ({ user: m.id || m._id, amount: each }));
       } else {
-        splitBetween = [{ userId, amount: card.amount }];
+        splitBetween = [{ user: userId, amount: card.amount }];
       }
       const res = await apiFetch(`${API_URL}/expenses/group/${groupId}`, {
         method: "POST",
