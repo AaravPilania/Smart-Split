@@ -8,7 +8,7 @@ import { getCategoryInfo } from "../utils/categories";
 function RobotAvatar({ size = 28 }) {
   return (
     <img
-      src="/aaru-robot.svg"
+      src="/aaru-robot.png"
       alt="Aaru"
       width={size}
       height={size}
