@@ -14,7 +14,7 @@
 
 <br/>
 
-[![Live Demo](https://img.shields.io/badge/▶_LIVE_DEMO-thesmartsplit.netlify.app-F472B6?style=for-the-badge&logo=netlify&logoColor=white)](https://thesmartsplit.netlify.app)
+[![Live Demo](https://img.shields.io/badge/▶_LIVE_DEMO-thesmartsplit.netlify.app-F472B6?style=for-the-badge&logo=netlify&logoColor=white)](https://thesmartsplit.pages.dev)
 &nbsp;&nbsp;
 [![React](https://img.shields.io/badge/React_19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
 &nbsp;&nbsp;
