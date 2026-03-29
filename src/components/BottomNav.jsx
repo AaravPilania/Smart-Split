@@ -3,9 +3,9 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FiHome,
   FiUsers,
-  FiBarChart2,
+  FiHeart,
   FiUser,
-  FiCamera,
+  FiScissors,
   FiX,
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,8 +16,8 @@ import { useTheme, getGradientStyle } from "../utils/theme";
 const TABS = [
   { path: "/dashboard", icon: FiHome, label: "Home" },
   { path: "/groups", icon: FiUsers, label: "Groups" },
-  null, // ← camera FAB slot
-  { path: "/balances", icon: FiBarChart2, label: "Balances" },
+  null, // ← split FAB slot
+  { path: "/friends", icon: FiHeart, label: "Friends" },
   { path: "/profile", icon: FiUser, label: "Profile" },
 ];
 
@@ -93,7 +93,7 @@ export default function BottomNav() {
                   }}
                   aria-label="Quick actions"
                 >
-                  <FiCamera size={22} />
+                  <FiScissors size={22} />
                 </button>
               );
             }

@@ -181,7 +181,7 @@ export default function Balances() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Navbar />
 
-      <div className="max-w-2xl mx-auto py-6 px-4 sm:px-6 pb-10">
+      <div className="max-w-2xl mx-auto py-6 px-4 sm:px-6 pb-28">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>

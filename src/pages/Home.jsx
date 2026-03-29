@@ -2,7 +2,7 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FiMail, FiLock, FiUser, FiEye, FiEyeOff, FiArrowRight, FiCheck } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
-import { API_URL, setAuthData } from "../utils/api";
+import { API_URL, setAuthData, authAPI, wakeUpServer } from "../utils/api";
 import DesktopIntro from "../components/DesktopIntro";
 import MobileOnboarding from "../components/MobileOnboarding";
 
@@ -230,16 +230,11 @@ const Home = () => {
     setError("");
     setLoading(true);
     try {
-      const endpoint = isLogin ? "/auth/login" : "/auth/signup";
-      const body = isLogin ? { email, password } : { email, password, name };
       if (!isLogin && !name.trim()) throw new Error("Name is required");
-      const response = await fetch(`${API_URL}${endpoint}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || (isLogin ? "Login failed" : "Registration failed"));
+      // Use authAPI which has built-in retry on network failure (handles Render cold-starts)
+      const data = isLogin
+        ? await authAPI.login(email, password)
+        : await authAPI.signup(email, password, name);
       setAuthData(data.token, data.user, data.user.id, rememberMe);
       // Re-hydrate avatar from DB profile picture
       if (data.user.pfp) {
@@ -248,7 +243,14 @@ const Home = () => {
       const redirectTo = searchParams.get("redirect") || "/dashboard";
       navigate(redirectTo, { replace: true });
     } catch (err) {
-      setError(err.message || "Something went wrong. Please try again.");
+      const msg = err.message || "";
+      if (msg === "Failed to fetch" || msg === "Load failed" || msg === "Network request failed") {
+        // Server is cold-starting on Render — wake it up and ask user to retry
+        wakeUpServer();
+        setError("Server is starting up, please wait a moment and try again.");
+      } else {
+        setError(msg || "Something went wrong. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

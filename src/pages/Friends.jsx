@@ -146,7 +146,7 @@ export default function Friends() {
       <Navbar />
       <BottomNav />
 
-      <div className="max-w-2xl mx-auto px-4 py-6 pb-10">
+      <div className="max-w-2xl mx-auto px-4 py-6 pb-28">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>

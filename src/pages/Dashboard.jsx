@@ -2,19 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
-import InsightsPanel from "../components/InsightsPanel";
-import { FiTrendingUp, FiTrendingDown, FiChevronDown, FiArrowRight } from "react-icons/fi";
+import { FiArrowRight } from "react-icons/fi";
 import { API_URL, apiFetch, getUser, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 import { detectCategory, getCategoryInfo } from "../utils/categories";
-import { computeInsights } from "../utils/insights";
 
-const CAT_COLORS = [
-  "#ec4899", "#f59e0b", "#3b82f6", "#8b5cf6",
-  "#10b981", "#ef4444", "#f97316", "#14b8a6", "#6b7280",
-];
-
-// ─── Helpers ──────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────
 function getGreeting() {
   const h = new Date().getHours();
   if (h < 12) return "GOOD MORNING";
@@ -36,61 +29,6 @@ function formatDate(dateString) {
     month: "short",
     day: "numeric",
   });
-}
-
-// ─── Donut chart (compact) ────────────────────────────────────────────────
-function DonutChart({ data, total }) {
-  const r = 44, cx = 60, cy = 60;
-  const circ = 2 * Math.PI * r;
-  let cumPct = 0;
-  return (
-    <svg viewBox="0 0 120 120" className="w-24 h-24 flex-shrink-0">
-      {data.map((d, i) => {
-        const pct = d.amount / total;
-        const dash = pct * circ;
-        const offset = circ * 0.25 - cumPct * circ;
-        cumPct += pct;
-        return (
-          <circle
-            key={i}
-            cx={cx} cy={cy} r={r}
-            fill="none"
-            stroke={CAT_COLORS[i % CAT_COLORS.length]}
-            strokeWidth="16"
-            strokeDasharray={`${dash} ${circ - dash}`}
-            strokeDashoffset={offset}
-            style={{ transition: "stroke-dasharray 0.7s ease" }}
-          />
-        );
-      })}
-      <circle cx={cx} cy={cy} r={34} fill="transparent" />
-    </svg>
-  );
-}
-
-// ─── Mini bar chart ───────────────────────────────────────────────────────
-function MiniBarChart({ data, theme }) {
-  const max = Math.max(...data.map((d) => d.amount), 1);
-  return (
-    <div className="flex items-end gap-1 h-14">
-      {data.map((m, i) => (
-        <div key={i} className="flex-1 flex flex-col items-center justify-end gap-0.5 h-full">
-          <div
-            className="w-full rounded-sm transition-all duration-700"
-            style={{
-              height: `${Math.max((m.amount / max) * 100, 4)}%`,
-              background: m.isCurrent
-                ? `linear-gradient(to top, ${theme.gradFrom}, ${theme.gradTo})`
-                : `linear-gradient(to top, ${theme.gradFrom}40, ${theme.gradTo}30)`,
-            }}
-          />
-          <span className="text-[8px] text-gray-500 dark:text-gray-500 font-medium">
-            {m.label.slice(0, 1)}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
 }
 
 // ─── Glass card style ─────────────────────────────────────────────────────
@@ -122,11 +60,7 @@ export default function Dashboard() {
   const [settlements, setSettlements] = useState([]);
   const [groups, setGroups] = useState([]);
   const [groupSpending, setGroupSpending] = useState([]);
-  const [monthlyChartData, setMonthlyChartData] = useState([]);
-  const [categoryData, setCategoryData] = useState([]);
-  const [insights, setInsights] = useState([]);
   const [avatar, setAvatar] = useState(localStorage.getItem("selectedAvatar") || "");
-  const [insightsOpen, setInsightsOpen] = useState(false);
   const navigate = useNavigate();
   const { theme, isDark } = useTheme();
 
@@ -183,9 +117,8 @@ export default function Dashboard() {
           youOwe: stats.youOwe,
           owedToYou: stats.owedToYou,
         });
-        setRecentExpenses(allExpenses.slice(0, 5));
-        setSettlements(userSettlements.slice(0, 5));
-        buildCharts(allExpenses, userId);
+        setRecentExpenses(allExpenses.slice(0, 2));
+        setSettlements(userSettlements.slice(0, 2));
         setFetchError(false);
         return;
       }
@@ -255,11 +188,11 @@ export default function Dashboard() {
           new Date(a.createdAt || a.created_at)
       );
 
-      setRecentExpenses(allExpenses.slice(0, 5));
+      setRecentExpenses(allExpenses.slice(0, 2));
       setSettlements(
         allSettlements
           .filter((s) => s.from.id === userId || s.to.id === userId)
-          .slice(0, 5)
+          .slice(0, 2)
       );
       setStats({
         totalExpenses: totalExpensesAmount,
@@ -271,7 +204,6 @@ export default function Dashboard() {
           .sort((a, b) => b.amount - a.amount)
           .slice(0, 6)
       );
-      buildCharts(allExpenses, userId);
       setFetchError(false);
     } catch {
       setFetchError(true);
@@ -279,53 +211,6 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const buildCharts = (allExpenses, userId) => {
-    const now = new Date();
-    const monthBuckets = {};
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${d.getMonth()}`;
-      monthBuckets[key] = {
-        label: d.toLocaleDateString("en-US", { month: "short" }),
-        amount: 0,
-        userShare: 0,
-        isCurrent: i === 0,
-      };
-    }
-    allExpenses.forEach((exp) => {
-      const d = new Date(exp.createdAt || exp.created_at);
-      const key = `${d.getFullYear()}-${d.getMonth()}`;
-      if (monthBuckets[key]) {
-        monthBuckets[key].amount += parseFloat(exp.amount || 0);
-        const userSplit = exp.splitBetween?.find(
-          (s) => s.user?.id === userId
-        );
-        if (userSplit)
-          monthBuckets[key].userShare += parseFloat(userSplit.amount || 0);
-      }
-    });
-    setMonthlyChartData(Object.values(monthBuckets));
-
-    const catTotals = {};
-    allExpenses.forEach((exp) => {
-      const cat = exp.category || detectCategory(exp.title || "");
-      catTotals[cat] = (catTotals[cat] || 0) + parseFloat(exp.amount || 0);
-    });
-    const catArr = Object.entries(catTotals)
-      .map(([key, amount]) => ({ key, amount, ...getCategoryInfo(key) }))
-      .filter((c) => c.amount > 0)
-      .sort((a, b) => b.amount - a.amount);
-    setCategoryData(catArr);
-
-    setInsights(
-      computeInsights({
-        expenses: allExpenses,
-        categoryData: catArr,
-        currentUserId: userId,
-      })
-    );
   };
 
   // ── Loading state ────────────────────────────────────────────────────
@@ -341,7 +226,6 @@ export default function Dashboard() {
   }
 
   const firstName = user.name?.split(" ")[0] || "there";
-  const totalDebt = stats.youOwe + stats.owedToYou;
   const glass = glassCard(isDark);
 
   // ── Render ───────────────────────────────────────────────────────────
@@ -474,166 +358,21 @@ export default function Dashboard() {
               </button>
             </div>
 
-            {/* ── Spending Insights — collapsible ─────────────── */}
-            <div className="rounded-3xl mb-4 overflow-hidden" style={glass}>
-              <button
-                onClick={() => setInsightsOpen((o) => !o)}
-                className="w-full flex items-center justify-between px-5 py-4"
-              >
-                <span className="font-bold text-gray-800 dark:text-white text-sm">
-                  Spending Insights
-                </span>
-                <FiChevronDown
-                  size={18}
-                  className="text-gray-400 transition-transform duration-300"
-                  style={{
-                    transform: insightsOpen
-                      ? "rotate(180deg)"
-                      : "rotate(0deg)",
-                  }}
-                />
-              </button>
-
-              {insightsOpen && (
-                <div
-                  className="px-5 pb-5"
-                  style={{
-                    borderTop: isDark
-                      ? "1px solid rgba(255,255,255,0.06)"
-                      : "1px solid rgba(0,0,0,0.05)",
-                  }}
-                >
-                  {/* Charts: donut + bar side by side */}
-                  {(categoryData.length > 0 ||
-                    monthlyChartData.some((m) => m.amount > 0)) && (
-                    <div className="grid grid-cols-2 gap-4 pt-4 mb-4">
-                      {categoryData.length > 0 && (
-                        <div>
-                          <p className="text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-2">
-                            Split Categories
-                          </p>
-                          <DonutChart
-                            data={categoryData}
-                            total={categoryData.reduce(
-                              (s, c) => s + c.amount,
-                              0
-                            )}
-                          />
-                        </div>
-                      )}
-                      {monthlyChartData.some((m) => m.amount > 0) && (
-                        <div>
-                          <p className="text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-2">
-                            Monthly Trend
-                          </p>
-                          <MiniBarChart
-                            data={monthlyChartData}
-                            theme={theme}
-                          />
-                          <p className="text-xs text-gray-500 mt-2">
-                            This month:{" "}
-                            <span
-                              className="font-bold"
-                              style={{ color: theme.gradFrom }}
-                            >
-                              {formatCurrency(
-                                monthlyChartData.at(-1)?.amount || 0
-                              )}
-                            </span>
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Category breakdown */}
-                  {categoryData.length > 0 && (
-                    <div className="space-y-2">
-                      {categoryData.slice(0, 4).map((cat, i) => {
-                        const total = categoryData.reduce(
-                          (s, c) => s + c.amount,
-                          0
-                        );
-                        const pct = ((cat.amount / total) * 100).toFixed(0);
-                        return (
-                          <div key={cat.key} className="flex items-center gap-2">
-                            <span className="text-sm leading-none flex-shrink-0">
-                              {cat.icon || "💰"}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex justify-between text-xs mb-0.5">
-                                <span className="text-gray-600 dark:text-gray-400 font-medium truncate">
-                                  {cat.label || cat.key}
-                                </span>
-                                <span className="text-gray-400 ml-1 flex-shrink-0">
-                                  {pct}%
-                                </span>
-                              </div>
-                              <div className="h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full rounded-full transition-all duration-700"
-                                  style={{
-                                    width: `${pct}%`,
-                                    background:
-                                      CAT_COLORS[i % CAT_COLORS.length],
-                                  }}
-                                />
-                              </div>
-                            </div>
-                            <span className="text-xs font-semibold text-gray-500 flex-shrink-0 ml-1">
-                              {formatCurrency(cat.amount)}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Spending by group */}
-                  {groupSpending.length > 0 && (
-                    <div className="mt-4 pt-4" style={{ borderTop: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.05)" }}>
-                      <p className="text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-3">
-                        By Group
-                      </p>
-                      <div className="space-y-2.5">
-                        {groupSpending.map((g, i) => {
-                          const pct =
-                            (g.amount / groupSpending[0].amount) * 100;
-                          return (
-                            <div key={i}>
-                              <div className="flex justify-between text-xs mb-1">
-                                <span className="text-gray-700 dark:text-gray-300 font-medium truncate">
-                                  {g.name}
-                                </span>
-                                <span className="text-gray-400 ml-2 flex-shrink-0">
-                                  {formatCurrency(g.amount)}
-                                </span>
-                              </div>
-                              <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full rounded-full transition-all duration-700"
-                                  style={{
-                                    width: `${pct}%`,
-                                    ...getGradientStyle(theme),
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* AI Insights */}
-                  {insights.length > 0 && (
-                    <div className="mt-4">
-                      <InsightsPanel insights={insights} />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            {/* ── Insights shortcut ───────────────────────────── */}
+            <button
+              onClick={() => navigate("/profile")}
+              className="w-full flex items-center justify-between px-5 py-3 rounded-2xl mb-4 transition active:scale-[0.98]"
+              style={glass}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-base">✦</span>
+                <span className="text-sm font-bold text-gray-800 dark:text-white">Spending Insights</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold" style={{ color: theme.gradFrom }}>View on Profile</span>
+                <FiArrowRight size={12} style={{ color: theme.gradFrom }} />
+              </div>
+            </button>
 
             {/* ── Recent Activity ──────────────────────────────── */}
             <div className="rounded-3xl p-5 mb-4" style={glass}>

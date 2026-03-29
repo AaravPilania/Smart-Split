@@ -14,7 +14,6 @@ const GRADIENT_TEXT = {
 
 const WelcomeSlide = ({ onGetStarted }) => (
   <div className="flex flex-col items-center justify-center text-center px-8 h-full gap-6 relative">
-    {/* Ambient glow */}
     <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(168,85,247,0.1) 0%, transparent 65%)", filter: "blur(60px)" }} />
 
     <div className="relative">
@@ -48,36 +47,22 @@ const ScanSlide = () => {
 
   return (
     <div className="flex flex-col items-center justify-center h-full px-6 text-center gap-6 relative">
-
-      <h2 className="text-xl font-bold text-white">
-        Scan any receipt
-      </h2>
+      <h2 className="text-xl font-bold text-white">Scan any receipt</h2>
 
       <PhoneMockup className="w-[160px] md:w-[300px] shadow-[0_40px_90px_rgba(0,0,0,0.6)]">
         <div className="relative p-5 space-y-3 overflow-hidden" style={{ height: 230 }}>
-          <div className="text-center text-[11px] text-white/60 font-semibold mb-2">
-            The Italian Place
-          </div>
-
+          <div className="text-center text-[11px] text-white/60 font-semibold mb-2">The Italian Place</div>
           {items.map((item, i) => (
-            <div
-              key={i}
-              className="scan-receipt-line flex justify-between text-[11px] font-mono"
-              style={{ animationDelay: `${i * 0.4}s` }}
-            >
+            <div key={i} className="scan-receipt-line flex justify-between text-[11px] font-mono" style={{ animationDelay: `${i * 0.4}s` }}>
               <span className="text-white/90">{item.label}</span>
               <span className="text-white/70">{item.price}</span>
             </div>
           ))}
-
           <div className="scan-bar" />
         </div>
       </PhoneMockup>
 
-      <p className="text-sm text-white/50 max-w-[260px]">
-        Point, snap, done. AI reads every line instantly.
-      </p>
-
+      <p className="text-sm text-white/50 max-w-[260px]">Point, snap, done. AI reads every line instantly.</p>
     </div>
   );
 };
@@ -91,105 +76,51 @@ const GroupSlide = () => {
 
   return (
     <div className="flex flex-col items-center justify-center h-full px-6 text-center gap-6 relative">
-
-      <h2 className="text-xl font-bold text-white">
-        Split with your crew
-      </h2>
+      <h2 className="text-xl font-bold text-white">Split with your crew</h2>
 
       <PhoneMockup className="w-[160px] md:w-[300px] shadow-[0_40px_90px_rgba(0,0,0,0.6)]">
         <div className="p-5 space-y-4" style={{ height: 230 }}>
-          <div className="text-[12px] text-white/70 font-semibold text-center mb-2">
-            Friday Dinner
-          </div>
-
+          <div className="text-[12px] text-white/70 font-semibold text-center mb-2">Friday Dinner</div>
           {people.map((p, i) => (
             <motion.div
               key={p.name}
               initial={{ opacity: 0, x: -12 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{
-                delay: 0.1 + i * 0.08,
-                type: "spring",
-                stiffness: 350,
-                damping: 22
-              }}
+              transition={{ delay: 0.1 + i * 0.08, type: "spring", stiffness: 350, damping: 22 }}
               className="flex items-center gap-3"
             >
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
-                style={{ background: p.color }}
-              >
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0" style={{ background: p.color }}>
                 {p.name[0]}
               </div>
-
               <div className="flex-1">
-                <div className="text-[12px] text-white/90 font-medium">
-                  {p.name}
-                </div>
-                <div
-                  className="h-[4px] rounded-full mt-1"
-                  style={{
-                    width: `${50 + i * 18}%`,
-                    background: p.color,
-                    opacity: 0.5
-                  }}
-                />
+                <div className="text-[12px] text-white/90 font-medium">{p.name}</div>
+                <div className="h-[4px] rounded-full mt-1" style={{ width: `${50 + i * 18}%`, background: p.color, opacity: 0.5 }} />
               </div>
-
-              <span className="text-[12px] text-white/80 font-mono font-semibold">
-                {p.amount}
-              </span>
+              <span className="text-[12px] text-white/80 font-mono font-semibold">{p.amount}</span>
             </motion.div>
           ))}
         </div>
       </PhoneMockup>
 
-      <p className="text-sm text-white/50 max-w-[260px]">
-        Groups, percentages, or equal — however you want.
-      </p>
-
+      <p className="text-sm text-white/50 max-w-[260px]">Groups, percentages, or equal — however you want.</p>
     </div>
   );
 };
 
-const SettleSlide = () => (
+// ── Slide 4 (SettleSlide) — now shows "Get Started" instead of "Next" ──
+const SettleSlide = ({ onGetStarted }) => (
   <div className="flex flex-col items-center justify-center h-full px-6 text-center gap-6 relative">
-
-    <h2 className="text-xl font-bold text-white">
-      Settle up instantly
-    </h2>
+    <h2 className="text-xl font-bold text-white">Settle up instantly</h2>
 
     <PhoneMockup className="w-[160px] md:w-[300px] shadow-[0_40px_90px_rgba(0,0,0,0.6)]">
       <div className="p-5 flex flex-col items-center justify-center gap-4" style={{ height: 230 }}>
-        
-        <div className="text-[12px] text-white/60">
-          Payment to Alex
-        </div>
-
-        <div className="text-2xl font-black text-white font-mono">
-          $12.50
-        </div>
+        <div className="text-[12px] text-white/60">Payment to Alex</div>
+        <div className="text-2xl font-black text-white font-mono">$12.50</div>
 
         <div className="settle-check-circle">
           <svg width="48" height="48" viewBox="0 0 48 48">
-            <circle
-              cx="24"
-              cy="24"
-              r="20"
-              fill="none"
-              stroke="url(#mCheckGrad)"
-              strokeWidth="2.5"
-              className="settle-circle-draw"
-            />
-            <path
-              d="M15 24 L21 30 L33 18"
-              fill="none"
-              stroke="url(#mCheckGrad)"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="settle-check-draw"
-            />
+            <circle cx="24" cy="24" r="20" fill="none" stroke="url(#mCheckGrad)" strokeWidth="2.5" className="settle-circle-draw" />
+            <path d="M15 24 L21 30 L33 18" fill="none" stroke="url(#mCheckGrad)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="settle-check-draw" />
             <defs>
               <linearGradient id="mCheckGrad" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stopColor="#ec4899" />
@@ -199,23 +130,27 @@ const SettleSlide = () => (
           </svg>
         </div>
 
-        <div className="text-[13px] font-bold text-white/90">
-          Settled!
-        </div>
-
+        <div className="text-[13px] font-bold text-white/90">Settled!</div>
       </div>
     </PhoneMockup>
 
-    <p className="text-sm text-white/50 max-w-[260px]">
-      One tap. Zero awkwardness.
-    </p>
+    <p className="text-sm text-white/50 max-w-[260px]">One tap. Zero awkwardness.</p>
 
+    {/* ── "Get Started" lives here on slide 4 ── */}
+    <motion.button
+      onClick={onGetStarted}
+      whileTap={{ scale: 0.95 }}
+      className="px-10 py-3.5 rounded-2xl text-white text-sm font-bold shadow-lg flex items-center gap-2"
+      style={{ background: "linear-gradient(135deg, #ec4899 0%, #a855f7 50%, #f97316 100%)" }}
+    >
+      Get Started <FiArrowRight size={16} />
+    </motion.button>
   </div>
 );
 
+// ── Slide 5 — kept as a final "ready?" card, no duplicate CTA needed ──
 const CTASlide = ({ onGetStarted }) => (
   <div className="flex flex-col items-center justify-center text-center h-full gap-5 px-8 relative">
-    {/* Dual ambient glows */}
     <div className="absolute top-1/4 -left-10 w-60 h-60 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(236,72,153,0.08) 0%, transparent 65%)", filter: "blur(50px)" }} />
     <div className="absolute bottom-1/4 -right-10 w-60 h-60 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(249,115,22,0.08) 0%, transparent 65%)", filter: "blur(50px)" }} />
 
@@ -236,27 +171,16 @@ const CTASlide = ({ onGetStarted }) => (
   </div>
 );
 
-/* ── Slide variants with spring physics ── */
+/* ── Slide variants ── */
 const slideVariants = {
-  enter: (dir) => ({
-    x: dir > 0 ? "80%" : "-80%",
-    opacity: 0,
-    scale: 0.95,
-  }),
-  center: {
-    x: 0,
-    opacity: 1,
-    scale: 1,
-  },
-  exit: (dir) => ({
-    x: dir > 0 ? "-80%" : "80%",
-    opacity: 0,
-    scale: 0.95,
-  }),
+  enter: (dir) => ({ x: dir > 0 ? "80%" : "-80%", opacity: 0, scale: 0.95 }),
+  center: { x: 0, opacity: 1, scale: 1 },
+  exit: (dir) => ({ x: dir > 0 ? "-80%" : "80%", opacity: 0, scale: 0.95 }),
 };
 
 /* ═══════════════════════════════════════════
    MobileOnboarding — 5 swipeable slides
+   Slide 4 (index 3) now shows "Get Started"
    ═══════════════════════════════════════════ */
 const MobileOnboarding = ({ onGetStarted }) => {
   const [[current, direction], setCurrent] = useState([0, 0]);
@@ -270,25 +194,32 @@ const MobileOnboarding = ({ onGetStarted }) => {
 
   const handleDragEnd = (_, info) => {
     const threshold = 50;
-    if (info.offset.x < -threshold && current < TOTAL - 1) {
-      paginate(1);
-    } else if (info.offset.x > threshold && current > 0) {
-      paginate(-1);
-    }
+    if (info.offset.x < -threshold && current < TOTAL - 1) paginate(1);
+    else if (info.offset.x > threshold && current > 0) paginate(-1);
   };
 
   const slides = [
     <WelcomeSlide key="welcome" onGetStarted={onGetStarted} />,
     <ScanSlide key="scan" />,
     <GroupSlide key="group" />,
-    <SettleSlide key="settle" />,
+    <SettleSlide key="settle" onGetStarted={onGetStarted} />,
     <CTASlide key="cta" onGetStarted={onGetStarted} />,
   ];
 
+  // On slide 4 (index 3) show "Get Started" instead of "Next"
+  // On slide 5 (index 4) hide the bottom button — CTASlide has its own
+  const showNextBtn = current < 3;            // slides 0-2 show "Next"
+  const showGetStarted = current === 3;       // slide 4 shows "Get Started" in button area too (belt-and-suspenders)
+  // (Slide 4's own button inside the slide body is the primary CTA)
+
   return (
-    <div className="flex flex-col h-full w-full relative" style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
-      {/* Grain overlay */}
+    <div
+      className="flex flex-col h-full w-full relative"
+      style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
+      {/* Grain */}
       <div className="intro-grain" />
+
       {/* Slide area */}
       <div className="flex-1 relative overflow-hidden">
         <AnimatePresence initial={false} custom={direction} mode="wait">
@@ -315,7 +246,7 @@ const MobileOnboarding = ({ onGetStarted }) => {
         </AnimatePresence>
       </div>
 
-      {/* Bottom: dots + next button */}
+      {/* Bottom: dots + conditional button */}
       <div className="flex flex-col items-center gap-5 pb-8 px-6 relative z-20">
         {/* Dot indicators */}
         <div className="flex items-center gap-2">
@@ -335,8 +266,8 @@ const MobileOnboarding = ({ onGetStarted }) => {
           ))}
         </div>
 
-        {/* Next button — hidden on last slide (CTA slide has its own) */}
-        {current < TOTAL - 1 && (
+        {/* Next — only on slides 0, 1, 2 */}
+        {showNextBtn && (
           <motion.button
             onClick={() => paginate(1)}
             whileTap={{ scale: 0.95 }}
@@ -350,6 +281,8 @@ const MobileOnboarding = ({ onGetStarted }) => {
             Next <FiArrowRight size={14} />
           </motion.button>
         )}
+
+        {/* On slide 5 (CTASlide) — no bottom button needed (it has its own) */}
       </div>
     </div>
   );
