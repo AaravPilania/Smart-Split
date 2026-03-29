@@ -195,9 +195,6 @@ export default function Navbar() {
             : "rgba(255,255,255,0.72)",
           backdropFilter: "blur(20px) saturate(180%)",
           WebkitBackdropFilter: "blur(20px) saturate(180%)",
-          borderBottom: isDark
-            ? "1px solid rgba(255,255,255,0.07)"
-            : "1px solid rgba(0,0,0,0.08)",
           boxShadow: isDark
             ? "0 1px 20px rgba(0,0,0,0.35)"
             : "0 1px 20px rgba(0,0,0,0.07)",
@@ -337,7 +334,7 @@ export default function Navbar() {
         </div>
 
         {/* ── Mobile — slim bar: logo + notification bell only ── */}
-        <div className="md:hidden flex items-center justify-between px-4 h-14">
+        <div className="md:hidden flex items-center justify-between px-4 h-16">
           <Link
             to="/dashboard"
             className="flex items-center gap-2.5 hover:opacity-80 transition min-w-0"
@@ -345,9 +342,9 @@ export default function Navbar() {
             <img
               src="/icon.png"
               alt="Smart Split"
-              className="h-8 w-8 rounded-xl shadow flex-shrink-0"
+              className="h-9 w-9 rounded-xl shadow flex-shrink-0"
             />
-            <span className="text-[15px] font-bold text-gray-800 dark:text-white tracking-tight truncate">
+            <span className="text-[18px] font-bold text-gray-800 dark:text-white tracking-tight truncate">
               Smart Split
             </span>
           </Link>
@@ -359,7 +356,7 @@ export default function Navbar() {
               className="h-9 w-9 rounded-xl flex items-center justify-center text-gray-500 dark:text-yellow-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
               aria-label="Toggle dark mode"
             >
-              {isDark ? <FiSun size={16} /> : <FiMoon size={16} />}
+              {isDark ? <FiSun size={19} /> : <FiMoon size={19} />}
             </button>
 
             <div className="relative">
@@ -371,7 +368,7 @@ export default function Navbar() {
                 className="relative h-9 w-9 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
                 aria-label="Notifications"
               >
-                <FiBell size={17} />
+                <FiBell size={19} />
                 {unreadCount > 0 && (
                   <span
                     className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full text-[10px] font-bold text-white flex items-center justify-center"

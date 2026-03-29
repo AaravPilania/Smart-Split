@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiArrowRight, FiCheck } from "react-icons/fi";
 import PhoneMockup from "./PhoneMockup";
@@ -107,8 +107,8 @@ const GroupSlide = () => {
   );
 };
 
-// ── Slide 4 (SettleSlide) — now shows "Get Started" instead of "Next" ──
-const SettleSlide = ({ onGetStarted }) => (
+// ── Slide 4 (SettleSlide) — no CTA inside, it's in the bottom bar ──
+const SettleSlide = () => (
   <div className="flex flex-col items-center justify-center h-full px-6 text-center gap-6 relative">
     <h2 className="text-xl font-bold text-white">Settle up instantly</h2>
 
@@ -135,39 +135,6 @@ const SettleSlide = ({ onGetStarted }) => (
     </PhoneMockup>
 
     <p className="text-sm text-white/50 max-w-[260px]">One tap. Zero awkwardness.</p>
-
-    {/* ── "Get Started" lives here on slide 4 ── */}
-    <motion.button
-      onClick={onGetStarted}
-      whileTap={{ scale: 0.95 }}
-      className="px-10 py-3.5 rounded-2xl text-white text-sm font-bold shadow-lg flex items-center gap-2"
-      style={{ background: "linear-gradient(135deg, #ec4899 0%, #a855f7 50%, #f97316 100%)" }}
-    >
-      Get Started <FiArrowRight size={16} />
-    </motion.button>
-  </div>
-);
-
-// ── Slide 5 — kept as a final "ready?" card, no duplicate CTA needed ──
-const CTASlide = ({ onGetStarted }) => (
-  <div className="flex flex-col items-center justify-center text-center h-full gap-5 px-8 relative">
-    <div className="absolute top-1/4 -left-10 w-60 h-60 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(236,72,153,0.08) 0%, transparent 65%)", filter: "blur(50px)" }} />
-    <div className="absolute bottom-1/4 -right-10 w-60 h-60 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(249,115,22,0.08) 0%, transparent 65%)", filter: "blur(50px)" }} />
-
-    <h2 className="text-2xl font-black text-white leading-tight">
-      Ready to <span style={GRADIENT_TEXT}>go?</span>
-    </h2>
-    <p className="text-xs text-white/40 flex items-center gap-1.5">
-      <FiCheck size={13} className="text-green-400" /> Free forever. No credit card needed.
-    </p>
-    <motion.button
-      onClick={onGetStarted}
-      whileTap={{ scale: 0.95 }}
-      className="mt-4 px-8 py-3.5 rounded-2xl text-white text-sm font-bold shadow-lg flex items-center gap-2"
-      style={{ background: "linear-gradient(135deg, #ec4899 0%, #a855f7 50%, #f97316 100%)" }}
-    >
-      Get Started <FiArrowRight size={16} />
-    </motion.button>
   </div>
 );
 
@@ -179,17 +146,24 @@ const slideVariants = {
 };
 
 /* ═══════════════════════════════════════════
-   MobileOnboarding — 5 swipeable slides
-   Slide 4 (index 3) now shows "Get Started"
+   MobileOnboarding — 4 swipeable slides
+   Slide 4 (index 3) shows "Get Started" in
+   the bottom bar with a portal burst animation
    ═══════════════════════════════════════════ */
 const MobileOnboarding = ({ onGetStarted }) => {
   const [[current, direction], setCurrent] = useState([0, 0]);
-  const TOTAL = 5;
+  const [portalAnimating, setPortalAnimating] = useState(false);
+  const TOTAL = 4;
 
   const paginate = (dir) => {
     const next = current + dir;
     if (next < 0 || next >= TOTAL) return;
     setCurrent([next, dir]);
+  };
+
+  const handleGetStarted = () => {
+    setPortalAnimating(true);
+    // onGetStarted called after animation completes
   };
 
   const handleDragEnd = (_, info) => {
@@ -199,18 +173,14 @@ const MobileOnboarding = ({ onGetStarted }) => {
   };
 
   const slides = [
-    <WelcomeSlide key="welcome" onGetStarted={onGetStarted} />,
+    <WelcomeSlide key="welcome" onGetStarted={handleGetStarted} />,
     <ScanSlide key="scan" />,
     <GroupSlide key="group" />,
-    <SettleSlide key="settle" onGetStarted={onGetStarted} />,
-    <CTASlide key="cta" onGetStarted={onGetStarted} />,
+    <SettleSlide key="settle" />,
   ];
 
-  // On slide 4 (index 3) show "Get Started" instead of "Next"
-  // On slide 5 (index 4) hide the bottom button — CTASlide has its own
-  const showNextBtn = current < 3;            // slides 0-2 show "Next"
-  const showGetStarted = current === 3;       // slide 4 shows "Get Started" in button area too (belt-and-suspenders)
-  // (Slide 4's own button inside the slide body is the primary CTA)
+  const showNextBtn = current < 3;   // slides 0–2
+  const showGetStarted = current === 3; // slide 4
 
   return (
     <div
@@ -266,7 +236,7 @@ const MobileOnboarding = ({ onGetStarted }) => {
           ))}
         </div>
 
-        {/* Next — only on slides 0, 1, 2 */}
+        {/* Next — slides 0, 1, 2 */}
         {showNextBtn && (
           <motion.button
             onClick={() => paginate(1)}
@@ -282,8 +252,39 @@ const MobileOnboarding = ({ onGetStarted }) => {
           </motion.button>
         )}
 
-        {/* On slide 5 (CTASlide) — no bottom button needed (it has its own) */}
+        {/* Get Started — slide 4, same position as Next */}
+        {showGetStarted && (
+          <motion.button
+            onClick={handleGetStarted}
+            whileTap={{ scale: 0.95 }}
+            className="w-full max-w-xs py-3.5 rounded-2xl text-white text-sm font-bold flex items-center justify-center gap-2 shadow-xl"
+            style={{ background: "linear-gradient(135deg, #ec4899 0%, #a855f7 50%, #f97316 100%)" }}
+          >
+            Get Started <FiArrowRight size={14} />
+          </motion.button>
+        )}
       </div>
+
+      {/* Portal burst overlay — expands from button to fill screen, then triggers onGetStarted */}
+      <AnimatePresence>
+        {portalAnimating && (
+          <motion.div
+            key="portal"
+            initial={{ clipPath: "circle(0% at 50% 92%)" }}
+            animate={{ clipPath: "circle(170% at 50% 92%)" }}
+            transition={{ duration: 0.52, ease: [0.4, 0, 0.2, 1] }}
+            onAnimationComplete={() => {
+              setPortalAnimating(false);
+              onGetStarted();
+            }}
+            className="fixed inset-0 z-[100]"
+            style={{
+              background:
+                "linear-gradient(160deg, rgba(80,20,180,1) 0%, rgba(30,10,55,1) 55%, rgba(12,6,28,1) 100%)",
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

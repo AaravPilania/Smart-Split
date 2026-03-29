@@ -245,7 +245,7 @@ export default function Dashboard() {
             <p className="text-[10px] font-bold tracking-[0.18em] text-gray-400 dark:text-gray-500 uppercase mb-1">
               {getGreeting()}, {firstName}
             </p>
-            <h1 className="text-[26px] font-black leading-tight text-gray-900 dark:text-white">
+            <h1 className="text-[32px] font-black leading-tight text-gray-900 dark:text-white">
               Your Financial<br />Atmosphere.
             </h1>
           </div>
@@ -326,7 +326,7 @@ export default function Dashboard() {
                   <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">
                     Total Spend
                   </p>
-                  <p className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
+                  <p className="text-[28px] font-black text-gray-900 dark:text-white leading-tight">
                     {formatCurrency(stats.totalExpenses)}
                   </p>
                   <p className="text-[11px] text-gray-400 mt-0.5">
@@ -339,7 +339,7 @@ export default function Dashboard() {
                     Debts Owed
                   </p>
                   <p
-                    className="text-2xl font-black leading-tight"
+                    className="text-[28px] font-black leading-tight"
                     style={{ color: stats.youOwe > 0 ? "#ef4444" : theme.gradFrom }}
                   >
                     {formatCurrency(stats.youOwe)}
@@ -433,7 +433,7 @@ export default function Dashboard() {
 
                         {/* Details */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-800 dark:text-white truncate capitalize">
+                          <p className="text-[15px] font-semibold text-gray-800 dark:text-white truncate capitalize">
                             {expense.title}
                           </p>
                           <p className="text-xs text-gray-400 dark:text-gray-500">
@@ -444,7 +444,7 @@ export default function Dashboard() {
 
                         {/* Amount */}
                         <div className="text-right flex-shrink-0">
-                          <p className="text-sm font-bold text-gray-900 dark:text-white">
+                          <p className="text-[15px] font-bold text-gray-900 dark:text-white">
                             {formatCurrency(parseFloat(expense.amount || 0))}
                           </p>
                           <p
@@ -467,7 +467,7 @@ export default function Dashboard() {
             {settlements.length > 0 && (
               <div className="rounded-3xl p-5" style={glass}>
                 <div className="flex items-center justify-between mb-4">
-                  <p className="font-bold text-gray-800 dark:text-white text-sm">
+                  <p className="font-bold text-gray-800 dark:text-white text-[15px]">
                     Outstanding Balances
                   </p>
                   <button

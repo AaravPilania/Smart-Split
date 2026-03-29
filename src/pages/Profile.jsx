@@ -4,9 +4,9 @@ import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
 import InsightsPanel from "../components/InsightsPanel";
 import {
-  FiUser, FiMail, FiEdit2, FiUsers, FiCheck, FiX,
-  FiUserPlus, FiUpload, FiCopy, FiChevronDown, FiChevronRight,
-  FiSun, FiMoon, FiLogOut, FiCamera, FiLock,
+  FiUser, FiMail, FiEdit2, FiCheck, FiX,
+  FiCopy, FiChevronDown, FiChevronRight,
+  FiSun, FiMoon, FiLogOut, FiCamera, FiLock, FiArrowLeft,
 } from "react-icons/fi";
 import { QRCodeSVG } from "qrcode.react";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
@@ -247,15 +247,182 @@ export default function Profile() {
   const labelClr = isDark ? "rgba(255,255,255,0.36)" : "rgba(0,0,0,0.38)";
   const textClr = isDark ? "#ffffff" : "#0f0f1a";
   const subClr = isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)";
+  const chevClr = isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)";
 
+  // ── Helper: a settings row with icon, label, optional right content ─
+  const SettingsRow = ({ icon, label, sub, right, onClick, danger, first, last }) => (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center px-4 py-3.5 active:opacity-55 transition-opacity text-left"
+      style={!first ? sep : {}}
+    >
+      {icon && (
+        <span className="flex-shrink-0 mr-3.5 w-[30px] h-[30px] rounded-xl flex items-center justify-center text-white text-sm"
+          style={danger ? { background: "rgba(239,68,68,0.12)", color: "#f87171" } : getGradientStyle(theme)}>
+          {icon}
+        </span>
+      )}
+      <div className="flex-1 min-w-0">
+        <p className="text-[14px] font-semibold" style={{ color: danger ? "#f87171" : textClr }}>{label}</p>
+        {sub && <p className="text-xs mt-0.5" style={{ color: subClr }}>{sub}</p>}
+      </div>
+      {right !== undefined ? right : <FiChevronRight size={15} style={{ color: chevClr, flexShrink: 0 }} />}
+    </button>
+  );
+
+  // ── EDIT PROFILE PAGE ──────────────────────────────────────────────
+  if (editing) {
+    return (
+      <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
+        {/* Sticky header */}
+        <div className="sticky top-0 z-40 flex items-center justify-between px-4 h-14"
+          style={{
+            background: isDark ? "rgba(15,15,25,0.88)" : "rgba(255,255,255,0.88)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+          }}>
+          <button
+            onClick={() => { setEditing(false); setForm({ name: user.name, email: user.email, username: user.username||"", upiId: user.upiId||"", password: "", currentPassword: "" }); }}
+            className="h-9 w-9 rounded-xl flex items-center justify-center active:scale-90 transition"
+            style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", color: textClr }}
+          >
+            <FiArrowLeft size={18} />
+          </button>
+          <h1 className="text-[16px] font-black" style={{ color: textClr }}>Edit Profile</h1>
+          <button
+            form="edit-profile-form"
+            type="submit"
+            className="px-4 py-2 rounded-xl text-white text-sm font-black active:scale-95 transition"
+            style={getGradientStyle(theme)}
+          >
+            Save
+          </button>
+        </div>
+
+        <div className="max-w-lg mx-auto px-4 pt-5 pb-28">
+          {/* Avatar editor */}
+          <div className="flex flex-col items-center mb-7">
+            <div className="relative mb-3">
+              <div className="p-[3px] rounded-full shadow-2xl" style={{ background: `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})` }}>
+                <div className="p-[2px] rounded-full" style={{ background: isDark ? "rgba(10,10,20,0.9)" : "rgba(255,255,255,0.9)" }}>
+                  {avatar ? (
+                    <img src={avatar} alt="avatar" className="h-24 w-24 rounded-full object-cover" />
+                  ) : (
+                    <div className="h-24 w-24 rounded-full flex items-center justify-center text-3xl font-black text-white" style={getGradientStyle(theme)}>
+                      {user.name?.[0]?.toUpperCase() || "?"}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <label className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full flex items-center justify-center cursor-pointer shadow-lg text-white" style={getGradientStyle(theme)}>
+                <FiCamera size={14} />
+                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+              </label>
+            </div>
+            {/* Avatar presets row */}
+            <div className="flex gap-2 mt-2">
+              {avatarOptions.map((opt, idx) => (
+                <button key={idx} onClick={() => saveAvatar(opt)}
+                  className="rounded-xl overflow-hidden transition-all active:scale-90"
+                  style={{ padding: "2px", background: avatar === opt ? `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})` : "transparent" }}>
+                  <img src={opt} alt="" className="h-11 w-11 rounded-lg object-cover" />
+                </button>
+              ))}
+              <button onClick={() => saveAvatar("")}
+                className="h-[50px] w-[50px] rounded-xl border-2 border-dashed flex items-center justify-center transition active:scale-90"
+                style={{ borderColor: isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.1)" }}>
+                <FiX size={13} style={{ color: subClr }} />
+              </button>
+            </div>
+          </div>
+
+          {/* Form */}
+          <form id="edit-profile-form" onSubmit={handleUpdate} className="space-y-3">
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Basic Info</p>
+            <div className="rounded-2xl overflow-hidden" style={ss}>
+              {[
+                { key: "name", label: "Name", type: "text", icon: <FiUser size={13} /> },
+                { key: "email", label: "Email", type: "email", icon: <FiMail size={13} /> },
+              ].map(({ key, label, type, icon }, i) => (
+                <div key={key} className="flex items-center px-4 py-3.5" style={i > 0 ? sep : {}}>
+                  <span className="mr-3 flex-shrink-0" style={{ color: subClr }}>{icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: labelClr }}>{label}</p>
+                    <input type={type} value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                      className={`w-full text-[14px] font-semibold bg-transparent outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                      placeholder={label} />
+                  </div>
+                </div>
+              ))}
+              <div className="flex items-center px-4 py-3.5" style={sep}>
+                <span className="mr-3 flex-shrink-0 font-bold text-sm" style={{ color: subClr }}>@</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: labelClr }}>Username</p>
+                  <input type="text" value={form.username}
+                    onChange={(e) => setForm({ ...form, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
+                    className={`w-full text-[14px] font-semibold bg-transparent outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                    placeholder="your_handle" />
+                </div>
+              </div>
+              <div className="flex items-center px-4 py-3.5" style={sep}>
+                <span className="mr-3 flex-shrink-0 font-bold text-sm" style={{ color: subClr }}>₹</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: labelClr }}>UPI ID</p>
+                  <input type="text" value={form.upiId} onChange={(e) => setForm({ ...form, upiId: e.target.value.trim() })}
+                    className={`w-full text-[14px] font-semibold bg-transparent outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                    placeholder="name@upi" />
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em] mt-5 mb-2 px-1" style={{ color: labelClr }}>Security</p>
+            <div className="rounded-2xl overflow-hidden" style={ss}>
+              <div className="flex items-center px-4 py-3.5">
+                <span className="mr-3 flex-shrink-0" style={{ color: subClr }}><FiLock size={13} /></span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: labelClr }}>New Password</p>
+                  <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    className={`w-full text-[14px] font-semibold bg-transparent outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                    placeholder="Leave blank to keep current" />
+                </div>
+              </div>
+              {form.password && (
+                <div className="flex items-center px-4 py-3.5" style={sep}>
+                  <span className="mr-3 flex-shrink-0" style={{ color: subClr }}><FiLock size={13} /></span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: labelClr }}>
+                      Current Password <span style={{ color: "#f87171" }}>*</span>
+                    </p>
+                    <input type="password" value={form.currentPassword} onChange={(e) => setForm({ ...form, currentPassword: e.target.value })}
+                      className={`w-full text-[14px] font-semibold bg-transparent outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                      placeholder="Required to change password" required />
+                  </div>
+                </div>
+              )}
+            </div>
+          </form>
+        </div>
+
+        <BottomNav />
+        {toast && (
+          <div className={`fixed bottom-24 left-4 right-4 max-w-sm mx-auto z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl text-white text-sm font-bold pointer-events-none ${toast.type === "error" ? "bg-red-500" : "bg-green-500"}`}>
+            {toast.type === "error" ? <FiX size={15} /> : <FiCheck size={15} />}
+            {toast.msg}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── MAIN PROFILE VIEW ──────────────────────────────────────────────
   return (
     <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
       <Navbar />
-      <div className="max-w-lg mx-auto px-4 pt-3 pb-28">
+      <div className="max-w-lg mx-auto px-4 pt-4 pb-28">
 
-        {/* HERO CARD */}
-        <div className="rounded-3xl overflow-hidden mb-5 relative" style={ss}>
-          <div className="absolute top-0 left-0 right-0 h-28" style={{ background: `linear-gradient(135deg, ${theme.gradFrom}55, ${theme.gradTo}40)` }} />
+        {/* ── HERO CARD ─────────────────────────────────────── */}
+        <div className="rounded-3xl overflow-hidden mb-6 relative" style={ss}>
+          <div className="absolute top-0 left-0 right-0 h-24" style={{ background: `linear-gradient(135deg, ${theme.gradFrom}55, ${theme.gradTo}40)` }} />
           <div className="relative z-10 flex flex-col items-center pt-10 pb-6 px-5">
             {/* Avatar */}
             <div className="relative mb-3">
@@ -270,52 +437,39 @@ export default function Profile() {
                   )}
                 </div>
               </div>
-              <label className="absolute -bottom-0.5 -right-0.5 h-7 w-7 rounded-full flex items-center justify-center cursor-pointer shadow-lg text-white" style={getGradientStyle(theme)}>
-                <FiCamera size={12} />
-                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-              </label>
             </div>
-
-            {/* Name + handle */}
-            <h1 className="text-xl font-black tracking-tight leading-tight" style={{ color: textClr }}>{user.name}</h1>
-            {user.username && <p className="text-sm font-semibold mt-0.5" style={{ color: subClr }}>@{user.username}</p>}
+            <h1 className="text-xl font-black tracking-tight" style={{ color: textClr }}>{user.name}</h1>
+            {user.username && <p className="text-sm mt-0.5" style={{ color: subClr }}>@{user.username}</p>}
+            {user.upiId && <p className="text-xs mt-0.5" style={{ color: subClr }}>{user.upiId}</p>}
 
             {/* Stats row */}
-            <div className="flex items-center gap-5 mt-4 mb-5">
+            <div className="flex items-center gap-6 mt-4 mb-5">
               <div className="text-center">
-                <p className="text-lg font-black leading-tight" style={{ color: textClr }}>{groups.length}</p>
+                <p className="text-lg font-black" style={{ color: textClr }}>{groups.length}</p>
                 <p className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: subClr }}>Groups</p>
               </div>
               <div className="h-8 w-px" style={{ background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)" }} />
               <div className="text-center cursor-pointer" onClick={() => navigate("/friends")}>
-                <p className="text-lg font-black leading-tight" style={{ color: friendRequests.length > 0 ? theme.gradFrom : textClr }}>
+                <p className="text-lg font-black" style={{ color: friendRequests.length > 0 ? theme.gradFrom : textClr }}>
                   {friendRequests.length > 0 ? `+${friendRequests.length}` : "–"}
                 </p>
                 <p className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: subClr }}>Requests</p>
               </div>
               <div className="h-8 w-px" style={{ background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)" }} />
               <div className="text-center">
-                <p className="text-lg font-black leading-tight">{categoryData.length > 0 ? (categoryData[0].icon || "💰") : "✦"}</p>
+                <p className="text-lg font-black">{categoryData.length > 0 ? (categoryData[0].icon || "💰") : "✦"}</p>
                 <p className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: subClr }}>Top Spend</p>
               </div>
             </div>
 
-            {/* Buttons */}
-            <div className="flex gap-2.5 w-full">
-              <button onClick={() => setEditing(true)} disabled={editing}
-                className="flex-1 py-2.5 rounded-2xl text-sm font-black tracking-wide text-white active:scale-95 transition-all disabled:opacity-50"
-                style={getGradientStyle(theme)}>
-                Edit Profile
-              </button>
-              <button onClick={() => setShowQR((v) => !v)}
-                className="px-5 py-2.5 rounded-2xl text-sm font-black tracking-wide active:scale-95 transition-all"
-                style={{ background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.07)", color: textClr }}>
-                {showQR ? "Hide QR" : "QR Code"}
-              </button>
-            </div>
-
+            {/* QR code */}
+            <button onClick={() => setShowQR((v) => !v)}
+              className="w-full py-2.5 rounded-2xl text-sm font-black tracking-wide active:scale-95 transition-all"
+              style={{ background: isDark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.06)", color: textClr }}>
+              {showQR ? "Hide QR Code" : "Share QR Code"}
+            </button>
             {showQR && (
-              <div className="mt-5 flex flex-col items-center gap-2">
+              <div className="mt-4 flex flex-col items-center gap-2">
                 <div className="bg-white p-3.5 rounded-2xl shadow-2xl">
                   <QRCodeSVG value={`${APP_URL}/add-friend/${user.id}`} size={128} />
                 </div>
@@ -325,271 +479,23 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* PERSONAL INFO */}
-        <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Personal Info</p>
+        {/* ── ACCOUNT SECTION ───────────────────────────────── */}
+        <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Account</p>
         <div className="rounded-2xl overflow-hidden mb-5" style={ss}>
-          {!editing ? (
-            <>
-              {[
-                { icon: <FiUser size={14} />, label: "Name", value: user.name },
-                { icon: <FiMail size={14} />, label: "Email", value: user.email },
-                ...(user.username ? [{ icon: <span className="font-bold text-sm leading-none">@</span>, label: "Username", value: `@${user.username}` }] : []),
-                ...(user.upiId ? [{ icon: <span className="font-bold text-sm leading-none">₹</span>, label: "UPI ID", value: user.upiId }] : []),
-              ].map((row, i) => (
-                <div key={i} className="flex items-center px-4 py-3.5" style={i > 0 ? sep : {}}>
-                  <span className="flex-shrink-0 mr-3.5 w-4 flex items-center justify-center" style={{ color: subClr }}>{row.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: labelClr }}>{row.label}</p>
-                    <p className="text-sm font-semibold truncate" style={{ color: textClr }}>{row.value}</p>
-                  </div>
-                  {i === 0 && (
-                    <button onClick={() => setEditing(true)} className="flex-shrink-0 ml-2 active:opacity-50" style={{ color: labelClr }}>
-                      <FiEdit2 size={14} />
-                    </button>
-                  )}
-                </div>
-              ))}
-              <div className="flex items-center px-4 py-3.5" style={sep}>
-                <span className="flex-shrink-0 mr-3.5 w-4 font-mono text-xs text-center" style={{ color: subClr }}>#</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: labelClr }}>User ID</p>
-                  <p className="text-xs font-mono truncate" style={{ color: subClr }}>{truncateId(user.id)}</p>
-                </div>
-                <button onClick={copyId} className="flex-shrink-0 ml-2 active:scale-90 transition" style={{ color: copied ? "#10b981" : labelClr }}>
-                  {copied ? <FiCheck size={14} /> : <FiCopy size={14} />}
-                </button>
-              </div>
-            </>
-          ) : (
-            <form onSubmit={handleUpdate} className="p-4 space-y-3.5">
-              {[
-                { key: "name", label: "Name", type: "text", ph: "" },
-                { key: "email", label: "Email", type: "email", ph: "" },
-              ].map(({ key, label, type }) => (
-                <div key={key}>
-                  <label className="block text-[10px] font-bold uppercase tracking-[0.14em] mb-1.5" style={{ color: labelClr }}>{label}</label>
-                  <input type={type} value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                    className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-medium outline-none ${isDark ? "text-white" : "text-gray-900"}`}
-                    style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }} />
-                </div>
-              ))}
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-[0.14em] mb-1.5" style={{ color: labelClr }}>Username</label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-sm" style={{ color: subClr }}>@</span>
-                  <input type="text" value={form.username}
-                    onChange={(e) => setForm({ ...form, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
-                    className={`w-full py-2.5 rounded-xl text-sm font-medium outline-none ${isDark ? "text-white" : "text-gray-900"}`}
-                    style={{ paddingLeft: "1.9rem", paddingRight: "0.875rem", background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }}
-                    placeholder="your_handle" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-[0.14em] mb-1.5" style={{ color: labelClr }}>UPI ID</label>
-                <input type="text" value={form.upiId} onChange={(e) => setForm({ ...form, upiId: e.target.value.trim() })}
-                  className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-medium outline-none ${isDark ? "text-white" : "text-gray-900"}`}
-                  style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }} placeholder="name@upi" />
-              </div>
-              <div style={{ borderTop: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(0,0,0,0.05)", paddingTop: "0.5rem" }}>
-                <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] mb-1.5 mt-1" style={{ color: labelClr }}>
-                  <FiLock size={11} /> New Password
-                </label>
-                <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-medium outline-none ${isDark ? "text-white" : "text-gray-900"}`}
-                  style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }} placeholder="Leave blank to keep current" />
-              </div>
-              {form.password && (
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-[0.14em] mb-1.5" style={{ color: labelClr }}>
-                    Current Password <span style={{ color: "#f87171" }}>*</span>
-                  </label>
-                  <input type="password" value={form.currentPassword} onChange={(e) => setForm({ ...form, currentPassword: e.target.value })}
-                    className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-medium outline-none ${isDark ? "text-white" : "text-gray-900"}`}
-                    style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }} placeholder="Required to change password" required />
-                </div>
-              )}
-              <div className="flex gap-2.5 pt-1">
-                <button type="button"
-                  onClick={() => { setEditing(false); setForm({ name: user.name, email: user.email, username: user.username||"", upiId: user.upiId||"", password: "", currentPassword: "" }); }}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-bold active:scale-95 transition-all"
-                  style={{ background: isDark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.06)", color: textClr }}>
-                  Cancel
-                </button>
-                <button type="submit" className="flex-1 py-2.5 rounded-xl text-sm font-black text-white active:scale-95 transition-all" style={getGradientStyle(theme)}>
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
-
-        {/* SPENDING INSIGHTS */}
-        <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Spending Insights</p>
-        <div className="rounded-2xl overflow-hidden mb-5" style={ss}>
-          <button onClick={() => { fetchInsightsData(); setInsightsOpen((o) => !o); }} className="w-full flex items-center justify-between px-4 py-4">
-            <div className="flex items-center gap-2.5">
-              <span className="text-base leading-none">✦</span>
-              <span className="text-sm font-bold" style={{ color: textClr }}>
-                {categoryData.length > 0 ? `Top: ${categoryData[0].label}` : "View your spending patterns"}
+          <SettingsRow first icon={<FiEdit2 size={13} />} label="Edit Profile"
+            sub="Name, username, UPI, password"
+            onClick={() => { setEditing(true); }} />
+          <SettingsRow icon={<FiCopy size={13} />} label="User ID"
+            sub={truncateId(user.id)}
+            onClick={copyId}
+            right={
+              <span style={{ color: copied ? "#10b981" : labelClr }}>
+                {copied ? <FiCheck size={14} /> : <FiCopy size={14} />}
               </span>
-            </div>
-            <FiChevronDown size={16} className="transition-transform duration-300"
-              style={{ transform: insightsOpen ? "rotate(180deg)" : "rotate(0deg)", color: subClr }} />
-          </button>
-          {insightsOpen && (
-            <div className="px-4 pb-5 space-y-4" style={sep}>
-              {categoryData.length === 0 ? (
-                <p className="text-sm text-center py-4" style={{ color: subClr }}>No expense data yet</p>
-              ) : (
-                <>
-                  <div className="space-y-2.5 pt-3">
-                    {categoryData.slice(0, 5).map((cat, i) => {
-                      const total = categoryData.reduce((s, c) => s + c.amount, 0);
-                      const pct = ((cat.amount / total) * 100).toFixed(0);
-                      return (
-                        <div key={cat.key} className="flex items-center gap-2.5">
-                          <span className="text-sm flex-shrink-0 leading-none">{cat.icon || "💰"}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex justify-between text-xs mb-1">
-                              <span className="font-semibold truncate" style={{ color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.65)" }}>{cat.label || cat.key}</span>
-                              <span className="ml-2 flex-shrink-0" style={{ color: subClr }}>{pct}%</span>
-                            </div>
-                            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.07)" }}>
-                              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: CAT_COLORS[i % CAT_COLORS.length] }} />
-                            </div>
-                          </div>
-                          <span className="text-xs font-bold flex-shrink-0 ml-1 tabular-nums" style={{ color: isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)" }}>
-                            {fmt(cat.amount)}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {monthlyData.some((m) => m.amount > 0) && (
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: labelClr }}>Monthly Trend</p>
-                      <div className="flex items-end gap-1.5 h-14">
-                        {monthlyData.map((m, i) => {
-                          const max = Math.max(...monthlyData.map((d) => d.amount), 1);
-                          return (
-                            <div key={i} className="flex-1 flex flex-col items-center justify-end gap-0.5 h-full">
-                              <div className="w-full rounded-sm transition-all duration-700" style={{
-                                height: `${Math.max((m.amount / max) * 100, 4)}%`,
-                                background: m.isCurrent ? `linear-gradient(to top, ${theme.gradFrom}, ${theme.gradTo})` : isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
-                              }} />
-                              <span className="text-[8px] font-bold" style={{ color: subClr }}>{m.label[0]}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {insights.length > 0 && (
-                    <div className="pt-1">
-                      <InsightsPanel insights={insights.slice(0, 3)} />
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
+            } />
         </div>
 
-        {/* APPEARANCE */}
-        <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Appearance</p>
-        <div className="rounded-2xl overflow-hidden mb-5" style={ss}>
-          <button onClick={toggleDarkMode} className="w-full flex items-center px-4 py-4 active:opacity-60 transition-opacity">
-            {isDark ? <FiMoon size={16} className="mr-3.5 flex-shrink-0" style={{ color: "#818cf8" }} /> : <FiSun size={16} className="mr-3.5 flex-shrink-0" style={{ color: "#f59e0b" }} />}
-            <span className="flex-1 text-sm font-semibold text-left" style={{ color: textClr }}>{isDark ? "Dark Mode" : "Light Mode"}</span>
-            <div className="relative h-[26px] w-[46px] rounded-full flex-shrink-0 transition-all duration-300"
-              style={{ background: isDark ? `linear-gradient(to right, ${theme.gradFrom}, ${theme.gradTo})` : "rgba(0,0,0,0.12)" }}>
-              <div className="absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-md transition-all duration-300"
-                style={{ left: isDark ? "calc(100% - 23px)" : "3px" }} />
-            </div>
-          </button>
-          <div className="px-4 py-4" style={sep}>
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] mb-3" style={{ color: labelClr }}>Accent Color</p>
-            <div className="flex gap-3 flex-wrap">
-              {Object.values(ACCENT_PRESETS).map((preset) => (
-                <button key={preset.key} onClick={() => saveAccent(preset.key)} title={preset.label}
-                  className="relative h-9 w-9 rounded-full transition-all duration-200 active:scale-90"
-                  style={{
-                    background: `linear-gradient(135deg, ${preset.gradFrom}, ${preset.gradTo})`,
-                    boxShadow: localAccent === preset.key ? `0 0 0 2.5px ${isDark ? "#ffffff" : "#000000"}, 0 0 0 4.5px ${preset.gradFrom}` : "none",
-                    transform: localAccent === preset.key ? "scale(1.18)" : "scale(1)",
-                  }}>
-                  {localAccent === preset.key && <FiCheck size={12} className="absolute inset-0 m-auto text-white" />}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* PROFILE PHOTO */}
-        <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Profile Photo</p>
-        <div className="rounded-2xl overflow-hidden mb-5 p-4" style={ss}>
-          <label className="inline-flex items-center gap-2 cursor-pointer text-white text-xs font-black px-3.5 py-2 rounded-xl shadow-md transition active:scale-95 mb-4" style={getGradientStyle(theme)}>
-            <FiUpload size={13} />
-            Upload Photo
-            <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-          </label>
-          <div className="grid grid-cols-5 gap-2">
-            {avatarOptions.map((opt, idx) => (
-              <button key={idx} onClick={() => saveAvatar(opt)} className="rounded-xl overflow-hidden transition-all active:scale-90"
-                style={{
-                  padding: "2px",
-                  background: avatar === opt ? `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})` : "transparent",
-                  boxShadow: avatar === opt ? `0 4px 16px ${theme.gradFrom}40` : "none",
-                }}>
-                <img src={opt} alt={`avatar ${idx + 1}`} className="h-12 w-12 rounded-lg object-cover" />
-              </button>
-            ))}
-            <button onClick={() => saveAvatar("")}
-              className="h-[52px] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 transition active:scale-90"
-              style={{ borderColor: isDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.1)" }}>
-              <FiX size={13} style={{ color: subClr }} />
-              <span className="text-[8px] font-bold" style={{ color: subClr }}>Reset</span>
-            </button>
-          </div>
-        </div>
-
-        {/* YOUR GROUPS */}
-        {groups.length > 0 && (
-          <>
-            <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Your Groups</p>
-            <div className="rounded-2xl overflow-hidden mb-5" style={ss}>
-              <button onClick={() => setGroupsOpen((o) => !o)} className="w-full flex items-center px-4 py-4">
-                <FiUsers size={15} className="mr-3.5 flex-shrink-0" style={{ color: subClr }} />
-                <span className="flex-1 text-sm font-semibold text-left" style={{ color: textClr }}>
-                  {groups.length} Group{groups.length !== 1 ? "s" : ""}
-                </span>
-                <FiChevronDown size={15} className="transition-transform duration-200"
-                  style={{ transform: groupsOpen ? "rotate(180deg)" : "rotate(0deg)", color: subClr }} />
-              </button>
-              {groupsOpen && (
-                <div style={sep}>
-                  {groups.map((g, i) => (
-                    <button key={g.id} onClick={() => navigate("/groups")}
-                      className="w-full flex items-center px-4 py-3 active:opacity-60 transition-opacity" style={i > 0 ? sep : {}}>
-                      <div className="h-8 w-8 rounded-xl flex items-center justify-center text-white font-black text-sm flex-shrink-0 mr-3" style={getGradientStyle(theme)}>
-                        {g.name?.[0]?.toUpperCase()}
-                      </div>
-                      <div className="flex-1 text-left min-w-0">
-                        <p className="text-sm font-semibold truncate" style={{ color: textClr }}>{g.name}</p>
-                        <p className="text-xs" style={{ color: subClr }}>{g.members?.length || 0} members</p>
-                      </div>
-                      <FiChevronRight size={14} style={{ color: isDark ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.22)" }} />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
-        )}
-
-        {/* FRIEND REQUESTS */}
+        {/* ── SOCIAL SECTION ────────────────────────────────── */}
         {(friendRequests.length > 0 || frLoading) && (
           <>
             <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1 flex items-center gap-2" style={{ color: labelClr }}>
@@ -629,13 +535,114 @@ export default function Profile() {
           </>
         )}
 
-        {/* SIGN OUT */}
+        {/* ── PREFERENCES SECTION ───────────────────────────── */}
+        <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Preferences</p>
+        <div className="rounded-2xl overflow-hidden mb-5" style={ss}>
+          <SettingsRow first
+            icon={isDark ? <FiMoon size={13} style={{ color: "#818cf8" }} /> : <FiSun size={13} style={{ color: "#f59e0b" }} />}
+            label={isDark ? "Dark Mode" : "Light Mode"}
+            sub="Switch appearance"
+            onClick={toggleDarkMode}
+            right={
+              <div className="relative h-[26px] w-[46px] rounded-full flex-shrink-0 transition-all duration-300"
+                style={{ background: isDark ? `linear-gradient(to right, ${theme.gradFrom}, ${theme.gradTo})` : "rgba(0,0,0,0.12)" }}>
+                <div className="absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-md transition-all duration-300"
+                  style={{ left: isDark ? "calc(100% - 23px)" : "3px" }} />
+              </div>
+            }
+          />
+          <div className="px-4 py-4" style={sep}>
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] mb-3" style={{ color: labelClr }}>Accent Color</p>
+            <div className="flex gap-3 flex-wrap">
+              {Object.values(ACCENT_PRESETS).map((preset) => (
+                <button key={preset.key} onClick={() => saveAccent(preset.key)} title={preset.label}
+                  className="relative h-9 w-9 rounded-full transition-all duration-200 active:scale-90"
+                  style={{
+                    background: `linear-gradient(135deg, ${preset.gradFrom}, ${preset.gradTo})`,
+                    boxShadow: localAccent === preset.key ? `0 0 0 2.5px ${isDark ? "#ffffff" : "#000000"}, 0 0 0 4.5px ${preset.gradFrom}` : "none",
+                    transform: localAccent === preset.key ? "scale(1.18)" : "scale(1)",
+                  }}>
+                  {localAccent === preset.key && <FiCheck size={12} className="absolute inset-0 m-auto text-white" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── INSIGHTS SECTION ──────────────────────────────── */}
+        <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Spending Insights</p>
+        <div className="rounded-2xl overflow-hidden mb-5" style={ss}>
+          <button onClick={() => { fetchInsightsData(); setInsightsOpen((o) => !o); }} className="w-full flex items-center justify-between px-4 py-4 active:opacity-60 transition-opacity">
+            <div className="flex items-center gap-3">
+              <span className="w-[30px] h-[30px] rounded-xl flex items-center justify-center text-white text-sm" style={getGradientStyle(theme)}>✦</span>
+              <span className="text-sm font-semibold" style={{ color: textClr }}>
+                {categoryData.length > 0 ? `Top: ${categoryData[0].label}` : "View spending patterns"}
+              </span>
+            </div>
+            <FiChevronDown size={16} className="transition-transform duration-300"
+              style={{ transform: insightsOpen ? "rotate(180deg)" : "rotate(0deg)", color: subClr }} />
+          </button>
+          {insightsOpen && (
+            <div className="px-4 pb-5 space-y-4" style={sep}>
+              {categoryData.length === 0 ? (
+                <p className="text-sm text-center py-4" style={{ color: subClr }}>No expense data yet</p>
+              ) : (
+                <>
+                  <div className="space-y-2.5 pt-3">
+                    {categoryData.slice(0, 5).map((cat, i) => {
+                      const total = categoryData.reduce((s, c) => s + c.amount, 0);
+                      const pct = ((cat.amount / total) * 100).toFixed(0);
+                      return (
+                        <div key={cat.key} className="flex items-center gap-2.5">
+                          <span className="text-sm flex-shrink-0">{cat.icon || "💰"}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="font-semibold truncate" style={{ color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.65)" }}>{cat.label || cat.key}</span>
+                              <span className="ml-2 flex-shrink-0" style={{ color: subClr }}>{pct}%</span>
+                            </div>
+                            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.07)" }}>
+                              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: CAT_COLORS[i % CAT_COLORS.length] }} />
+                            </div>
+                          </div>
+                          <span className="text-xs font-bold flex-shrink-0 ml-1 tabular-nums" style={{ color: isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)" }}>
+                            {fmt(cat.amount)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {monthlyData.some((m) => m.amount > 0) && (
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: labelClr }}>Monthly Trend</p>
+                      <div className="flex items-end gap-1.5 h-14">
+                        {monthlyData.map((m, i) => {
+                          const max = Math.max(...monthlyData.map((d) => d.amount), 1);
+                          return (
+                            <div key={i} className="flex-1 flex flex-col items-center justify-end gap-0.5 h-full">
+                              <div className="w-full rounded-sm transition-all duration-700" style={{
+                                height: `${Math.max((m.amount / max) * 100, 4)}%`,
+                                background: m.isCurrent ? `linear-gradient(to top, ${theme.gradFrom}, ${theme.gradTo})` : isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
+                              }} />
+                              <span className="text-[8px] font-bold" style={{ color: subClr }}>{m.label[0]}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {insights.length > 0 && (
+                    <div className="pt-1"><InsightsPanel insights={insights.slice(0, 3)} /></div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ── SIGN OUT ──────────────────────────────────────── */}
         <div className="rounded-2xl overflow-hidden mb-2"
           style={{ ...ss, border: isDark ? "1px solid rgba(239,68,68,0.18)" : "1px solid rgba(239,68,68,0.15)" }}>
-          <button onClick={handleLogout} className="w-full flex items-center px-4 py-4 active:opacity-60 transition-opacity">
-            <FiLogOut size={16} className="mr-3.5 text-red-400 flex-shrink-0" />
-            <span className="text-sm font-bold text-red-400">Sign Out</span>
-          </button>
+          <SettingsRow first danger icon={<FiLogOut size={13} />} label="Sign Out" onClick={handleLogout} right={null} />
         </div>
 
       </div>

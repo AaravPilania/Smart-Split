@@ -5,13 +5,63 @@ import {
   FiUsers,
   FiHeart,
   FiUser,
-  FiScissors,
   FiX,
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import ScanReceipt from "./ScanReceipt";
 import { apiFetch, API_URL, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
+
+/* ── Animated scissors-cutting-money icon ── */
+function ScissorsMoneyIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <style>{`
+        @keyframes snip-upper {
+          0%, 35%, 100% { transform: rotate(0deg); }
+          50%, 65% { transform: rotate(-20deg); }
+        }
+        @keyframes snip-lower {
+          0%, 35%, 100% { transform: rotate(0deg); }
+          50%, 65% { transform: rotate(20deg); }
+        }
+        @keyframes rupee-fly {
+          0% { opacity: 0; transform: translate(0px, 0px) scale(0.6); }
+          20% { opacity: 1; }
+          55% { opacity: 0.9; transform: translate(5px, -7px) scale(1); }
+          100% { opacity: 0; transform: translate(8px, -13px) scale(0.7); }
+        }
+      `}</style>
+
+      {/* Upper blade */}
+      <g style={{ transformOrigin: "13px 14px", animation: "snip-upper 2.2s ease-in-out infinite" }}>
+        <circle cx="5" cy="8.5" r="3.5" stroke="white" strokeWidth="1.9" fill="none" />
+        <line x1="8.2" y1="8.5" x2="21" y2="14" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
+      </g>
+
+      {/* Lower blade */}
+      <g style={{ transformOrigin: "13px 14px", animation: "snip-lower 2.2s ease-in-out infinite" }}>
+        <circle cx="5" cy="19.5" r="3.5" stroke="white" strokeWidth="1.9" fill="none" />
+        <line x1="8.2" y1="19.5" x2="21" y2="14" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
+      </g>
+
+      {/* Pivot */}
+      <circle cx="13" cy="14" r="2" fill="white" opacity="0.9" />
+
+      {/* ₹ flying out from the cut */}
+      <text
+        x="17"
+        y="11"
+        fontSize="8"
+        fill="white"
+        fontWeight="900"
+        style={{ animation: "rupee-fly 2.2s ease-in-out infinite", transformOrigin: "19px 9px" }}
+      >
+        ₹
+      </text>
+    </svg>
+  );
+}
 
 const TABS = [
   { path: "/dashboard", icon: FiHome, label: "Home" },
@@ -85,15 +135,15 @@ export default function BottomNav() {
                 <button
                   key="camera-fab"
                   onClick={handleCameraPress}
-                  className="relative flex items-center justify-center w-14 h-14 rounded-2xl text-white shadow-xl transition-transform active:scale-95"
+                  className="relative flex items-center justify-center w-16 h-16 rounded-[22px] text-white shadow-2xl transition-transform active:scale-95"
                   style={{
                     ...getGradientStyle(theme),
-                    marginTop: "0px",
-                    boxShadow: `0 8px 28px ${theme.gradFrom}55`,
+                    marginTop: "-28px",
+                    boxShadow: `0 10px 36px ${theme.gradFrom}70, 0 4px 16px rgba(0,0,0,0.4)`,
                   }}
                   aria-label="Quick actions"
                 >
-                  <FiScissors size={22} />
+                  <ScissorsMoneyIcon />
                 </button>
               );
             }
