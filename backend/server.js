@@ -1,9 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
-require('dotenv').config();
 const { connectDB } = require('./config/database');
 const User = require('./models/User');
 const auth = require('./middleware/auth');
