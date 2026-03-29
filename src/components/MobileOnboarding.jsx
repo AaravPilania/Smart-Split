@@ -281,7 +281,8 @@ const MobileOnboarding = ({ onGetStarted }) => {
             animate={{ clipPath: `circle(170% at ${portalOrigin})` }}
             transition={{ duration: 0.72, ease: [0.4, 0, 0.2, 1] }}
             onAnimationComplete={() => {
-              setPortalAnimating(false);
+              // Call navigation first — the whole component (and overlay) unmounts
+              // as the parent switches to the login page, preventing the flash
               onGetStarted();
             }}
             className="fixed inset-0 z-[100]"

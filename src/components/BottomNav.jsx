@@ -6,16 +6,17 @@ import {
   FiHeart,
   FiUser,
   FiX,
+  FiCamera,
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import ScanReceipt from "./ScanReceipt";
 import { apiFetch, API_URL, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
 
-/* ── Animated scissors icon — larger, proper crossing blades ── */
+/* ── Animated scissors icon — proper crossing blades ── */
 function ScissorsMoneyIcon() {
   return (
-    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width="30" height="30" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
       <style>{`
         @keyframes snip-upper {
           0%, 30%, 100% { transform: rotate(0deg); }
@@ -33,31 +34,29 @@ function ScissorsMoneyIcon() {
         }
       `}</style>
 
-      {/* Upper blade: ring top-left → blade crosses down to lower-right tip */}
+      {/* Upper blade */}
       <g style={{ transformOrigin: "18px 18px", animation: "snip-upper 2.4s ease-in-out infinite" }}>
         <circle cx="5.5" cy="9" r="4.5" stroke="white" strokeWidth="2.2" fill="none" />
-        {/* blade from ring edge → crosses through pivot → to lower-right tip */}
         <line x1="9.5" y1="11" x2="32" y2="28" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
       </g>
 
-      {/* Lower blade: ring bottom-left → blade crosses up to upper-right tip */}
+      {/* Lower blade */}
       <g style={{ transformOrigin: "18px 18px", animation: "snip-lower 2.4s ease-in-out infinite" }}>
         <circle cx="5.5" cy="27" r="4.5" stroke="white" strokeWidth="2.2" fill="none" />
-        {/* blade from ring edge → crosses through pivot → to upper-right tip */}
         <line x1="9.5" y1="25" x2="32" y2="8" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
       </g>
 
       {/* Pivot screw */}
       <circle cx="18" cy="18" r="2.8" fill="white" />
 
-      {/* ₹ flying out from the cut point */}
+      {/* ₹ flying out — larger font */}
       <text
-        x="22"
-        y="14"
-        fontSize="9"
+        x="21"
+        y="13"
+        fontSize="12"
         fill="white"
         fontWeight="900"
-        style={{ animation: "rupee-fly 2.4s ease-in-out infinite", transformOrigin: "24px 12px" }}
+        style={{ animation: "rupee-fly 2.4s ease-in-out infinite", transformOrigin: "24px 11px" }}
       >
         ₹
       </text>

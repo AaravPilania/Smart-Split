@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
 import {
-  FiEdit2, FiCheck, FiX,
+  FiUser, FiMail, FiEdit2, FiCheck, FiX,
   FiCopy, FiChevronRight,
   FiSun, FiMoon, FiLogOut, FiCamera, FiLock, FiArrowLeft, FiUsers,
 } from "react-icons/fi";
@@ -565,7 +565,7 @@ export default function Profile() {
         <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Preferences</p>
         <div className="rounded-2xl overflow-hidden mb-5" style={ss}>
           <SettingsRow first
-            icon={isDark ? <FiMoon size={13} style={{ color: "#818cf8" }} /> : <FiSun size={13} style={{ color: "#f59e0b" }} />}
+            icon={isDark ? <FiMoon size={13} style={{ color: "white" }} /> : <FiSun size={13} style={{ color: "white" }} />}
             label={isDark ? "Dark Mode" : "Light Mode"}
             sub="Switch appearance"
             onClick={toggleDarkMode}
