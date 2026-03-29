@@ -1,54 +1,65 @@
 import { useTheme } from "../utils/theme";
 
-const TYPE_COLORS = {
-  category:    { bg: "bg-orange-50 dark:bg-orange-900/20", border: "border-orange-200 dark:border-orange-800", text: "text-orange-700 dark:text-orange-300" },
-  trend:       { bg: "bg-blue-50 dark:bg-blue-900/20",    border: "border-blue-200 dark:border-blue-800",    text: "text-blue-700 dark:text-blue-300" },
-  social:      { bg: "bg-purple-50 dark:bg-purple-900/20",border: "border-purple-200 dark:border-purple-800",text: "text-purple-700 dark:text-purple-300" },
-  action:      { bg: "bg-green-50 dark:bg-green-900/20",  border: "border-green-200 dark:border-green-800",  text: "text-green-700 dark:text-green-300" },
-  income:      { bg: "bg-emerald-50 dark:bg-emerald-900/20", border: "border-emerald-200 dark:border-emerald-800", text: "text-emerald-700 dark:text-emerald-300" },
+const TYPE_STYLE = {
+  category: { icon: "🏷️", grad: "linear-gradient(135deg, #f97316, #ec4899)" },
+  trend:    { icon: "📈", grad: "linear-gradient(135deg, #3b82f6, #06b6d4)" },
+  social:   { icon: "👥", grad: "linear-gradient(135deg, #8b5cf6, #ec4899)" },
+  action:   { icon: "⚡", grad: "linear-gradient(135deg, #10b981, #3b82f6)" },
+  income:   { icon: "💚", grad: "linear-gradient(135deg, #10b981, #059669)" },
 };
 
 export default function InsightsPanel({ insights = [] }) {
-  const { theme } = useTheme();
+  const { isDark } = useTheme();
 
   if (!insights || insights.length === 0) return null;
 
   return (
-    <div className="mb-6 mt-4">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-lg">✦</span>
-        <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-          Insights
-        </h3>
-
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {insights.map((insight, i) => {
-          const colors = TYPE_COLORS[insight.type] || TYPE_COLORS.category;
-          return (
+    <div className="space-y-2.5">
+      {insights.map((insight, i) => {
+        const ts = TYPE_STYLE[insight.type] || TYPE_STYLE.category;
+        return (
+          <div
+            key={i}
+            className="flex items-start gap-3.5 p-4 rounded-2xl"
+            style={{
+              background: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)",
+              border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(0,0,0,0.06)",
+            }}
+          >
+            {/* Icon pill */}
             <div
-              key={i}
-              className={`flex items-start gap-3 p-3.5 rounded-2xl border ${colors.bg} ${colors.border}`}
+              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-lg"
+              style={{ background: ts.grad, boxShadow: "0 4px 12px rgba(0,0,0,0.25)" }}
             >
-              <span className="text-2xl flex-shrink-0 leading-none mt-0.5">{insight.icon}</span>
-              <div className="min-w-0">
-                <p className={`text-sm font-bold ${colors.text} leading-tight truncate`}>
-                  {insight.title}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">
-                  {insight.text}
-                </p>
-              </div>
-              {insight.good && (
-                <span className="flex-shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400">
-                  ✓ Good
-                </span>
-              )}
+              {insight.icon}
             </div>
-          );
-        })}
-      </div>
+
+            {/* Text */}
+            <div className="flex-1 min-w-0 pt-0.5">
+              <p className="text-[13px] font-bold leading-tight"
+                style={{ color: isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.82)" }}>
+                {insight.title}
+              </p>
+              <p className="text-xs mt-0.5 leading-snug"
+                style={{ color: isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.44)" }}>
+                {insight.text}
+              </p>
+            </div>
+
+            {/* "Good" badge */}
+            {insight.good && (
+              <span className="flex-shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full self-start mt-0.5"
+                style={{
+                  background: isDark ? "rgba(16,185,129,0.18)" : "rgba(16,185,129,0.12)",
+                  color: "#10b981",
+                  border: "1px solid rgba(16,185,129,0.25)",
+                }}>
+                ✓
+              </span>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -2,11 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
-import InsightsPanel from "../components/InsightsPanel";
 import {
-  FiUser, FiMail, FiEdit2, FiCheck, FiX,
-  FiCopy, FiChevronDown, FiChevronRight,
-  FiSun, FiMoon, FiLogOut, FiCamera, FiLock, FiArrowLeft,
+  FiEdit2, FiCheck, FiX,
+  FiCopy, FiChevronRight,
+  FiSun, FiMoon, FiLogOut, FiCamera, FiLock, FiArrowLeft, FiUsers,
 } from "react-icons/fi";
 import { QRCodeSVG } from "qrcode.react";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
@@ -17,7 +16,6 @@ import {
   useTheme,
   toggleDarkMode,
 } from "../utils/theme";
-import { computeInsights } from "../utils/insights";
 import { detectCategory, getCategoryInfo } from "../utils/categories";
 
 const APP_URL = import.meta.env.VITE_APP_URL || "https://thesmartsplit.pages.dev";
@@ -236,8 +234,33 @@ export default function Profile() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={getPageBgStyle(theme, isDark)}>
-        <div className={`animate-spin rounded-full h-10 w-10 border-b-2 ${theme.spinner}`} />
+      <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
+        <Navbar />
+        <div className="max-w-lg mx-auto px-4 pt-4 pb-28 space-y-4">
+          {/* Hero card skeleton */}
+          <div className="rounded-3xl p-6 animate-pulse flex flex-col items-center gap-3"
+            style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(0,0,0,0.06)" }}>
+            <div className="h-20 w-20 rounded-full" style={{ background: "rgba(128,128,128,0.16)" }} />
+            <div className="h-4 w-32 rounded-full" style={{ background: "rgba(128,128,128,0.14)" }} />
+            <div className="h-3 w-24 rounded-full" style={{ background: "rgba(128,128,128,0.09)" }} />
+            <div className="h-9 w-full rounded-2xl mt-2" style={{ background: "rgba(128,128,128,0.1)" }} />
+          </div>
+          {[1, 2].map((i) => (
+            <div key={i} className="rounded-2xl p-4 animate-pulse space-y-3"
+              style={{ background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)", border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(0,0,0,0.06)" }}>
+              {[1, 2].map((j) => (
+                <div key={j} className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-xl flex-shrink-0" style={{ background: "rgba(128,128,128,0.14)" }} />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-3.5 rounded-full w-1/3" style={{ background: "rgba(128,128,128,0.14)" }} />
+                    <div className="h-3 rounded-full w-1/2" style={{ background: "rgba(128,128,128,0.09)" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+        <BottomNav />
       </div>
     );
   }
@@ -485,9 +508,12 @@ export default function Profile() {
           <SettingsRow first icon={<FiEdit2 size={13} />} label="Edit Profile"
             sub="Name, username, UPI, password"
             onClick={() => { setEditing(true); }} />
-          <SettingsRow icon={<FiCopy size={13} />} label="User ID"
-            sub={truncateId(user.id)}
-            onClick={copyId}
+          <SettingsRow icon={<FiUsers size={13} />} label="Add a Friend"
+            sub={`${APP_URL}/add-friend/${user.id}`}
+            onClick={() => {
+              const link = `${APP_URL}/add-friend/${user.id}`;
+              navigator.clipboard.writeText(link).then(() => showToast("Share link copied!"));
+            }}
             right={
               <span style={{ color: copied ? "#10b981" : labelClr }}>
                 {copied ? <FiCheck size={14} /> : <FiCopy size={14} />}
@@ -567,76 +593,6 @@ export default function Profile() {
               ))}
             </div>
           </div>
-        </div>
-
-        {/* ── INSIGHTS SECTION ──────────────────────────────── */}
-        <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Spending Insights</p>
-        <div className="rounded-2xl overflow-hidden mb-5" style={ss}>
-          <button onClick={() => { fetchInsightsData(); setInsightsOpen((o) => !o); }} className="w-full flex items-center justify-between px-4 py-4 active:opacity-60 transition-opacity">
-            <div className="flex items-center gap-3">
-              <span className="w-[30px] h-[30px] rounded-xl flex items-center justify-center text-white text-sm" style={getGradientStyle(theme)}>✦</span>
-              <span className="text-sm font-semibold" style={{ color: textClr }}>
-                {categoryData.length > 0 ? `Top: ${categoryData[0].label}` : "View spending patterns"}
-              </span>
-            </div>
-            <FiChevronDown size={16} className="transition-transform duration-300"
-              style={{ transform: insightsOpen ? "rotate(180deg)" : "rotate(0deg)", color: subClr }} />
-          </button>
-          {insightsOpen && (
-            <div className="px-4 pb-5 space-y-4" style={sep}>
-              {categoryData.length === 0 ? (
-                <p className="text-sm text-center py-4" style={{ color: subClr }}>No expense data yet</p>
-              ) : (
-                <>
-                  <div className="space-y-2.5 pt-3">
-                    {categoryData.slice(0, 5).map((cat, i) => {
-                      const total = categoryData.reduce((s, c) => s + c.amount, 0);
-                      const pct = ((cat.amount / total) * 100).toFixed(0);
-                      return (
-                        <div key={cat.key} className="flex items-center gap-2.5">
-                          <span className="text-sm flex-shrink-0">{cat.icon || "💰"}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex justify-between text-xs mb-1">
-                              <span className="font-semibold truncate" style={{ color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.65)" }}>{cat.label || cat.key}</span>
-                              <span className="ml-2 flex-shrink-0" style={{ color: subClr }}>{pct}%</span>
-                            </div>
-                            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.07)" }}>
-                              <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: CAT_COLORS[i % CAT_COLORS.length] }} />
-                            </div>
-                          </div>
-                          <span className="text-xs font-bold flex-shrink-0 ml-1 tabular-nums" style={{ color: isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)" }}>
-                            {fmt(cat.amount)}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {monthlyData.some((m) => m.amount > 0) && (
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: labelClr }}>Monthly Trend</p>
-                      <div className="flex items-end gap-1.5 h-14">
-                        {monthlyData.map((m, i) => {
-                          const max = Math.max(...monthlyData.map((d) => d.amount), 1);
-                          return (
-                            <div key={i} className="flex-1 flex flex-col items-center justify-end gap-0.5 h-full">
-                              <div className="w-full rounded-sm transition-all duration-700" style={{
-                                height: `${Math.max((m.amount / max) * 100, 4)}%`,
-                                background: m.isCurrent ? `linear-gradient(to top, ${theme.gradFrom}, ${theme.gradTo})` : isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)",
-                              }} />
-                              <span className="text-[8px] font-bold" style={{ color: subClr }}>{m.label[0]}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                  {insights.length > 0 && (
-                    <div className="pt-1"><InsightsPanel insights={insights.slice(0, 3)} /></div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
         </div>
 
         {/* ── SIGN OUT ──────────────────────────────────────── */}

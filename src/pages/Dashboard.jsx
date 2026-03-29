@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
-import { FiArrowRight } from "react-icons/fi";
+import { FiArrowRight, FiX } from "react-icons/fi";
 import { API_URL, apiFetch, getUser, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 import { detectCategory, getCategoryInfo } from "../utils/categories";
+import { computeInsights } from "../utils/insights";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 function getGreeting() {
@@ -61,6 +63,13 @@ export default function Dashboard() {
   const [groups, setGroups] = useState([]);
   const [groupSpending, setGroupSpending] = useState([]);
   const [avatar, setAvatar] = useState(localStorage.getItem("selectedAvatar") || "");
+  // Insights modal state
+  const [showInsights, setShowInsights] = useState(false);
+  const [insightsFetched, setInsightsFetched] = useState(false);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [categoryData, setCategoryData] = useState([]);
+  const [monthlyData, setMonthlyData] = useState([]);
+  const [insights, setInsights] = useState([]);
   const navigate = useNavigate();
   const { theme, isDark } = useTheme();
 
@@ -213,6 +222,43 @@ export default function Dashboard() {
     }
   };
 
+  // ── Insights data fetch ──────────────────────────────────────────
+  const fetchInsightsData = async () => {
+    if (insightsFetched) return;
+    setInsightsLoading(true);
+    try {
+      const res = await apiFetch(`${API_URL}/auth/dashboard/summary`);
+      if (!res.ok) return;
+      const { allExpenses = [] } = await res.json();
+      const catTotals = {};
+      allExpenses.forEach((e) => {
+        const cat = e.category || detectCategory(e.title || "");
+        catTotals[cat] = (catTotals[cat] || 0) + parseFloat(e.amount || 0);
+      });
+      const catArr = Object.entries(catTotals)
+        .map(([key, amount]) => ({ key, amount, ...getCategoryInfo(key) }))
+        .filter((c) => c.amount > 0)
+        .sort((a, b) => b.amount - a.amount);
+      setCategoryData(catArr);
+      const now = new Date();
+      const buckets = {};
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        buckets[key] = { label: d.toLocaleDateString("en-US", { month: "short" }), amount: 0, isCurrent: i === 0 };
+      }
+      allExpenses.forEach((e) => {
+        const d = new Date(e.createdAt || e.created_at);
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        if (buckets[key]) buckets[key].amount += parseFloat(e.amount || 0);
+      });
+      const mData = Object.values(buckets);
+      setMonthlyData(mData);
+      setInsights(computeInsights({ expenses: allExpenses, categoryData: catArr, monthlyData: mData }));
+    } catch {}
+    finally { setInsightsLoading(false); setInsightsFetched(true); }
+  };
+
   // ── Loading state ────────────────────────────────────────────────────
   if (!user) {
     return (
@@ -360,7 +406,7 @@ export default function Dashboard() {
 
             {/* ── Insights shortcut ───────────────────────────── */}
             <button
-              onClick={() => navigate("/profile")}
+              onClick={() => { fetchInsightsData(); setShowInsights(true); }}
               className="w-full flex items-center justify-between px-5 py-3 rounded-2xl mb-4 transition active:scale-[0.98]"
               style={glass}
             >
@@ -369,7 +415,7 @@ export default function Dashboard() {
                 <span className="text-sm font-bold text-gray-800 dark:text-white">Spending Insights</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-xs font-semibold" style={{ color: theme.gradFrom }}>View on Profile</span>
+                <span className="text-xs font-semibold" style={{ color: theme.gradFrom }}>View</span>
                 <FiArrowRight size={12} style={{ color: theme.gradFrom }} />
               </div>
             </button>
@@ -533,6 +579,206 @@ export default function Dashboard() {
       </div>
 
       <BottomNav />
+
+      {/* ── Spending Insights Full-Screen Modal ─────────────── */}
+      <AnimatePresence>
+        {showInsights && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              key="insights-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.22 }}
+              className="fixed inset-0 z-50"
+              style={{ backdropFilter: "blur(18px) saturate(150%)", WebkitBackdropFilter: "blur(18px) saturate(150%)", background: isDark ? "rgba(5,5,15,0.82)" : "rgba(0,0,0,0.55)" }}
+              onClick={() => setShowInsights(false)}
+            />
+            {/* Sheet */}
+            <motion.div
+              key="insights-sheet"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 290 }}
+              className="fixed inset-x-0 bottom-0 z-50 rounded-t-[28px] overflow-hidden"
+              style={{
+                background: isDark ? "rgba(11,11,22,0.98)" : "#ffffff",
+                maxHeight: "90vh",
+                paddingBottom: "env(safe-area-inset-bottom)",
+              }}
+            >
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 rounded-full" style={{ background: isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.13)" }} />
+              </div>
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 pt-2 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-sm" style={getGradientStyle(theme)}>✦</span>
+                  <h2 className="text-[17px] font-black" style={{ color: isDark ? "#ffffff" : "#0f0f1a" }}>Spending Insights</h2>
+                </div>
+                <button
+                  onClick={() => setShowInsights(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-xl"
+                  style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }}
+                >
+                  <FiX size={14} style={{ color: isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)" }} />
+                </button>
+              </div>
+
+              {/* Scrollable content */}
+              <div className="overflow-y-auto px-5 pb-8" style={{ maxHeight: "calc(90vh - 90px)" }}>
+                {insightsLoading ? (
+                  <div className="space-y-3 pt-2">
+                    {[72, 56, 88, 72, 56].map((h, i) => (
+                      <div key={i} className="rounded-2xl animate-pulse"
+                        style={{ height: h, background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)" }} />
+                    ))}
+                  </div>
+                ) : categoryData.length === 0 ? (
+                  <div className="text-center py-16">
+                    <p className="text-4xl mb-3">💸</p>
+                    <p className="font-semibold" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)" }}>
+                      No expense data yet
+                    </p>
+                    <p className="text-sm mt-1" style={{ color: isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.25)" }}>
+                      Add expenses to see patterns
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Category breakdown */}
+                    <p className="text-[10px] font-bold uppercase tracking-[0.17em] mb-3 mt-1"
+                      style={{ color: isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.28)" }}>
+                      Top Categories
+                    </p>
+                    <div className="space-y-2 mb-5">
+                      {categoryData.slice(0, 6).map((cat, i) => {
+                        const total = categoryData.reduce((s, c) => s + c.amount, 0);
+                        const pct = Math.round((cat.amount / total) * 100);
+                        return (
+                          <div key={cat.key}
+                            className="flex items-center gap-3 p-4 rounded-2xl"
+                            style={{
+                              background: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+                              border: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.06)",
+                            }}>
+                            <span className="text-2xl flex-shrink-0 w-9 text-center">{cat.icon || "💰"}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-center mb-1.5">
+                                <p className="text-sm font-bold truncate"
+                                  style={{ color: isDark ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.8)" }}>
+                                  {cat.label || cat.key}
+                                </p>
+                                <p className="text-xs font-black ml-3 flex-shrink-0" style={{ color: theme.gradFrom }}>
+                                  {formatCurrency(cat.amount)}
+                                </p>
+                              </div>
+                              <div className="h-1.5 rounded-full overflow-hidden"
+                                style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }}>
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${pct}%` }}
+                                  transition={{ delay: i * 0.05, duration: 0.55, ease: "easeOut" }}
+                                  className="h-full rounded-full"
+                                  style={{ background: `linear-gradient(to right, ${theme.gradFrom}, ${theme.gradTo})` }}
+                                />
+                              </div>
+                            </div>
+                            <p className="text-xs font-bold flex-shrink-0 w-8 text-right tabular-nums"
+                              style={{ color: isDark ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.3)" }}>
+                              {pct}%
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Monthly trend */}
+                    {monthlyData.some((m) => m.amount > 0) && (
+                      <>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.17em] mb-3"
+                          style={{ color: isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.28)" }}>
+                          6-Month Trend
+                        </p>
+                        <div className="p-4 rounded-2xl mb-5"
+                          style={{
+                            background: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+                            border: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.06)",
+                          }}>
+                          <div className="flex items-end gap-2 h-24">
+                            {monthlyData.map((m, i) => {
+                              const max = Math.max(...monthlyData.map((d) => d.amount), 1);
+                              return (
+                                <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                                  <motion.div
+                                    initial={{ height: "4%" }}
+                                    animate={{ height: `${Math.max((m.amount / max) * 100, 4)}%` }}
+                                    transition={{ delay: i * 0.07, duration: 0.5, ease: "easeOut" }}
+                                    className="w-full rounded-lg"
+                                    style={{
+                                      background: m.isCurrent
+                                        ? `linear-gradient(to top, ${theme.gradFrom}, ${theme.gradTo})`
+                                        : isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.07)",
+                                    }}
+                                  />
+                                  <span className="text-[9px] font-bold"
+                                    style={{ color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)" }}>
+                                    {m.label}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Smart insights */}
+                    {insights.length > 0 && (
+                      <>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.17em] mb-3"
+                          style={{ color: isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.28)" }}>
+                          Smart Insights
+                        </p>
+                        <div className="space-y-2">
+                          {insights.map((insight, i) => (
+                            <motion.div
+                              key={i}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.25 + i * 0.06, duration: 0.28 }}
+                              className="flex gap-3.5 p-4 rounded-2xl"
+                              style={{
+                                background: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)",
+                                border: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.05)",
+                              }}
+                            >
+                              <span className="text-2xl flex-shrink-0 leading-none mt-0.5">{insight.icon}</span>
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold mb-0.5"
+                                  style={{ color: isDark ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.8)" }}>
+                                  {insight.title}
+                                </p>
+                                <p className="text-xs leading-snug"
+                                  style={{ color: isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.45)" }}>
+                                  {insight.text}
+                                </p>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

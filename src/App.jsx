@@ -22,11 +22,11 @@ function PublicRoute({ element }) {
   return getToken() ? <Navigate to="/dashboard" replace /> : element;
 }
 
-// Smooth animated page transition — slide-up + fade
+// Smooth animated page transition — fade only (no y-offset to avoid "spring snap" glitch)
 const pageVariants = {
-  initial: { opacity: 0, y: 16 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.24, ease: [0.4, 0, 0.2, 1] } },
-  exit:    { opacity: 0, y: -10, transition: { duration: 0.16, ease: [0.4, 0, 1, 1] } },
+  initial: { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: 0.22, ease: [0.4, 0, 0.2, 1] } },
+  exit:    { opacity: 0, transition: { duration: 0.14, ease: [0.4, 0, 1, 1] } },
 };
 
 function PageTransition({ children }) {

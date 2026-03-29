@@ -12,50 +12,52 @@ import ScanReceipt from "./ScanReceipt";
 import { apiFetch, API_URL, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
 
-/* ── Animated scissors-cutting-money icon ── */
+/* ── Animated scissors icon — larger, proper crossing blades ── */
 function ScissorsMoneyIcon() {
   return (
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
       <style>{`
         @keyframes snip-upper {
-          0%, 35%, 100% { transform: rotate(0deg); }
-          50%, 65% { transform: rotate(-20deg); }
+          0%, 30%, 100% { transform: rotate(0deg); }
+          48%, 62% { transform: rotate(-18deg); }
         }
         @keyframes snip-lower {
-          0%, 35%, 100% { transform: rotate(0deg); }
-          50%, 65% { transform: rotate(20deg); }
+          0%, 30%, 100% { transform: rotate(0deg); }
+          48%, 62% { transform: rotate(18deg); }
         }
         @keyframes rupee-fly {
-          0% { opacity: 0; transform: translate(0px, 0px) scale(0.6); }
-          20% { opacity: 1; }
-          55% { opacity: 0.9; transform: translate(5px, -7px) scale(1); }
-          100% { opacity: 0; transform: translate(8px, -13px) scale(0.7); }
+          0% { opacity: 0; transform: translate(0px, 0px) scale(0.5); }
+          18% { opacity: 1; }
+          55% { opacity: 0.9; transform: translate(6px, -9px) scale(1.1); }
+          100% { opacity: 0; transform: translate(10px, -16px) scale(0.7); }
         }
       `}</style>
 
-      {/* Upper blade */}
-      <g style={{ transformOrigin: "13px 14px", animation: "snip-upper 2.2s ease-in-out infinite" }}>
-        <circle cx="5" cy="8.5" r="3.5" stroke="white" strokeWidth="1.9" fill="none" />
-        <line x1="8.2" y1="8.5" x2="21" y2="14" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
+      {/* Upper blade: ring top-left → blade crosses down to lower-right tip */}
+      <g style={{ transformOrigin: "18px 18px", animation: "snip-upper 2.4s ease-in-out infinite" }}>
+        <circle cx="5.5" cy="9" r="4.5" stroke="white" strokeWidth="2.2" fill="none" />
+        {/* blade from ring edge → crosses through pivot → to lower-right tip */}
+        <line x1="9.5" y1="11" x2="32" y2="28" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
       </g>
 
-      {/* Lower blade */}
-      <g style={{ transformOrigin: "13px 14px", animation: "snip-lower 2.2s ease-in-out infinite" }}>
-        <circle cx="5" cy="19.5" r="3.5" stroke="white" strokeWidth="1.9" fill="none" />
-        <line x1="8.2" y1="19.5" x2="21" y2="14" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
+      {/* Lower blade: ring bottom-left → blade crosses up to upper-right tip */}
+      <g style={{ transformOrigin: "18px 18px", animation: "snip-lower 2.4s ease-in-out infinite" }}>
+        <circle cx="5.5" cy="27" r="4.5" stroke="white" strokeWidth="2.2" fill="none" />
+        {/* blade from ring edge → crosses through pivot → to upper-right tip */}
+        <line x1="9.5" y1="25" x2="32" y2="8" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
       </g>
 
-      {/* Pivot */}
-      <circle cx="13" cy="14" r="2" fill="white" opacity="0.9" />
+      {/* Pivot screw */}
+      <circle cx="18" cy="18" r="2.8" fill="white" />
 
-      {/* ₹ flying out from the cut */}
+      {/* ₹ flying out from the cut point */}
       <text
-        x="17"
-        y="11"
-        fontSize="8"
+        x="22"
+        y="14"
+        fontSize="9"
         fill="white"
         fontWeight="900"
-        style={{ animation: "rupee-fly 2.2s ease-in-out infinite", transformOrigin: "19px 9px" }}
+        style={{ animation: "rupee-fly 2.4s ease-in-out infinite", transformOrigin: "24px 12px" }}
       >
         ₹
       </text>
@@ -119,14 +121,12 @@ export default function BottomNav() {
           borderTop: isDark
             ? "1px solid rgba(255,255,255,0.07)"
             : "1px solid rgba(0,0,0,0.08)",
+          paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
         <div
           className="flex items-center justify-around max-w-lg mx-auto px-2"
-          style={{
-            height: "64px",
-            paddingBottom: "env(safe-area-inset-bottom)",
-          }}
+          style={{ height: "64px" }}
         >
           {TABS.map((tab, i) => {
             // ── Center camera FAB ────────────────────────────

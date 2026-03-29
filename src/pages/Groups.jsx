@@ -189,8 +189,28 @@ export default function Groups() {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         <Navbar />
-        <div className="flex items-center justify-center h-96">
-          <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${theme.spinner}`}></div>
+        <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-28 space-y-4">
+          <div className="flex justify-between items-center mb-2">
+            <div className="space-y-2">
+              <div className="h-6 w-36 rounded-xl animate-pulse" style={{ background: "rgba(128,128,128,0.12)" }} />
+              <div className="h-4 w-48 rounded-xl animate-pulse" style={{ background: "rgba(128,128,128,0.08)" }} />
+            </div>
+            <div className="h-10 w-28 rounded-xl animate-pulse" style={{ background: "rgba(128,128,128,0.12)" }} />
+          </div>
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-2xl p-5 animate-pulse space-y-3"
+              style={{ background: "rgba(128,128,128,0.07)", border: "1px solid rgba(128,128,128,0.08)" }}>
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-2xl flex-shrink-0" style={{ background: "rgba(128,128,128,0.15)" }} />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 rounded-full w-2/5" style={{ background: "rgba(128,128,128,0.15)" }} />
+                  <div className="h-3 rounded-full w-3/5" style={{ background: "rgba(128,128,128,0.1)" }} />
+                </div>
+              </div>
+              <div className="h-3 rounded-full w-full" style={{ background: "rgba(128,128,128,0.08)" }} />
+              <div className="h-3 rounded-full w-4/5" style={{ background: "rgba(128,128,128,0.08)" }} />
+            </div>
+          ))}
         </div>
       </div>
     );

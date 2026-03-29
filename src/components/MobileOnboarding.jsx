@@ -153,6 +153,7 @@ const slideVariants = {
 const MobileOnboarding = ({ onGetStarted }) => {
   const [[current, direction], setCurrent] = useState([0, 0]);
   const [portalAnimating, setPortalAnimating] = useState(false);
+  const [portalOrigin, setPortalOrigin] = useState("50% 88%");
   const TOTAL = 4;
 
   const paginate = (dir) => {
@@ -161,9 +162,15 @@ const MobileOnboarding = ({ onGetStarted }) => {
     setCurrent([next, dir]);
   };
 
-  const handleGetStarted = () => {
+  const handleGetStarted = (e) => {
+    // Compute origin from wherever the button is on screen
+    if (e?.currentTarget) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const cx = ((rect.left + rect.width / 2) / window.innerWidth * 100).toFixed(1);
+      const cy = ((rect.top + rect.height / 2) / window.innerHeight * 100).toFixed(1);
+      setPortalOrigin(`${cx}% ${cy}%`);
+    }
     setPortalAnimating(true);
-    // onGetStarted called after animation completes
   };
 
   const handleDragEnd = (_, info) => {
@@ -265,14 +272,14 @@ const MobileOnboarding = ({ onGetStarted }) => {
         )}
       </div>
 
-      {/* Portal burst overlay — expands from button to fill screen, then triggers onGetStarted */}
+      {/* Portal burst overlay — expands from button position to fill screen */}
       <AnimatePresence>
         {portalAnimating && (
           <motion.div
             key="portal"
-            initial={{ clipPath: "circle(0% at 50% 92%)" }}
-            animate={{ clipPath: "circle(170% at 50% 92%)" }}
-            transition={{ duration: 0.52, ease: [0.4, 0, 0.2, 1] }}
+            initial={{ clipPath: `circle(0% at ${portalOrigin})` }}
+            animate={{ clipPath: `circle(170% at ${portalOrigin})` }}
+            transition={{ duration: 0.72, ease: [0.4, 0, 0.2, 1] }}
             onAnimationComplete={() => {
               setPortalAnimating(false);
               onGetStarted();

@@ -136,7 +136,7 @@ export default function Friends() {
   };
 
   const tabs = [
-    { id: "friends", label: "Friends", count: friends.length, icon: <FiUsers size={15} /> },
+    { id: "friends", label: "Friends", icon: <FiUsers size={15} /> },
     { id: "requests", label: "Requests", count: requests.length, icon: <FiUserPlus size={15} /> },
     { id: "add", label: "Add", icon: <FiSearch size={15} /> },
   ];
@@ -209,8 +209,17 @@ export default function Friends() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-16">
-            <div className="h-8 w-8 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: theme.gradFrom, borderTopColor: "transparent" }} />
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="rounded-2xl animate-pulse flex items-center gap-3 p-4"
+                style={{ background: "rgba(128,128,128,0.08)", border: "1px solid rgba(128,128,128,0.1)" }}>
+                <div className="h-10 w-10 rounded-full flex-shrink-0" style={{ background: "rgba(128,128,128,0.15)" }} />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 rounded-full w-1/2" style={{ background: "rgba(128,128,128,0.15)" }} />
+                  <div className="h-2.5 rounded-full w-3/4" style={{ background: "rgba(128,128,128,0.1)" }} />
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <>
