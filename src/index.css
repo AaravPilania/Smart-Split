@@ -78,7 +78,7 @@ img[data-fit="contain"], .img-contain {
 
 /* ─── Login page animated gradient background ─────────────────── */
 .home-bg {
-  background: #0d0818;
+  background: #0c0e1a;
 }
 
 /* Dot-grid pattern overlay */
@@ -169,6 +169,11 @@ img[data-fit="contain"], .img-contain {
   0%, 100% { transform: translate(0, 0) scale(1); }
   33%      { transform: translate(4%, -5%) scale(1.03); }
   66%      { transform: translate(-4%, 3%) scale(0.98); }
+}
+
+@keyframes iconGlow {
+  0%, 100% { box-shadow: 0 0 22px 6px rgba(236,72,153,0.40), 0 8px 32px rgba(0,0,0,0.55); }
+  50%      { box-shadow: 0 0 46px 18px rgba(236,72,153,0.75), 0 8px 32px rgba(0,0,0,0.55); }
 }
 
 /* ─── Intro Onboarding Styles ─────────────────────────────────── */

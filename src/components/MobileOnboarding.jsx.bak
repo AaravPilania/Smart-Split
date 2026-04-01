@@ -1,48 +1,67 @@
-import { useState, useRef, useCallback } from "react";
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
+import { useState } from "react";
+import { motion, AnimatePresence, useMotionValue } from "framer-motion";
 
-/* ─── Per-slide themes ─────────────────────────────────────── */
-const UNIFIED_THEME = {
-  bg: "linear-gradient(155deg, #130826 0%, #0a0512 100%)",
-  accent: "#ec4899",
-  glow1: { c: "rgba(236,72,153,0.50)", t: "-18%", l: "-14%", an: "glowDrift1 16s ease-in-out infinite" },
-  glow2: { c: "rgba(168,85,247,0.28)", b: "0%",   r: "-10%", an: "glowDrift2 22s ease-in-out infinite" },
-};
-const SLIDE_THEMES = [UNIFIED_THEME, UNIFIED_THEME, UNIFIED_THEME, UNIFIED_THEME];
+/* ── Per-slide colour themes ────────────────────────────────── */
+const SLIDE_THEMES = [
+  {
+    // Slide 1: Warm magenta/purple
+    bg: "linear-gradient(160deg, #1e0a36 0%, #0d0818 100%)",
+    glow1: { color: "rgba(236,72,153,0.42)", top: "-25%", left: "-20%", anim: "glowDrift1 18s ease-in-out infinite" },
+    glow2: { color: "rgba(168,85,247,0.32)", bottom: "2%", right: "-12%", anim: "glowDrift2 24s ease-in-out infinite" },
+  },
+  {
+    // Slide 2: Cool navy/teal
+    bg: "linear-gradient(160deg, #050f24 0%, #07111e 100%)",
+    glow1: { color: "rgba(56,189,248,0.38)", top: "-20%", right: "-15%", anim: "glowDrift2 20s ease-in-out infinite" },
+    glow2: { color: "rgba(99,102,241,0.30)", bottom: "5%", left: "-8%", anim: "glowDrift1 22s ease-in-out infinite" },
+  },
+  {
+    // Slide 3: Indigo/violet
+    bg: "linear-gradient(160deg, #160c30 0%, #0c0820 100%)",
+    glow1: { color: "rgba(109,40,217,0.44)", top: "-15%", left: "20%", anim: "glowDrift3 16s ease-in-out infinite" },
+    glow2: { color: "rgba(167,139,250,0.28)", bottom: "10%", right: "-8%", anim: "glowDrift1 26s ease-in-out infinite" },
+  },
+  {
+    // Slide 4: Coral/orange
+    bg: "linear-gradient(160deg, #1f0810 0%, #0d0810 100%)",
+    glow1: { color: "rgba(249,115,22,0.44)", top: "-20%", left: "-12%", anim: "glowDrift1 19s ease-in-out infinite" },
+    glow2: { color: "rgba(236,72,153,0.36)", bottom: "5%", right: "-10%", anim: "glowDrift2 23s ease-in-out infinite" },
+  },
+];
 
-/* ─── Slide data ───────────────────────────────────────────── */
+/* ── Slide data ─────────────────────────────────────────────── */
 const SLIDES = [
   {
     id: "dinner",
-    tag: "Smart Split",
-    title: "Stop doing\nmath at dinner.",
-    accentWord: "math",
-    sub: "AI-powered bill splitting for the real world — fast, fair, zero drama.",
-    visual: () => <DinnerVisual />,
+    eyebrow: "Smart Split",
+    headline: ["Stop doing math", "at dinner."],
+    accentLine: 1,
+    sub: "AI-powered bill splitting for the real world.",
+    visual: <DinnerVisual />,
   },
   {
     id: "scan",
-    tag: "Receipt Scanner",
-    title: "Scan any\nreceipt instantly.",
-    accentWord: "receipt",
-    sub: "Point, snap, done. Gemini AI reads every line in under a second.",
-    visual: () => <ScanVisual />,
+    eyebrow: "Receipt Scanner",
+    headline: ["Scan any", "receipt."],
+    accentLine: 1,
+    sub: "Point, snap, done. Gemini AI reads every line instantly.",
+    visual: <ScanVisual />,
   },
   {
     id: "crew",
-    tag: "Group Splits",
-    title: "Split fair\nwith your crew.",
-    accentWord: "fair",
-    sub: "Groups, percentages, or equal — you decide how to divide.",
-    visual: () => <CrewVisual />,
+    eyebrow: "Group Splits",
+    headline: ["Split with", "your crew."],
+    accentLine: 1,
+    sub: "Groups, percentages, or equal — however you want.",
+    visual: <CrewVisual />,
   },
   {
     id: "settle",
-    tag: "One Tap Pay",
-    title: "Settle up\ninstantly.",
-    accentWord: "instantly",
-    sub: "One tap to pay via GPay, PhonePe, or Paytm. Zero awkwardness.",
-    visual: () => <SettleVisual />,
+    eyebrow: "UPI Settle",
+    headline: ["Settle up", "instantly."],
+    accentLine: 1,
+    sub: "One tap. Zero awkwardness.",
+    visual: <SettleVisual />,
     isCTA: true,
   },
 ];
@@ -56,7 +75,7 @@ const GRAD_STYLE = {
 };
 
 /* ── Main component ─────────────────────────────────────────── */
-export default function MobileOnboarding({ onGetStarted, onGoogleSignIn }) {
+export default function MobileOnboarding({ onGetStarted }) {
   const [slide, setSlide] = useState(0);
   const [dir, setDir] = useState(1);
   const dragX = useMotionValue(0);
@@ -73,152 +92,87 @@ export default function MobileOnboarding({ onGetStarted, onGoogleSignIn }) {
     dragX.set(0);
   };
 
+  const s = SLIDES[slide];
   const theme = SLIDE_THEMES[slide];
 
   return (
     <div
       className="relative w-full h-full overflow-hidden flex flex-col select-none"
-      style={{ background: "#080612", touchAction: "pan-y" }}
+      style={{ background: "#0d0818", touchAction: "pan-y" }}
     >
-      {/* Per-slide animated background */}
+      {/* Per-slide animated background — cross-fades on slide change */}
       <AnimatePresence mode="wait">
         <motion.div
           key={`bg-${slide}`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.7 }}
+          transition={{ duration: 0.65 }}
           className="absolute inset-0 pointer-events-none"
           style={{ background: theme.bg, zIndex: 0 }}
         >
+          {/* Glow 1 — position differs per slide giving movement feel */}
           <div
             style={{
               position: "absolute",
-              width: "80vw", height: "80vw",
-              maxWidth: 460, maxHeight: 460,
-              top: theme.glow1.t, left: theme.glow1.l,
-              right: theme.glow1.r,
+              width: "82vw", height: "82vw",
+              maxWidth: 480, maxHeight: 480,
+              top: theme.glow1.top, left: theme.glow1.left,
+              right: theme.glow1.right,
               borderRadius: "50%",
-              background: `radial-gradient(circle, ${theme.glow1.c} 0%, transparent 68%)`,
-              filter: "blur(48px)",
-              animation: theme.glow1.an,
+              background: `radial-gradient(circle, ${theme.glow1.color} 0%, transparent 65%)`,
+              filter: "blur(44px)",
+              animation: theme.glow1.anim,
             }}
           />
+          {/* Glow 2 */}
           <div
             style={{
               position: "absolute",
-              width: "64vw", height: "64vw",
-              maxWidth: 360, maxHeight: 360,
-              bottom: theme.glow2.b, right: theme.glow2.r,
-              left: theme.glow2.l,
+              width: "68vw", height: "68vw",
+              maxWidth: 390, maxHeight: 390,
+              bottom: theme.glow2.bottom, right: theme.glow2.right,
+              left: theme.glow2.left,
               borderRadius: "50%",
-              background: `radial-gradient(circle, ${theme.glow2.c} 0%, transparent 68%)`,
-              filter: "blur(40px)",
-              animation: theme.glow2.an,
+              background: `radial-gradient(circle, ${theme.glow2.color} 0%, transparent 65%)`,
+              filter: "blur(38px)",
+              animation: theme.glow2.anim,
             }}
           />
-          <div className="home-dots absolute inset-0" style={{ opacity: 0.40 }} />
+          <div className="home-dots absolute inset-0" style={{ opacity: 0.55 }} />
         </motion.div>
       </AnimatePresence>
-
-      {/* Top bar: logo mark + login pill */}
-      <div
-        className="relative flex items-center justify-between px-5 pt-14 pb-0"
-        style={{ zIndex: 20 }}
-      >
-        <div className="flex items-center gap-2">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, #ec4899, #a855f7)" }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2v6M8 6l4-4 4 4M4 20h16M6 20V10a2 2 0 012-2h8a2 2 0 012 2v10" />
-            </svg>
-          </div>
-          <span className="text-xs font-black tracking-wide" style={{ color: "rgba(255,255,255,0.55)", letterSpacing: "0.06em" }}>
-            SMART SPLIT
-          </span>
-        </div>
-
-        {/* Login pill — visible on non-CTA slides */}
-        <AnimatePresence>
-          {!SLIDES[slide].isCTA && (
-            <motion.div
-              initial={{ opacity: 0, x: 8 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 8 }}
-              transition={{ duration: 0.25 }}
-              className="flex items-center gap-2"
-            >
-              {onGoogleSignIn && (
-                <button
-                  onClick={() => onGoogleSignIn()}
-                  className="flex items-center justify-center w-8 h-8 rounded-full active:scale-95 transition-all"
-                  style={{
-                    background: "rgba(255,255,255,0.09)",
-                    border: "1px solid rgba(255,255,255,0.20)",
-                    backdropFilter: "blur(12px)",
-                  }}
-                  aria-label="Sign in with Google"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" fill="#4285F4"/>
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                    <path d="M5.84 14.09a7.12 7.12 0 010-4.17V7.07H2.18A11.97 11.97 0 001 12c0 1.94.46 3.77 1.18 5.43l3.66-2.84z" fill="#FBBC05"/>
-                    <path d="M12 4.75c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.09 14.97 0 12 0 7.7 0 3.99 2.47 2.18 6.07l3.66 2.85c.87-2.6 3.3-4.17 6.16-4.17z" fill="#EA4335"/>
-                  </svg>
-                </button>
-              )}
-              <button
-                onClick={(e) => onGetStarted(e.currentTarget.getBoundingClientRect())}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all active:scale-95"
-                style={{
-                  background: "rgba(255,255,255,0.09)",
-                  border: "1px solid rgba(255,255,255,0.20)",
-                  color: "rgba(255,255,255,0.80)",
-                  backdropFilter: "blur(12px)",
-                  letterSpacing: "0.02em",
-                }}
-              >
-                Login
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14M13 6l6 6-6 6" />
-                </svg>
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
 
       {/* Draggable slide content */}
       <motion.div
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.10}
+        dragElastic={0.12}
         onDragEnd={handleDragEnd}
-        style={{ x: dragX, zIndex: 1, flex: 1 }}
-        className="relative flex flex-col"
+        style={{ x: dragX, zIndex: 1 }}
+        className="relative flex flex-col h-full w-full"
       >
         <AnimatePresence mode="wait" custom={dir}>
           <motion.div
             key={slide}
             custom={dir}
             variants={{
-              enter: (d) => ({ opacity: 0, x: d * 40 }),
+              enter: (d) => ({ opacity: 0, x: d * 48 }),
               center: { opacity: 1, x: 0 },
-              exit: (d) => ({ opacity: 0, x: d * -40 }),
+              exit: (d) => ({ opacity: 0, x: d * -48 }),
             }}
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
+            transition={{ duration: 0.38, ease: [0.32, 0.72, 0, 1] }}
             className="absolute inset-0 flex flex-col"
           >
             <SlideContent
-              slide={SLIDES[slide]}
+              slide={s}
               slideIndex={slide}
-              theme={theme}
+              total={SLIDES.length}
               onNext={() => go(slide + 1)}
+              onSkip={onGetStarted}
               onGetStarted={onGetStarted}
             />
           </motion.div>
@@ -227,19 +181,25 @@ export default function MobileOnboarding({ onGetStarted, onGoogleSignIn }) {
 
       {/* Dot indicators */}
       <div
-        className="absolute flex gap-2"
-        style={{ zIndex: 20, bottom: 28, left: "50%", transform: "translateX(-50%)" }}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2"
+        style={{ zIndex: 20 }}
       >
         {SLIDES.map((_, i) => (
           <motion.button
             key={i}
             onClick={() => go(i)}
-            animate={{ width: i === slide ? 22 : 6, opacity: i === slide ? 1 : 0.30 }}
-            transition={{ type: "spring", stiffness: 420, damping: 32 }}
+            animate={{
+              width: i === slide ? 24 : 6,
+              opacity: i === slide ? 1 : 0.35,
+            }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
             style={{
-              height: 6, borderRadius: 3,
-              background: i === slide ? theme.accent : "rgba(255,255,255,0.45)",
-              border: "none", cursor: "pointer", padding: 0,
+              height: 6,
+              borderRadius: 3,
+              background: i === slide ? "#ec4899" : "rgba(255,255,255,0.5)",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
             }}
           />
         ))}
@@ -249,119 +209,107 @@ export default function MobileOnboarding({ onGetStarted, onGoogleSignIn }) {
 }
 
 /* ── Slide layout ───────────────────────────────────────────── */
-function SlideContent({ slide, slideIndex, theme, onNext, onGetStarted }) {
-  /* Split title on \n and highlight accentWord */
-  const renderTitle = (title, accentWord) => {
-    return title.split("\n").map((line, li) => {
-      const idx = line.toLowerCase().indexOf(accentWord.toLowerCase());
-      if (idx === -1) {
-        return (
-          <span key={li} className="text-white">
-            {line}
-            {li < title.split("\n").length - 1 && <br />}
-          </span>
-        );
-      }
-      return (
-        <span key={li}>
-          <span className="text-white">{line.slice(0, idx)}</span>
-          <span style={GRAD_STYLE}>{line.slice(idx, idx + accentWord.length)}</span>
-          <span className="text-white">{line.slice(idx + accentWord.length)}</span>
-          {li < title.split("\n").length - 1 && <br />}
-        </span>
-      );
-    });
-  };
-
+function SlideContent({ slide, slideIndex, total, onNext, onSkip, onGetStarted }) {
   return (
-    <div className="flex flex-col h-full w-full px-6 pb-20" style={{ paddingTop: 72 }}>
-      {/* Visual */}
-      <div className="flex items-center justify-center" style={{ flex: 1.5 }}>
+    <div className="flex flex-col h-full w-full px-6 pt-14 pb-20">
+      {/* Login button — top right (replaces Skip) */}
+      {!slide.isCTA && (
+        <div className="absolute top-12 right-5 z-10">
+          <button
+            onClick={(e) => onSkip(e.currentTarget.getBoundingClientRect())}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95"
+            style={{
+              background: "rgba(255,255,255,0.11)",
+              border: "1px solid rgba(255,255,255,0.24)",
+              color: "rgba(255,255,255,0.90)",
+              backdropFilter: "blur(10px)",
+              letterSpacing: "0.01em",
+            }}
+          >
+            Login
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* Visual — big and centered */}
+      <div className="flex items-center justify-center" style={{ flex: 1.4 }}>
         <motion.div
-          initial={{ scale: 0.86, opacity: 0, y: 18 }}
+          initial={{ scale: 0.88, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
-          transition={{ duration: 0.52, ease: [0.32, 0.72, 0, 1], delay: 0.04 }}
-          style={{ width: "100%", maxWidth: 310 }}
+          transition={{ duration: 0.55, ease: [0.32, 0.72, 0, 1], delay: 0.05 }}
+          style={{ width: "100%", maxWidth: 320 }}
         >
-          {slide.visual()}
+          {slide.visual}
         </motion.div>
       </div>
 
-      {/* Editorial text block */}
+      {/* Text block */}
       <div style={{ flex: 1 }}>
-        {/* Tag line with colored dash */}
-        <motion.div
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.08, duration: 0.36 }}
-          className="flex items-center gap-2 mb-3"
-        >
-          <div className="h-px w-5 rounded-full" style={{ background: theme.accent }} />
-          <span
-            className="text-xs font-bold tracking-[0.16em] uppercase"
-            style={{ color: theme.accent }}
-          >
-            {slide.tag}
-          </span>
-        </motion.div>
-
-        {/* Headline with gradient accent word */}
-        <motion.h1
-          initial={{ opacity: 0, y: 16 }}
+        <motion.p
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.14, duration: 0.42 }}
-          className="font-black leading-[1.07] tracking-tight mb-3"
-          style={{ fontSize: "clamp(1.9rem, 8.5vw, 2.6rem)" }}
+          transition={{ delay: 0.1, duration: 0.4 }}
+          className="text-xs font-bold tracking-[0.18em] uppercase mb-3"
+          style={{ color: "rgba(236,72,153,0.8)" }}
         >
-          {renderTitle(slide.title, slide.accentWord)}
+          {slide.eyebrow}
+        </motion.p>
+
+        <motion.h1
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.45 }}
+          className="font-black leading-[1.05] tracking-tight mb-4"
+          style={{ fontSize: "clamp(2rem, 9vw, 2.8rem)" }}
+        >
+          {slide.headline.map((line, i) =>
+            i === slide.accentLine ? (
+              <span key={i} style={GRAD_STYLE}>
+                {line}
+                <br />
+              </span>
+            ) : (
+              <span key={i} className="text-white">
+                {line}
+                <br />
+              </span>
+            )
+          )}
         </motion.h1>
 
-        {/* Sub-text */}
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.20, duration: 0.38 }}
-          className="text-sm leading-relaxed mb-7"
-          style={{ color: "rgba(255,255,255,0.40)", maxWidth: 270 }}
+          transition={{ delay: 0.22, duration: 0.4 }}
+          className="text-sm leading-relaxed mb-8"
+          style={{ color: "rgba(255,255,255,0.45)", maxWidth: 280 }}
         >
           {slide.sub}
         </motion.p>
 
-        {/* CTA: gradient button on slide 4, frosted Continue elsewhere */}
+        {/* CTA or Next */}
         {slide.isCTA ? (
-          <motion.button
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.26, duration: 0.36 }}
-            onClick={(e) => onGetStarted(e.currentTarget.getBoundingClientRect())}
-            whileTap={{ scale: 0.97 }}
-            className="w-full py-[14px] rounded-2xl text-white font-black text-sm flex items-center justify-center gap-2"
-            style={{
-              background: "linear-gradient(135deg, #ec4899, #a855f7, #f97316)",
-              boxShadow: "0 8px 24px rgba(236,72,153,0.40)",
-            }}
-          >
-            Get Started
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-          </motion.button>
+          <GetStartedButton onGetStarted={onGetStarted} />
         ) : (
           <motion.button
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.26, duration: 0.36 }}
+            transition={{ delay: 0.28, duration: 0.4 }}
             onClick={onNext}
-            whileTap={{ scale: 0.97 }}
-            className="flex items-center justify-center gap-2 w-full py-[14px] rounded-2xl text-white font-semibold text-sm"
+            className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-white font-bold text-sm w-full"
             style={{
-              background: "linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.05))",
-              border: "1px solid rgba(255,255,255,0.15)",
-              backdropFilter: "blur(14px)",
+              background:
+                "linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06))",
+              border: "1px solid rgba(255,255,255,0.18)",
+              backdropFilter: "blur(12px)",
             }}
+            whileTap={{ scale: 0.97 }}
           >
-            Continue
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            Next
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
           </motion.button>
@@ -371,133 +319,7 @@ function SlideContent({ slide, slideIndex, theme, onNext, onGetStarted }) {
   );
 }
 
-/* ── Swipe-to-login slider (slide 4 CTA) ────────────────────── */
-function SliderButton({ onComplete }) {
-  const TRACK_W = 280;
-  const THUMB_W = 56;
-  const MAX_DRAG = TRACK_W - THUMB_W - 8;
-  const COMPLETE_THRESHOLD = MAX_DRAG * 0.88;
-
-  const x = useMotionValue(0);
-  const fillWidth = useTransform(x, [0, MAX_DRAG], [THUMB_W, TRACK_W]);
-  const labelOpacity = useTransform(x, [0, MAX_DRAG * 0.4], [1, 0]);
-  const [done, setDone] = useState(false);
-  const thumbRef = useRef(null);
-
-  const handleDragEnd = useCallback(() => {
-    if (x.get() >= COMPLETE_THRESHOLD) {
-      animate(x, MAX_DRAG, { duration: 0.18, ease: "easeOut" });
-      setDone(true);
-      setTimeout(() => {
-        const rect = thumbRef.current?.getBoundingClientRect() ?? { x: 0, y: 0, width: 0, height: 0 };
-        onComplete(rect);
-      }, 380);
-    } else {
-      animate(x, 0, { type: "spring", stiffness: 500, damping: 38 });
-    }
-  }, [x, MAX_DRAG, COMPLETE_THRESHOLD, onComplete]);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.26, duration: 0.38 }}
-      className="flex flex-col items-center gap-4"
-    >
-      {/* Track */}
-      <div
-        className="relative flex items-center"
-        style={{
-          width: TRACK_W,
-          height: 62,
-          borderRadius: 31,
-          background: "rgba(255,255,255,0.07)",
-          border: "1px solid rgba(255,255,255,0.13)",
-          overflow: "hidden",
-        }}
-      >
-        {/* Gradient fill that follows thumb */}
-        <motion.div
-          style={{
-            position: "absolute",
-            left: 0, top: 0, bottom: 0,
-            width: fillWidth,
-            background: "linear-gradient(90deg, #ec4899, #a855f7, #f97316)",
-            borderRadius: 31,
-            opacity: 0.28,
-          }}
-        />
-
-        {/* "SLIDE TO LOGIN" label */}
-        <motion.span
-          className="absolute inset-0 flex items-center justify-center text-xs font-bold pointer-events-none"
-          style={{ opacity: labelOpacity, color: "rgba(255,255,255,0.45)", letterSpacing: "0.14em", textTransform: "uppercase" }}
-        >
-          Slide to login
-        </motion.span>
-
-        {/* Draggable thumb */}
-        <motion.div
-          ref={thumbRef}
-          drag="x"
-          dragConstraints={{ left: 0, right: MAX_DRAG }}
-          dragElastic={0}
-          dragMomentum={false}
-          onDragEnd={handleDragEnd}
-          style={{
-            x,
-            position: "absolute",
-            left: 4,
-            width: THUMB_W,
-            height: 54,
-            borderRadius: 27,
-            background: done
-              ? "linear-gradient(135deg, #34d399, #10b981)"
-              : "linear-gradient(135deg, #ec4899, #a855f7)",
-            boxShadow: "0 4px 20px rgba(236,72,153,0.50)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: done ? "default" : "grab",
-            zIndex: 2,
-            touchAction: "none",
-          }}
-          whileTap={done ? {} : { scale: 0.96 }}
-        >
-          {done ? (
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 13l4 4L19 7" />
-            </svg>
-          ) : (
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-          )}
-        </motion.div>
-      </div>
-
-      {/* Guest link */}
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        className="text-xs text-center"
-        style={{ color: "rgba(255,255,255,0.28)" }}
-      >
-        New here?{" "}
-        <button
-          onClick={(e) => onComplete(e.currentTarget.getBoundingClientRect())}
-          className="font-semibold"
-          style={{ color: "rgba(255,255,255,0.52)" }}
-        >
-          Create account →
-        </button>
-      </motion.p>
-    </motion.div>
-  );
-}
-
-/* placeholder to satisfy old reference — no longer rendered */
+/* ── Login CTA button (slide 4) ─────────────────────────────── */
 function GetStartedButton({ onGetStarted }) {
   return (
     <motion.div

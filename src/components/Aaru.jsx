@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { FiX, FiSend, FiCheck } from "react-icons/fi";
+import { FiX, FiSend, FiCheck, FiMic } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiFetch, API_URL } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
@@ -379,6 +379,34 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
     }
   };
 
+  // ── Voice input via Web Speech API ──
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef(null);
+  const hasSpeech = typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
+
+  const toggleVoice = () => {
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    const rec = new SR();
+    rec.lang = "en-IN";
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    rec.onresult = (e) => {
+      const transcript = e.results[0]?.[0]?.transcript || "";
+      if (transcript) setInput((prev) => (prev ? prev + " " : "") + transcript);
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    recognitionRef.current = rec;
+    rec.start();
+    setListening(true);
+  };
+
   return (
     <AnimatePresence>
       {open && (
@@ -521,6 +549,31 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
               <div ref={messagesEndRef} />
             </div>
 
+            {/* Quick-reply chips — shown when no user messages yet */}
+            {messages.length <= 1 && !loading && (
+              <div className="flex flex-wrap gap-1.5 px-3 pt-2 pb-1">
+                {[
+                  "₹ for lunch",
+                  "Split 3 ways",
+                  "How much do I owe?",
+                  ...groups.slice(0, 3).map((g) => g.name),
+                ].map((chip) => (
+                  <button
+                    key={chip}
+                    onClick={() => { setInput(chip); inputRef.current?.focus(); }}
+                    className="px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-95"
+                    style={{
+                      background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)",
+                      border: isDark ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.10)",
+                      color: isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.55)",
+                    }}
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Input bar */}
             <div
               className="flex gap-2 px-3 py-3 flex-shrink-0"
@@ -545,6 +598,21 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
                 style={{ "--tw-ring-color": theme.gradFrom + "66" }}
                 disabled={loading}
               />
+              {hasSpeech && (
+                <button
+                  onClick={toggleVoice}
+                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all"
+                  style={{
+                    background: listening
+                      ? `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})`
+                      : isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+                    color: listening ? "#fff" : isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)",
+                  }}
+                  aria-label={listening ? "Stop recording" : "Voice input"}
+                >
+                  <FiMic size={14} />
+                </button>
+              )}
               <button
                 onClick={send}
                 disabled={!input.trim() || loading}

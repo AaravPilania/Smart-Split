@@ -8,6 +8,55 @@ const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
 
+// Google OAuth — verifies the access_token by calling Google's userinfo endpoint
+exports.googleAuth = async (req, res) => {
+  try {
+    const { access_token } = req.body;
+    if (!access_token) return res.status(400).json({ message: 'No access token provided' });
+
+    // Verify with Google and get user profile
+    const googleRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${access_token}` },
+    });
+    if (!googleRes.ok) return res.status(401).json({ message: 'Invalid Google token' });
+
+    const { sub: googleId, email, name, picture } = await googleRes.json();
+    if (!email) return res.status(401).json({ message: 'Google did not return an email' });
+
+    // 1. Look up by googleId
+    let user = await User.findByGoogleId(googleId);
+
+    if (!user) {
+      // 2. Email already registered? Link google to that account
+      const existing = await User.findByEmail(email);
+      if (existing) {
+        await User.updateById(existing._id || existing.id, { googleId });
+        user = await User.findById(existing._id || existing.id);
+      } else {
+        // 3. Brand-new user — create without password
+        user = await User.createWithGoogle({ email, name, googleId, pfp: picture || '' });
+      }
+    }
+
+    const token = generateToken(user._id || user.id);
+    res.json({
+      message: 'Google auth successful',
+      token,
+      user: {
+        id: user._id || user.id,
+        email: user.email,
+        name: user.name,
+        username: user.username,
+        pfp: user.pfp || picture || '',
+        upiId: user.upiId || '',
+      },
+    });
+  } catch (error) {
+    console.error('Google auth error:', error.message);
+    res.status(401).json({ message: 'Google sign-in failed' });
+  }
+};
+
 // Signup
 exports.signup = async (req, res) => {
   try {

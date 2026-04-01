@@ -1,7 +1,11 @@
 /**
- * Gemini 1.5 Flash — expense category classification helper.
- * The API key is read from process.env.GEMINI_API_KEY (never exposed to frontend).
+ * Gemini 1.5 Flash — AI helpers for Smart Split.
+ * Features: regex-first routing, response caching, context trimming.
  */
+
+const crypto = require('crypto');
+let AaruCache;
+try { AaruCache = require('../models/AaruCache'); } catch { AaruCache = null; }
 
 const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
@@ -11,12 +15,55 @@ const VALID_CATEGORIES = [
   'shopping', 'health', 'utilities', 'other',
 ];
 
+/* ── Cache helpers ─────────────────────────────────────────── */
+function cacheKey(endpoint, input) {
+  return crypto.createHash('sha256').update(`${endpoint}:${input}`).digest('hex');
+}
+
+async function getCache(endpoint, input) {
+  if (!AaruCache) return null;
+  try {
+    const doc = await AaruCache.findOne({ hash: cacheKey(endpoint, input) });
+    return doc?.response ?? null;
+  } catch { return null; }
+}
+
+async function setCache(endpoint, input, response) {
+  if (!AaruCache) return;
+  try {
+    await AaruCache.findOneAndUpdate(
+      { hash: cacheKey(endpoint, input) },
+      { hash: cacheKey(endpoint, input), endpoint, response, createdAt: new Date() },
+      { upsert: true }
+    );
+  } catch { /* ignore cache write failures */ }
+}
+
 /**
- * Classify an expense into one of 8 categories using Gemini 1.5 Flash.
- * Returns the category key on success, or null on failure / unconfigured.
- * Never throws.
+ * Classify an expense into one of 8 categories.
+ * Strategy: regex keyword match first → Gemini only if no match.
  */
 async function classifyExpenseCategory(title = '', ocrText = '') {
+  // Try regex-based category detection first (zero API cost)
+  const hay = (title + ' ' + ocrText).toLowerCase();
+  const catMap = [
+    ['food',          /pizza|food|lunch|dinner|breakfast|meal|restaurant|cafe|coffee|tea|biryani|burger|noodle|chai|snack|eat|drink|swiggy|zomato|dominos?|bakery|ice\s?cream|juice|thali/],
+    ['travel',        /uber|ola|taxi|cab|fuel|petrol|diesel|bus|train|flight|metro|auto|travel|trip|rapido|rickshaw|toll|parking|airport/],
+    ['entertainment', /movie|film|netflix|spotify|game|cricket|concert|show|ticket|ott|prime|hotstar|cinema|youtube|music|disney/],
+    ['shopping',      /shopping|amazon|clothes|shirt|shoes|grocery|groceries|mall|store|flipkart|myntra|market|saree|kurti|jeans/],
+    ['health',        /medicine|doctor|hospital|medical|pharmacy|gym|fitness|chemist|clinic|dental|therapy|yoga/],
+    ['utilities',     /electricity|water|wifi|internet|phone|recharge|gas|bill|jio|airtel|bsnl|broadband|mobile|postpaid|prepaid/],
+    ['home',          /rent|flat|house|apartment|room|maintenance|furniture|repair|plumber|electrician|maid|cook|pg/],
+  ];
+  for (const [cat, re] of catMap) {
+    if (re.test(hay)) return cat;
+  }
+
+  // No regex match — check cache
+  const cached = await getCache('category', hay.slice(0, 200));
+  if (cached) return cached;
+
+  // Fall back to Gemini
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
 
@@ -52,7 +99,9 @@ async function classifyExpenseCategory(title = '', ocrText = '') {
       data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
     ).trim().toLowerCase().replace(/[^a-z]/g, '');
 
-    return VALID_CATEGORIES.includes(raw) ? raw : null;
+    const result = VALID_CATEGORIES.includes(raw) ? raw : null;
+    if (result) setCache('category', hay.slice(0, 200), result);
+    return result;
   } catch {
     // Timeout, network error, or bad response — fall back gracefully
     return null;
@@ -71,8 +120,9 @@ async function analyzeReceiptImage(imageBuffer, mimeType) {
   const prompt =
     'Look at this receipt image and extract the key expense details.\n' +
     'Reply with ONLY valid JSON in this exact format (no markdown, no explanation):\n' +
-    '{"title":"<merchant name or main item>","amount":<final total as number>,"category":"<one of: food,travel,home,entertainment,shopping,health,utilities,other>"}\n' +
-    'Use the grand total/final amount (not subtotals). Leave amount as 0 if not visible.';
+    '{"title":"<merchant name or main item>","amount":<final total as number>,"category":"<one of: food,travel,home,entertainment,shopping,health,utilities,other>","items":[{"name":"<item>","price":<number>}]}\n' +
+    'Use the grand total/final amount (not subtotals). Leave amount as 0 if not visible.\n' +
+    'Include up to 10 line items in the "items" array. Omit "items" if none visible.';
 
   try {
     const controller = new AbortController();
@@ -105,9 +155,12 @@ async function analyzeReceiptImage(imageBuffer, mimeType) {
     const title = (parsed.title || '').trim();
     const amount = parseFloat(parsed.amount) || 0;
     const category = VALID_CATEGORIES.includes(parsed.category) ? parsed.category : 'other';
+    const items = Array.isArray(parsed.items)
+      ? parsed.items.filter(i => i.name && typeof i.price === 'number').slice(0, 10)
+      : [];
 
     if (!title || amount <= 0) return null;
-    return { title, amount, category };
+    return { title, amount, category, ...(items.length > 0 && { items }) };
   } catch {
     return null;
   }
@@ -177,13 +230,23 @@ function localParseExpense(text) {
 }
 
 /**
- * Parse a natural-language expense description using Gemini.
- * Falls back to localParseExpense if Gemini is unavailable or fails.
- * Returns { title, amount, category, splitCount, people } or null.
+ * Parse a natural-language expense description.
+ * Strategy: regex first (if high confidence) → cache → Gemini → regex fallback.
+ * High confidence = regex found both amount AND category (not 'other').
  */
 async function parseNaturalLanguageExpense(text, friends = []) {
+  // Regex-first: if regex extracts amount + known category, skip Gemini
+  const regexResult = localParseExpense(text);
+  if (regexResult && regexResult.amount && regexResult.category !== 'other') {
+    return regexResult;
+  }
+
+  // Check cache
+  const cached = await getCache('parse', text.slice(0, 200));
+  if (cached) return cached;
+
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return localParseExpense(text);
+  if (!apiKey) return regexResult || localParseExpense(text);
 
   const friendHint = friends.length
     ? `Some of the user's friends are: ${friends.slice(0, 10).join(', ')}.\n`
@@ -238,13 +301,15 @@ async function parseNaturalLanguageExpense(text, friends = []) {
     const title = (parsed.title || '').trim();
     if (!title) return localParseExpense(text); // Gemini gave us nothing useful
 
-    return {
+    const result = {
       title,
       amount: parsed.amount != null && !isNaN(parseFloat(parsed.amount)) ? parseFloat(parsed.amount) : null,
       category: VALID_CATEGORIES.includes(parsed.category) ? parsed.category : 'other',
       splitCount: parsed.splitCount ? parseInt(parsed.splitCount) : null,
       people: Array.isArray(parsed.people) ? parsed.people : [],
     };
+    setCache('parse', text.slice(0, 200), result);
+    return result;
   } catch {
     return localParseExpense(text);
   }
@@ -258,8 +323,16 @@ async function generateAaruAdvice(text, context = {}) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
 
-  const groupInfo = context.groupNames?.length
-    ? `User is in ${context.groupCount} group(s): ${context.groupNames.join(', ')}.`
+  // Context trimming: limit text and group names
+  const trimmedText = text.slice(0, 200);
+  const groupNames = (context.groupNames || []).slice(0, 5);
+
+  // Cache check
+  const cached = await getCache('advice', trimmedText);
+  if (cached) return cached;
+
+  const groupInfo = groupNames.length
+    ? `User is in ${context.groupCount} group(s): ${groupNames.join(', ')}.`
     : 'User has no groups yet.';
 
   const prompt =
@@ -267,7 +340,7 @@ async function generateAaruAdvice(text, context = {}) {
     `${groupInfo}\n` +
     `Answer the user's question helpfully in 1-3 short sentences. Be warm, practical, and concise.\n` +
     `Do NOT make up specific numbers you don't know. If you don't have enough data, suggest the user check their Dashboard.\n` +
-    `User question: "${text.slice(0, 300)}"`;
+    `User question: "${trimmedText}"`;
 
   try {
     const controller = new AbortController();
@@ -287,7 +360,9 @@ async function generateAaruAdvice(text, context = {}) {
     if (!res.ok) return null;
 
     const data = await res.json();
-    return (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim() || null;
+    const result = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim() || null;
+    if (result) setCache('advice', trimmedText, result);
+    return result;
   } catch {
     return null;
   }

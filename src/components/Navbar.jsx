@@ -15,7 +15,7 @@ import {
   FiHeart,
 } from "react-icons/fi";
 import ScanReceipt from "./ScanReceipt";
-import { API_URL, apiFetch, clearAuth, getUserId, getUser } from "../utils/api";
+import { API_URL, apiFetch, clearAuth, getUserId, getUser, getToken } from "../utils/api";
 import { useTheme, getGradientStyle, toggleDarkMode } from "../utils/theme";
 
 export default function Navbar() {
@@ -54,8 +54,35 @@ export default function Navbar() {
   useEffect(() => {
     if (!userId) return;
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 60000);
-    return () => clearInterval(interval);
+
+    // Try SSE for real-time updates, fall back to polling
+    const token = getToken();
+    let es;
+    let fallbackInterval;
+    if (token && typeof EventSource !== "undefined") {
+      es = new EventSource(`${API_URL}/notifications/stream?token=${encodeURIComponent(token)}`);
+      es.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.type === "notification" && data.notification) {
+            setNotifications((prev) => [data.notification, ...prev].slice(0, 50));
+            setUnreadCount((c) => c + 1);
+          }
+        } catch {}
+      };
+      es.onerror = () => {
+        // SSE failed — close and start polling
+        es.close();
+        es = null;
+        if (!fallbackInterval) fallbackInterval = setInterval(fetchNotifications, 60000);
+      };
+    } else {
+      fallbackInterval = setInterval(fetchNotifications, 60000);
+    }
+    return () => {
+      if (es) es.close();
+      if (fallbackInterval) clearInterval(fallbackInterval);
+    };
   }, [userId]);
 
   // Close notifications on route change

@@ -115,6 +115,12 @@ export const authAPI = {
       method: 'POST',
       body: JSON.stringify({ email, password, name }),
     }),
+
+  googleAuth: (access_token) =>
+    apiCall('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ access_token }),
+    }),
 };
 
 // Group APIs

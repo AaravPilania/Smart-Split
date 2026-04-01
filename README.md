@@ -10,7 +10,7 @@
 <br/>
 
 **The intelligent expense-sharing platform that makes splitting bills effortless.**
-**Real-time tracking · Gemini Vision receipt scan · Aaru NL expense chatbot · UPI settlements · QR friend invites**
+**Real-time notifications · Gemini Vision receipt scan · Voice-enabled AI chatbot · UPI settlements · QR friend invites**
 
 <br/>
 
@@ -41,15 +41,17 @@ Built for the way real friend groups actually work — messy tabs, forgotten IOU
 
 | | Feature | What it does |
 |:--:|:--|:--|
-| ✦ | **Aaru — Expense Assistant** | Floating chatbot (bottom-right). Type natural language like "pizza ₹500 with Priya" and Aaru parses it into a ready-to-confirm expense card. Powered by Gemini with a local regex fallback — works even without an API key. |
-| 📷 | **Gemini Vision Scanner** | Point your camera at any receipt — Gemini reads the image natively and returns merchant name, total, and category instantly. Tesseract.js is the automatic client-side fallback. |
-| 🏷️ | **Auto Categories** | Gemini AI detects expense categories from receipt text; 200+ keyword rules as local fallback. 8 categories: Food, Travel, Home, Entertainment, Shopping, Health, Utilities, Other. |
-| 👥 | **Smart Group Splits** | Create groups, add members, log expenses — the greedy debt-simplification algorithm calculates who owes what with minimum transactions. |
-| 📊 | **Live Dashboard** | Real-time metrics: total spend, debts owed, monthly trends, category donut chart, recent activity feed. |
-| ⚡ | **UPI Settle Flow** | Pick a settlement, choose your UPI app (Google Pay, PhonePe, Paytm...), and pay — with "set default app" memory. |
+| ✦ | **Aaru — AI Expense Assistant** | Floating chatbot with **voice input** and **quick-reply chips**. Say or type "pizza ₹500 with Priya" and Aaru parses it into a ready-to-confirm expense card. Powered by Gemini 1.5 Flash with a local regex+cache fallback — works even without an API key. |
+| 📷 | **Gemini Vision Scanner** | Point your camera at any receipt — Gemini reads the image natively and returns merchant name, total, category, and **individual line items**. Auto-compresses images before upload. Tesseract.js is the automatic client-side fallback. |
+| 🏷️ | **Auto Categories** | Regex-first classification (200+ keywords) → 24h response cache → Gemini AI. 8 categories: Food, Travel, Home, Entertainment, Shopping, Health, Utilities, Other. |
+| 👥 | **Smart Group Splits** | Create groups, add members, log expenses — the greedy debt-simplification algorithm calculates who owes what with minimum transactions. **Admin roles** and **group membership guards** for security. |
+| 📊 | **Live Dashboard** | Real-time metrics: total spend, debts owed, monthly trends, category donut chart, recent activity feed with an **interactive onboarding spotlight guide** for new users. |
+| 🔴 | **Real-Time Notifications** | **Server-Sent Events (SSE)** push notifications instantly — no polling needed. Automatic fallback to 60s polling if SSE disconnects. Payment confirmations delivered in real time. |
+| ⚡ | **UPI Settle Flow** | Pick a settlement, choose your UPI app (Google Pay, PhonePe, Paytm...), and pay — with "set default app" memory. **Auto-detects when you return from the UPI app** and prompts you to confirm payment. |
 | 📷 | **QR Code Payments** | Scan any UPI QR code to pay directly from within the app. |
 | 🤝 | **QR Friend Invites** | Share your personal QR code — friends scan it and connect instantly, no manual search needed. |
-| 🔔 | **Smart Reminders** | Nudge friends about pending payments with one tap — notifications appear in-app. |
+| 🔔 | **Smart Reminders** | Nudge friends about pending payments with one tap — notifications pushed via SSE in real time. |
+| 🔐 | **Google OAuth** | One-tap Google sign-in right from the intro screen — skip the entire onboarding flow. |
 | 📥 | **CSV Export** | Download expense reports for any group — perfect for trips and shared living. |
 | 🎨 | **6 Accent Themes** | Personalize with Pink, Violet, Ocean, Emerald, Sunset, or Night palettes. Applied globally across gradients, buttons, and the PWA chrome. |
 | 🌙 | **Dark Mode** | Full dark theme with synced browser chrome and PWA title bar. |
@@ -116,19 +118,23 @@ Smart Split is built **mobile-first** as a Progressive Web App.
 | **UI Framework** | React 19 | Component architecture with hooks |
 | **Build Tool** | Vite 7 | Lightning-fast HMR and optimized production builds |
 | **Styling** | Tailwind CSS | Utility-first responsive design |
-| **Animations** | Framer Motion 12 | Page transitions and micro-interactions |
+| **Animations** | Framer Motion 12 | Page transitions, blob morphs, and micro-interactions |
 | **OCR Engine** | Tesseract.js 6 | Client-side receipt text extraction (Gemini fallback) |
-| **AI Vision** | Gemini 1.5 Flash | Server-side receipt image analysis and NL expense parsing |
+| **AI Vision** | Gemini 1.5 Flash | Server-side receipt analysis, NL parsing, chatbot, line-item extraction |
+| **Voice Input** | Web Speech API | Browser-native speech-to-text for Aaru (`en-IN` locale) |
+| **Real-Time** | Server-Sent Events | Push notifications without WebSocket overhead |
+| **OAuth** | @react-oauth/google | One-tap Google sign-in from intro and login screens |
 | **QR Scanner** | jsQR | Real-time UPI QR code decoding from camera feed |
 | **QR Generator** | qrcode.react | Dynamic QR generation for friend invite links |
 | **Icons** | React Icons | Comprehensive icon library |
 | **Routing** | React Router 7 | Protected + public route management |
 | **Server** | Express.js 4 | RESTful API with full middleware pipeline |
 | **Database** | MongoDB Atlas + Mongoose 9 | Cloud-hosted NoSQL with ODM |
-| **Auth** | JWT + bcryptjs | Stateless tokens, bcrypt password hashing (10 rounds) |
+| **Auth** | JWT + bcryptjs + Google OAuth | Stateless tokens, bcrypt hashing, social login |
 | **Validation** | Zod | Server-side schema validation |
-| **Security** | Helmet + express-rate-limit + express-slow-down | XSS, CORS, rate limiting, progressive slowdown |
+| **Security** | Helmet + rate-limit + slowdown + Morgan | XSS, CORS, rate limiting, HTTP logging |
 | **File Uploads** | Multer | In-memory image handling for receipt scanning |
+| **Caching** | MongoDB TTL Collections | 24h response cache for Gemini API calls |
 | **PWA** | vite-plugin-pwa + Workbox | Offline caching, installable, auto-update |
 | **Hosting** | Cloudflare Pages (FE) + Render (BE) | Global CDN frontend, auto-deploy backend |
 
@@ -152,17 +158,20 @@ smart-split/
 │   ├── main.jsx
 │   ├── index.css                # Tailwind + Aaru animations + blob styles
 │   ├── components/
-│   │   ├── Aaru.jsx             # Floating NL expense chatbot
-│   │   ├── Navbar.jsx           # Top nav + notification bell
-│   │   ├── BottomNav.jsx        # Mobile bottom navigation (5 tabs)
-│   │   ├── ScanReceipt.jsx      # Camera OCR + UPI QR scanner + settle flow
+│   │   ├── Aaru.jsx             # Floating NL chatbot + voice input + quick-reply chips
+│   │   ├── Navbar.jsx           # Top nav + SSE notification streaming
+│   │   ├── BottomNav.jsx        # Mobile bottom navigation (5 tabs + onboarding guides)
+│   │   ├── OnboardingGuide.jsx  # Spotlight walkthrough (5-step SVG mask overlay)
+│   │   ├── ScanReceipt.jsx      # Camera OCR + image compression + line items + UPI QR
+│   │   ├── MobileOnboarding.jsx # Swipeable intro carousel with Google sign-in
+│   │   ├── InsightsPanel.jsx    # AI spending insights display
 │   │   └── Statscard.jsx        # Reusable metric display card
 │   ├── pages/
-│   │   ├── Home.jsx             # Landing + auth (glassmorphic UI)
-│   │   ├── Dashboard.jsx        # Metrics, donut chart, activity feed
+│   │   ├── Home.jsx             # Landing + auth + blob transitions + Google OAuth
+│   │   ├── Dashboard.jsx        # Metrics, donut chart, activity feed, onboarding trigger
 │   │   ├── Groups.jsx           # Group CRUD + member management
 │   │   ├── Expenses.jsx         # Per-group expense list + add expense modal
-│   │   ├── Balances.jsx         # Cross-group settlements view
+│   │   ├── Balances.jsx         # Settlements + UPI deep links + auto-prompt + payment notifs
 │   │   ├── Friends.jsx          # Friend list + QR share + friend requests
 │   │   ├── AddFriend.jsx        # Public QR scan landing page
 │   │   └── Profile.jsx          # Settings, themes, avatar, UPI ID
@@ -171,32 +180,38 @@ smart-split/
 │       ├── debts.js             # Greedy debt simplification algorithm
 │       ├── categories.js        # 200+ keyword category matcher (8 types)
 │       ├── export.js            # CSV export with UTF-8 BOM encoding
+│       ├── insights.js          # Spending pattern analysis
 │       └── theme.js             # 6 accent presets + dark mode engine
 ├── backend/
-│   ├── server.js                # Express: CORS, Helmet, rate limiting, routes
+│   ├── server.js                # Express: CORS, Helmet, Morgan, rate limiting, routes
 │   ├── config/database.js
 │   ├── controllers/
-│   │   ├── authController.js
+│   │   ├── authController.js    # Email/password auth + Google OAuth
 │   │   ├── expenseController.js # Expenses + Aaru parse/advice endpoints
 │   │   ├── friendController.js
 │   │   ├── groupController.js
-│   │   ├── groupRequestController.js
-│   │   └── notificationController.js
+│   │   └── groupRequestController.js
 │   ├── middleware/
-│   │   ├── auth.js              # JWT verification middleware
+│   │   ├── auth.js              # JWT verification + requireGroupMember guard
+│   │   ├── aaruRateLimit.js     # Per-user Gemini rate limiting (10/hr, 50/day)
 │   │   └── validate.js          # Zod schema validation middleware
 │   ├── models/
 │   │   ├── User.js
-│   │   ├── Group.js
+│   │   ├── Group.js             # Groups + admin roles + isMember/isAdmin helpers
 │   │   ├── Expense.js
 │   │   ├── Friendship.js
 │   │   ├── GroupRequest.js
-│   │   └── Notification.js
+│   │   ├── Notification.js
+│   │   ├── ActivityLog.js       # Immutable audit trail (update/delete blocked)
+│   │   ├── AaruCache.js         # SHA-256 response cache with 24h TTL
+│   │   ├── AaruUsage.js         # Rate limit tracking per user
+│   │   └── Payment.js
 │   ├── routes/
-│   │   ├── expenseRoutes.js     # Includes /parse-text and /aaru-advice
+│   │   ├── expenseRoutes.js     # Includes /parse-text and /aaru-advice (rate limited)
+│   │   ├── notificationRoutes.js # SSE streaming + pushToUser + CRUD
 │   │   └── ...
 │   ├── utils/
-│   │   └── gemini.js            # Gemini API: vision, NL parsing, advice, local fallback
+│   │   └── gemini.js            # Gemini API: vision, NL parsing, advice + regex-first + cache
 │   └── validators/
 ├── vite.config.js               # PWA manifest + Workbox config + dev proxy
 ├── tailwind.config.js
@@ -209,20 +224,20 @@ smart-split/
 
 <br/>
 
-## 🤖 Aaru — Expense Assistant
+## 🤖 Aaru — AI Expense Assistant
 
-Aaru is the floating AI expense assistant at the bottom-right corner of every page after login. It understands natural language and either logs an expense or answers spending questions.
+Aaru is the floating AI assistant at the bottom-right corner of every page after login. It understands natural language via text or **voice input** and either logs an expense or answers spending questions.
 
 ### Expense flow
 
 ```
-User: "pizza rs 500 with aarushi"
+User: "pizza rs 500 with aarushi"  (typed or spoken via 🎤)
   → looksLikeQuestion() = false
   → POST /api/expenses/parse-text
-  → Gemini 1.5 Flash  OR  local regex parser (always available)
+  → Regex-first → 24h cache → Gemini 1.5 Flash → local fallback
   → { title:"pizza", amount:500, category:"food", people:["aarushi"] }
   → ConfirmCard rendered in chat
-  → User selects group → expense added
+  → User selects group → expense added → SSE notification sent
 ```
 
 ### Question flow
@@ -231,8 +246,19 @@ User: "pizza rs 500 with aarushi"
 User: "how much did I spend this month?"
   → looksLikeQuestion() = true
   → POST /api/expenses/aaru-advice
-  → Gemini generates contextual response (uses group names as context)
+  → Context trimming (200 chars, max 5 groups) → cache → Gemini
+  → AI generates personalized spending insights
 ```
+
+### Smart features
+
+| Feature | Details |
+|:--------|:--------|
+| **Voice Input** | Web Speech API (`en-IN` locale) — tap the mic, speak your expense, auto-fills the text field |
+| **Quick-Reply Chips** | Pre-built prompts ("₹ for lunch", "Split 3 ways", "How much do I owe?") + your first 3 group names |
+| **Rate Limiting** | 10 requests/hour + 50/day per user to prevent Gemini API abuse |
+| **Response Cache** | SHA-256 hash → 24h MongoDB TTL cache for identical queries |
+| **Regex-First** | 200+ keyword rules tried before hitting the API — instant response for common inputs |
 
 ### Local regex parser — zero dependency fallback
 
@@ -272,6 +298,7 @@ cd backend && npm install
 **Project root `.env`**
 ```env
 VITE_API_URL=http://localhost:5000/api
+VITE_GOOGLE_CLIENT_ID=your-google-client-id
 ```
 
 **`/backend/.env`**
@@ -280,7 +307,8 @@ MONGODB_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net/smartsplit
 JWT_SECRET=your-secret-key-min-32-chars
 PORT=5000
 CORS_ORIGIN=http://localhost:5173
-GEMINI_API_KEY=your-gemini-api-key   # Optional
+GEMINI_API_KEY=your-gemini-api-key   # Optional — regex fallback works without it
+GOOGLE_CLIENT_ID=your-google-client-id
 ```
 
 ### 3. Run
@@ -366,9 +394,11 @@ Open **http://localhost:5173**
 
 | Method | Endpoint | Description |
 |:-------|:---------|:------------|
-| `POST` | `/api/notifications` | Send payment reminder |
-| `GET` | `/api/notifications` | Get notifications |
+| `GET` | `/api/notifications/stream?token=JWT` | **SSE stream** — real-time push |
+| `POST` | `/api/notifications` | Send payment reminder (+ SSE push) |
+| `GET` | `/api/notifications` | Get notifications (latest 50) |
 | `PATCH` | `/api/notifications/read-all` | Mark all read |
+| `PATCH` | `/api/notifications/:id/read` | Mark one read |
 
 </details>
 
@@ -408,8 +438,12 @@ Net balances are computed per person, creditors and debtors are sorted, then a g
 
 ## 🏷️ Smart Category Detection
 
-1. **Gemini AI** — server-side classification from receipt image or title
-2. **200+ keyword rules** — local fallback matching
+```
+Input → Regex-first (200+ keywords, instant)
+      → Cache hit? Return cached result (24h TTL)
+      → Gemini 1.5 Flash classification
+      → Cache write for future requests
+```
 
 | Category | Examples |
 |:---------|:---------|
@@ -430,10 +464,39 @@ Net balances are computed per person, creditors and debtors are sorted, then a g
 
 ## 💳 UPI Settlement Flow
 
-- Aggregates pending settlements across all groups
+- Aggregates pending settlements across all groups using **Smart Debt Simplification** (toggle between Standard and Smart views)
 - Displays payee UPI ID (from their profile)
 - Set Default saves your preferred UPI app for one-tap future payments
 - Falls back to QR code scanning when no UPI ID is set
+- **Auto-detects app switch** — when you return from UPI, a "Payment complete?" prompt appears
+- **Real-time payment notifications** — payee instantly receives "X paid you ₹Y in GroupName! 🎉" via SSE
+
+<br/>
+
+---
+
+<br/>
+
+## 🔴 Real-Time Notifications (SSE)
+
+```
+┌─────────┐   SSE stream   ┌─────────┐
+│ Browser │ ◄──────────── │  Server  │
+│EventSource│   text/event  │ Express  │
+└─────────┘   -stream      └─────────┘
+                               │
+               Push on:        │
+               • New expense   │
+               • Payment sent  │
+               • Friend request│
+               • Reminders     │
+```
+
+- **Primary**: Server-Sent Events with JWT auth via query param
+- **Fallback**: 60-second polling interval if SSE disconnects
+- **Multi-tab**: In-memory `Map<userId, Set<response>>` supports multiple concurrent connections
+- **Render-compatible**: `X-Accel-Buffering: no` header prevents proxy buffering
+- **Heartbeat**: `:ping` every 30 seconds to keep the connection alive
 
 <br/>
 
@@ -443,11 +506,30 @@ Net balances are computed per person, creditors and debtors are sorted, then a g
 
 ## 📱 Progressive Web App
 
-- **Installable** — Add to Home Screen, runs standalone
-- **Offline** — Workbox precaches JS, CSS, HTML, fonts, images
+- **Installable** — Add to Home Screen, runs standalone with window controls overlay
+- **Offline** — Workbox precaches JS, CSS, HTML, fonts, images (max 3 MB per file)
 - **Network-first API** — API responses cached 5-min TTL, 50-entry limit
 - **Auto-update** — `skipWaiting` + `clientsClaim` for instant activation
 - **Theme sync** — PWA title bar follows your accent color
+- **Portrait lock** — Orientation locked to portrait for mobile-first experience
+
+<br/>
+
+---
+
+<br/>
+
+## 🎓 Onboarding Spotlight Guide
+
+First-time users get a **5-step interactive walkthrough** that highlights real UI elements with an animated SVG spotlight mask:
+
+1. **Dashboard** — "See total spend, debts owed, and recent activity at a glance"
+2. **Groups** — "Create groups for trips, roommates, anything. Add members by QR"
+3. **Quick Actions** — "Scan a receipt or ask Aaru to log an expense in plain English"
+4. **Friends** — "Add friends via QR. Once connected, split expenses together"
+5. **Settle Up** — "One tap to pay via UPI — Google Pay, PhonePe, or Paytm"
+
+Triggered automatically for guest users and first-time signups via `sessionStorage`.
 
 <br/>
 
@@ -459,14 +541,18 @@ Net balances are computed per person, creditors and debtors are sorted, then a g
 
 | Layer | Implementation |
 |:------|:---------------|
-| **Auth** | JWT, 7-day expiry |
+| **Auth** | JWT, 7-day expiry + Google OAuth 2.0 |
 | **Passwords** | bcryptjs, 10 salt rounds |
-| **Rate limiting** | 600 req/15min general · 10 req/15min on `/api/auth/` |
+| **Rate limiting** | 600 req/15min general · 10 req/15min auth · 10/hr + 50/day per-user Aaru |
 | **Slowdown** | +50ms/req over 200/15min, capped at 2s |
 | **Headers** | Helmet.js (XSS, HSTS, CSP) |
 | **CORS** | `thesmartsplit.pages.dev`, `*.pages.dev`, localhost only |
 | **Body limit** | 10 KB JSON |
 | **Validation** | Zod on all mutation endpoints |
+| **Group guards** | `requireGroupMember` middleware — only members can view/modify group data |
+| **Admin roles** | Group creators are auto-assigned admin; admin-only operations enforced |
+| **Audit trail** | Immutable `ActivityLog` — pre-hooks block all update/delete operations |
+| **Request logging** | Morgan HTTP logger on all requests |
 | **Session** | localStorage (remember me) / sessionStorage (default) |
 
 <br/>
@@ -498,6 +584,7 @@ Net balances are computed per person, creditors and debtors are sorted, then a g
 | `JWT_SECRET` | ≥ 32 char secret |
 | `CORS_ORIGIN` | `https://thesmartsplit.pages.dev` |
 | `GEMINI_API_KEY` | Google Gemini key (optional) |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
 | `RENDER_EXTERNAL_URL` | Auto-set by Render |
 
 ### Frontend environment variables (Cloudflare Pages)
@@ -505,6 +592,7 @@ Net balances are computed per person, creditors and debtors are sorted, then a g
 | Variable | Value |
 |:---------|:------|
 | `VITE_API_URL` | `https://your-backend.onrender.com/api` |
+| `VITE_GOOGLE_CLIENT_ID` | Same Google OAuth client ID |
 
 <br/>
 
@@ -529,6 +617,54 @@ Net balances are computed per person, creditors and debtors are sorted, then a g
 
 <br/>
 
+## 📷 Advanced Receipt Scanner
+
+| Feature | Details |
+|:--------|:--------|
+| **Image Compression** | Images >500 KB auto-resized to max 1280px and JPEG 80% before upload |
+| **Dual Pipeline** | Primary: Gemini Vision API → Fallback: Tesseract.js client-side OCR |
+| **Line Items** | Gemini extracts individual items with names and prices, displayed in a collapsible list |
+| **Smart Amount** | Bottom-to-top priority scan for "total due", "grand total", "balance" keywords |
+| **QR Detection** | Continuous `requestAnimationFrame` loop with jsQR for UPI and friend QR codes |
+
+<br/>
+
+---
+
+<br/>
+
+## 📊 Architecture Overview
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                     Cloudflare Pages CDN                      │
+│               React 19 + Vite 7 + Tailwind PWA               │
+├──────────────────────────────────────────────────────────────┤
+│  Home.jsx       │  Dashboard    │  Aaru.jsx    │  Balances   │
+│  blob transitions│  donut chart │  voice input │  UPI deep   │
+│  Google OAuth   │  activity feed│  quick chips │  links      │
+│  onboarding     │  spotlight    │  NL parsing  │  auto-prompt│
+├──────────────────────────────────────────────────────────────┤
+│              EventSource (SSE) ← Notifications →              │
+├──────────────────────────────────────────────────────────────┤
+│                       Render (Express 4)                      │
+│  JWT + Google OAuth │ Helmet │ Morgan │ Rate Limiting         │
+│  requireGroupMember │ Zod    │ Multer │ aaruRateLimit         │
+├──────────────────────────────────────────────────────────────┤
+│  Gemini 1.5 Flash API  │  Regex fallback  │  AaruCache (24h) │
+├──────────────────────────────────────────────────────────────┤
+│                     MongoDB Atlas (M0)                         │
+│  Users │ Groups │ Expenses │ Notifications │ ActivityLog      │
+│  Friendships │ GroupRequests │ AaruCache │ AaruUsage          │
+└──────────────────────────────────────────────────────────────┘
+```
+
+<br/>
+
+---
+
+<br/>
+
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -543,7 +679,7 @@ Net balances are computed per person, creditors and debtors are sorted, then a g
 
 <br/>
 
-## 📄 License
+## 📝 License
 
 MIT License — see [LICENSE](LICENSE).
 
@@ -553,7 +689,7 @@ MIT License — see [LICENSE](LICENSE).
 
 ---
 
-**Built with coffee and late nights**
+**Built with mass amounts of caffeine and mass amounts of late nights**
 
 **[Smart Split](https://thesmartsplit.pages.dev)** — Because friendships shouldn't have a price tag.
 

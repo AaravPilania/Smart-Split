@@ -602,6 +602,27 @@ export default function ScanReceipt({
     });
   };
 
+  // Compress image for upload (resize to max 1280px, JPEG 80%)
+  const compressForUpload = (file) => new Promise((resolve) => {
+    if (file.size <= 500_000) { resolve(file); return; } // skip if already small
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1280;
+      let { width: w, height: h } = img;
+      if (w > MAX || h > MAX) {
+        const s = MAX / Math.max(w, h);
+        w = Math.round(w * s);
+        h = Math.round(h * s);
+      }
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      c.toBlob((blob) => resolve(blob || file), "image/jpeg", 0.8);
+    };
+    img.onerror = () => resolve(file);
+    img.src = URL.createObjectURL(file);
+  });
+
   const scanReceipt = async () => {
     if (!image) { alert("Please take a photo or upload an image first"); return; }
     if (!selectedGroupId) { alert("Please select a group first"); return; }
@@ -609,8 +630,9 @@ export default function ScanReceipt({
     try {
       // ── Gemini Vision (primary) ──────────────────────────────────
       try {
+        const compressed = await compressForUpload(image);
         const fd = new FormData();
-        fd.append('image', image);
+        fd.append('image', compressed);
         const token = getToken();
         const gemRes = await fetch(`${API_URL}/expenses/analyze-receipt`, {
           method: 'POST',
@@ -618,13 +640,13 @@ export default function ScanReceipt({
           body: fd,
         });
         if (gemRes.ok) {
-          const { title, amount, category } = await gemRes.json();
+          const { title, amount, category, items } = await gemRes.json();
           const splits = [];
           if (selectedGroup?.members && amount > 0) {
             const each = amount / selectedGroup.members.length;
             selectedGroup.members.forEach(m => splits.push({ userId: m.id, amount: parseFloat(each.toFixed(2)) }));
           }
-          setExtractedData({ aiScanned: true });
+          setExtractedData({ aiScanned: true, items: items || [] });
           setAiScanSource('gemini');
           setFormData({ title, amount: amount.toString(), paidBy: userId, splits, category });
           return;
@@ -1297,6 +1319,19 @@ export default function ScanReceipt({
                         <>
                           <p className="text-green-800 text-sm font-semibold mb-1">✦ Read by Gemini</p>
                           <p className="text-green-700 text-xs">Title, amount and category auto-filled from your receipt.</p>
+                          {extractedData.items?.length > 0 && (
+                            <details className="mt-2 text-xs text-green-700">
+                              <summary className="cursor-pointer font-medium">{extractedData.items.length} line items detected</summary>
+                              <ul className="mt-1.5 space-y-0.5">
+                                {extractedData.items.map((item, i) => (
+                                  <li key={i} className="flex justify-between">
+                                    <span>{item.name}</span>
+                                    <span className="font-mono">₹{item.price}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </details>
+                          )}
                         </>
                       ) : (
                         <>

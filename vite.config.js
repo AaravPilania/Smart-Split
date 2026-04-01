@@ -13,9 +13,10 @@ export default defineConfig({
         name: 'Smart Split',
         short_name: 'Smart Split',
         description: 'Split bills, stay friends',
-        theme_color: '#0d0818',
-        background_color: '#0d0818',
+        theme_color: '#0c0e1a',
+        background_color: '#0c0e1a',
         display: 'standalone',
+        display_override: ['window-controls-overlay', 'standalone'],
         start_url: '/',
         orientation: 'portrait',
         icons: [

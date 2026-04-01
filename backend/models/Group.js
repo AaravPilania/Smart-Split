@@ -4,7 +4,9 @@ const groupSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   description: { type: String, default: '', trim: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+  members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  admins: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  pfp: { type: String, default: '' }
 }, { timestamps: true });
 
 const GroupModel = mongoose.model('Group', groupSchema);
@@ -29,7 +31,8 @@ module.exports = {
       name: name.trim(),
       description: description ? description.trim() : '',
       createdBy: createdById,
-      members: [createdById]
+      members: [createdById],
+      admins: [createdById]
     });
     return this.findByIdPopulated(group._id.toString());
   },
@@ -60,6 +63,15 @@ module.exports = {
     return !!(await GroupModel.findOne({ _id: groupId, members: userId }));
   },
 
+  async isAdmin(groupId, userId) {
+    if (!mongoose.Types.ObjectId.isValid(groupId) || !mongoose.Types.ObjectId.isValid(userId)) return false;
+    const group = await GroupModel.findById(groupId);
+    if (!group) return false;
+    // Creator is always admin, or explicit admins array
+    return group.createdBy.toString() === userId.toString() ||
+      (group.admins || []).some(a => a.toString() === userId.toString());
+  },
+
   async addMember(groupId, userId) {
     if (!mongoose.Types.ObjectId.isValid(groupId)) return null;
     await GroupModel.findByIdAndUpdate(groupId, { $addToSet: { members: userId } });
@@ -76,5 +88,11 @@ module.exports = {
     if (!mongoose.Types.ObjectId.isValid(id)) return false;
     const result = await GroupModel.findByIdAndDelete(id);
     return !!result;
+  },
+
+  async updatePfp(id, pfp) {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    await GroupModel.findByIdAndUpdate(id, { $set: { pfp } });
+    return this.findByIdPopulated(id);
   }
 };

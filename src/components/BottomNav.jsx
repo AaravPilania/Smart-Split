@@ -16,7 +16,7 @@ import { useTheme, getGradientStyle } from "../utils/theme";
 /* ── Animated scissors icon — proper crossing blades ── */
 function ScissorsMoneyIcon() {
   return (
-    <svg width="30" height="30" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", height: "100%", display: "block" }}>
       <style>{`
         @keyframes snip-upper {
           0%, 30%, 100% { transform: rotate(0deg); }
@@ -65,11 +65,11 @@ function ScissorsMoneyIcon() {
 }
 
 const TABS = [
-  { path: "/dashboard", icon: FiHome, label: "Home" },
-  { path: "/groups", icon: FiUsers, label: "Groups" },
+  { path: "/dashboard", icon: FiHome, label: "Home", guide: "home" },
+  { path: "/groups", icon: FiUsers, label: "Groups", guide: "groups" },
   null, // ← split FAB slot
-  { path: "/friends", icon: FiHeart, label: "Friends" },
-  { path: "/profile", icon: FiUser, label: "Profile" },
+  { path: "/friends", icon: FiHeart, label: "Friends", guide: "friends" },
+  { path: "/profile", icon: FiUser, label: "Profile", guide: "profile" },
 ];
 
 export default function BottomNav() {
@@ -121,6 +121,8 @@ export default function BottomNav() {
             ? "1px solid rgba(255,255,255,0.07)"
             : "1px solid rgba(0,0,0,0.08)",
           paddingBottom: "env(safe-area-inset-bottom)",
+          transform: "translateZ(0)",
+          WebkitTransform: "translateZ(0)",
         }}
       >
         <div
@@ -134,7 +136,8 @@ export default function BottomNav() {
                 <button
                   key="camera-fab"
                   onClick={handleCameraPress}
-                  className="relative flex items-center justify-center w-16 h-16 rounded-[22px] text-white shadow-2xl transition-transform active:scale-95"
+                  data-guide="fab"
+                  className="relative w-16 h-16 rounded-[22px] text-white shadow-2xl transition-transform active:scale-95 overflow-hidden"
                   style={{
                     ...getGradientStyle(theme),
                     marginTop: "-28px",
@@ -154,6 +157,7 @@ export default function BottomNav() {
               <Link
                 key={tab.path}
                 to={tab.path}
+                data-guide={tab.guide}
                 className="flex flex-col items-center justify-center gap-1 px-4 h-full transition-all active:scale-90"
               >
                 <Icon

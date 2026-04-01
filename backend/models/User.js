@@ -4,7 +4,8 @@ const bcrypt = require('bcryptjs');
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-  password: { type: String, required: true, select: false },
+  password: { type: String, select: false },
+  googleId: { type: String, sparse: true },
   username: { type: String, unique: true, sparse: true, trim: true, lowercase: true },
   pfp: { type: String, default: '' },
   upiId: { type: String, default: '' }
@@ -55,6 +56,22 @@ module.exports = {
       username,
     });
     return { _id: user._id.toString(), id: user._id.toString(), email: user.email, name: user.name, username: user.username, pfp: '' };
+  },
+
+  async createWithGoogle({ email, name, googleId, pfp = '' }) {
+    const username = await generateUniqueUsername(name || 'user');
+    const user = await UserModel.create({
+      email: email.toLowerCase().trim(),
+      name: name ? name.trim() : '',
+      googleId,
+      pfp,
+      username,
+    });
+    return { _id: user._id.toString(), id: user._id.toString(), email: user.email, name: user.name, username: user.username, pfp: user.pfp || '' };
+  },
+
+  async findByGoogleId(googleId) {
+    return doc2obj(await UserModel.findOne({ googleId }).select('-password'));
   },
 
   async findById(id) {
@@ -109,6 +126,7 @@ module.exports = {
     if (updates.username !== undefined) setFields.username = updates.username.toLowerCase().trim();
     if (updates.pfp !== undefined) setFields.pfp = updates.pfp;
     if (updates.upiId !== undefined) setFields.upiId = updates.upiId.trim();
+    if (updates.googleId !== undefined) setFields.googleId = updates.googleId;
     await UserModel.findByIdAndUpdate(id, { $set: setFields });
     return this.findById(id);
   },

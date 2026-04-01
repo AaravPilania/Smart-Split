@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const { requireGroupMember } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const { createGroupSchema } = require('../validators/groupSchema');
 const {
@@ -8,13 +9,15 @@ const {
   getGroups,
   getGroup,
   addMembers,
-  deleteGroup
+  deleteGroup,
+  updateGroupPfp
 } = require('../controllers/groupController');
 
 router.post('/', auth, validate(createGroupSchema), createGroup);
 router.get('/', auth, getGroups);
-router.get('/:id', auth, getGroup);
-router.post('/:id/members', auth, addMembers);
-router.delete('/:id', auth, deleteGroup);
+router.get('/:id', auth, requireGroupMember, getGroup);
+router.post('/:id/members', auth, requireGroupMember, addMembers);
+router.patch('/:id/pfp', auth, requireGroupMember, updateGroupPfp);
+router.delete('/:id', auth, requireGroupMember, deleteGroup);
 
 module.exports = router;

@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
-import { FiUsers, FiPlus, FiX, FiUserPlus, FiLink, FiZap, FiHeart, FiClock, FiTrash2 } from "react-icons/fi";
+import { FiUsers, FiPlus, FiX, FiUserPlus, FiLink, FiZap, FiHeart, FiClock, FiTrash2, FiCamera } from "react-icons/fi";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
 import { simplifyDebts } from "../utils/debts";
@@ -25,6 +25,10 @@ export default function Groups() {
   const [activityGroupId, setActivityGroupId] = useState(null);
   const [activityLogs, setActivityLogs] = useState([]);
   const [activityLoading, setActivityLoading] = useState(false);
+
+  const [pfpUploading, setPfpUploading] = useState(null); // groupId being uploaded
+  const pfpInputRef = useRef(null);
+  const pfpTargetGroupId = useRef(null);
 
   const [createForm, setCreateForm] = useState({
     name: "",
@@ -129,6 +133,44 @@ export default function Groups() {
     }
   };
 
+  const handlePfpButtonClick = (groupId) => {
+    pfpTargetGroupId.current = groupId;
+    pfpInputRef.current?.click();
+  };
+
+  const handlePfpChange = async (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Image must be under 2MB");
+      return;
+    }
+    const groupId = pfpTargetGroupId.current;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const base64 = ev.target.result;
+      setPfpUploading(groupId);
+      try {
+        const res = await apiFetch(`${API_URL}/groups/${groupId}/pfp`, {
+          method: "PATCH",
+          body: JSON.stringify({ pfp: base64 }),
+        });
+        if (res.ok) {
+          setGroups(prev => prev.map(g => g.id === groupId ? { ...g, pfp: base64 } : g));
+        } else {
+          const d = await res.json();
+          alert(d.message || "Failed to update group photo");
+        }
+      } catch {
+        alert("Failed to update group photo");
+      } finally {
+        setPfpUploading(null);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleCreateGroup = async (e) => {
     e.preventDefault();
     if (!createForm.name.trim()) {
@@ -218,6 +260,14 @@ export default function Groups() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      {/* Hidden file input shared across all group pfp pickers */}
+      <input
+        ref={pfpInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handlePfpChange}
+      />
       <Navbar />
 
       <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-28">
@@ -275,16 +325,46 @@ export default function Groups() {
                 key={group.id}
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-5 border border-gray-100 dark:border-gray-800 hover:shadow-md transition flex flex-col"
               >
-                <div className="flex justify-between items-start mb-4">
+                <div className="flex justify-between items-start mb-4 gap-3">
+                  {/* Avatar with camera overlay */}
+                  <div className="relative flex-shrink-0 self-start">
+                    {group.pfp ? (
+                      <img
+                        src={group.pfp}
+                        alt={group.name}
+                        className="w-12 h-12 rounded-xl object-cover"
+                      />
+                    ) : (
+                      <div
+                        className="w-12 h-12 rounded-xl flex items-center justify-center text-lg text-white font-bold select-none"
+                        style={getGradientStyle(theme)}
+                      >
+                        {group.name?.[0]?.toUpperCase() || "G"}
+                      </div>
+                    )}
+                    <button
+                      onClick={() => handlePfpButtonClick(group.id)}
+                      disabled={pfpUploading === group.id}
+                      className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full flex items-center justify-center shadow-md border-2 border-white dark:border-gray-800 transition-opacity hover:opacity-80 disabled:opacity-50"
+                      style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}
+                      title="Set group photo"
+                    >
+                      {pfpUploading === group.id
+                        ? <div className="w-2.5 h-2.5 rounded-full border border-white border-t-transparent animate-spin" />
+                        : <FiCamera size={10} color="white" />
+                      }
+                    </button>
+                  </div>
+
                   <div
-                    className="flex-1 cursor-pointer"
+                    className="flex-1 min-w-0 cursor-pointer"
                     onClick={() => navigate(`/expenses?group=${group.id}`)}
                   >
-                    <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1 hover:opacity-75 transition-opacity">
+                    <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1 hover:opacity-75 transition-opacity truncate">
                       {group.name}
                     </h3>
                     {group.description && group.description !== "No description" ? (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{group.description}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 truncate">{group.description}</p>
                     ) : (
                       <p className="text-sm text-gray-400 dark:text-gray-600 italic mb-2">No description</p>
                     )}
@@ -292,27 +372,28 @@ export default function Groups() {
                       Created by {group.createdBy?.name || "Unknown"}
                     </p>
                   </div>
-                </div>
 
-                <div className="mb-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                    <FiUsers className={theme.text} />
-                    <span>{group.members?.length || 0} members</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {group.members?.slice(0, 3).map((member) => (
-                      <span
-                        key={member.id}
-                      className={`px-2 py-1 ${theme.bgActive} ${theme.text} rounded-full text-xs`}
-                      >
-                        {member.name}
-                      </span>
-                    ))}
-                    {group.members?.length > 3 && (
-                      <span className="px-2 py-1 bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-full text-xs">
-                        +{group.members.length - 3}
-                      </span>
-                    )}
+                  {/* Member pills — top right */}
+                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                    <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                      <FiUsers size={11} className={theme.text} />
+                      <span className="font-medium">{group.members?.length || 0}</span>
+                    </div>
+                    <div className="flex flex-wrap justify-end gap-1 max-w-[120px]">
+                      {group.members?.slice(0, 3).map((member) => (
+                        <span
+                          key={member.id}
+                          className={`px-2 py-0.5 ${theme.bgActive} ${theme.text} rounded-full text-[11px] font-medium`}
+                        >
+                          {member.name.split(" ")[0]}
+                        </span>
+                      ))}
+                      {group.members?.length > 3 && (
+                        <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full text-[11px] font-medium">
+                          +{group.members.length - 3}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

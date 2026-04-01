@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
@@ -30,6 +30,20 @@ export default function Balances() {
   const [viewMode, setViewMode] = useState("standard"); // "standard" | "simplified"
   const [simplifiedByGroup, setSimplifiedByGroup] = useState({});
   const [upiModal, setUpiModal] = useState(null); // { amount, toName, toId, settlement, group }
+  const [showPaidPrompt, setShowPaidPrompt] = useState(false);
+  const upiOpenedRef = useRef(false);
+
+  // Detect when user returns from UPI app (page becomes visible again)
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === "visible" && upiOpenedRef.current && upiModal) {
+        upiOpenedRef.current = false;
+        setShowPaidPrompt(true);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [upiModal]);
   const navigate = useNavigate();
   const userId = getUserId();
   const { theme, isDark } = useTheme();
@@ -109,6 +123,16 @@ export default function Balances() {
         body: JSON.stringify({ toUserId: settlement.to.id, amount: settlement.amount }),
       });
       if (res.ok) {
+        // Notify the payee that payment was made
+        apiFetch(`${API_URL}/notifications`, {
+          method: "POST",
+          body: JSON.stringify({
+            to: settlement.to.id,
+            message: `${settlement.from.name} paid you ₹${settlement.amount.toFixed(2)} in "${group.name}"! 🎉`,
+            groupId: group.id,
+            amount: settlement.amount,
+          }),
+        }).catch(() => {});
         setPaidNotice(key);
         setTimeout(() => { setPaidNotice(null); fetchAllBalances(); }, 1800);
       }
@@ -499,11 +523,25 @@ export default function Balances() {
               href={upiModal.toUpiId
                 ? `upi://pay?pa=${encodeURIComponent(upiModal.toUpiId)}&pn=${encodeURIComponent(upiModal.toName)}&am=${upiModal.amount.toFixed(2)}&cu=INR&tn=SmartSplit`
                 : `upi://pay?pn=${encodeURIComponent(upiModal.toName)}&am=${upiModal.amount.toFixed(2)}&cu=INR&tn=SmartSplit`}
+              onClick={() => { upiOpenedRef.current = true; }}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm mb-2"
               style={getGradientStyle(theme)}
             >
               <FiSmartphone size={15} /> Open UPI App
             </a>
+            {showPaidPrompt && (
+              <div className="mb-2 px-3 py-2.5 rounded-xl text-xs text-center"
+                style={{ background: isDark ? "rgba(34,197,94,0.12)" : "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.3)" }}>
+                <p className="text-green-600 dark:text-green-400 font-semibold mb-1.5">Payment complete?</p>
+                <button
+                  onClick={() => { handleIPaid(upiModal.settlement, upiModal.group); setUpiModal(null); setShowPaidPrompt(false); }}
+                  className="px-4 py-1.5 rounded-lg text-white text-xs font-bold"
+                  style={{ background: "linear-gradient(135deg,#22c55e,#16a34a)" }}
+                >
+                  Yes, mark as paid ✓
+                </button>
+              </div>
+            )}
             <button
               onClick={() => { handleIPaid(upiModal.settlement, upiModal.group); setUpiModal(null); }}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm mb-2 border border-green-400 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition"

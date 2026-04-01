@@ -9,4 +9,9 @@ const activityLogSchema = new mongoose.Schema({
   meta:      { type: Object, default: {} },        // optional structured data
 }, { timestamps: true });
 
+// Immutable: prevent updates and deletes on activity logs
+activityLogSchema.pre(['updateOne', 'updateMany', 'findOneAndUpdate', 'findOneAndDelete', 'deleteOne', 'deleteMany'], function (next) {
+  next(new Error('ActivityLog entries are immutable and cannot be modified or deleted'));
+});
+
 module.exports = mongoose.model('ActivityLog', activityLogSchema);

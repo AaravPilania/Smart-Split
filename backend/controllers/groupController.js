@@ -109,3 +109,22 @@ exports.deleteGroup = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Update group photo (any member can update)
+exports.updateGroupPfp = async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+
+    const isMember = await Group.isMember(req.params.id, req.user.id);
+    if (!isMember) return res.status(403).json({ message: 'You are not a member of this group' });
+
+    const { pfp } = req.body;
+    if (!pfp) return res.status(400).json({ message: 'pfp is required' });
+
+    const updated = await Group.updatePfp(req.params.id, pfp);
+    res.json({ message: 'Group photo updated', group: updated });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

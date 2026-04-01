@@ -397,6 +397,7 @@ export default function Dashboard() {
               </div>
               <button
                 onClick={() => navigate("/balances")}
+                data-guide="settle"
                 className="w-full py-3 rounded-2xl text-white font-bold text-sm tracking-wide transition-opacity hover:opacity-90 active:scale-[0.98]"
                 style={getGradientStyle(theme)}
               >

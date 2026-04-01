@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
 const { connectDB } = require('./config/database');
@@ -15,6 +16,9 @@ const app = express();
 
 // Security headers
 app.use(helmet());
+
+// Request logging
+app.use(morgan('short'));
 
 // CORS — Updated for Cloudflare Pages
 const allowedOrigins = process.env.CORS_ORIGIN

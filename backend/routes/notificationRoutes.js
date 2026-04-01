@@ -1,7 +1,55 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 const auth = require('../middleware/auth');
 const Notification = require('../models/Notification');
+
+/* ── SSE client registry (in-memory, per-process) ────────────── */
+const clients = new Map(); // userId → Set<res>
+
+function addClient(userId, res) {
+  if (!clients.has(userId)) clients.set(userId, new Set());
+  clients.get(userId).add(res);
+}
+function removeClient(userId, res) {
+  const set = clients.get(userId);
+  if (set) { set.delete(res); if (set.size === 0) clients.delete(userId); }
+}
+/** Push a server-sent event to all connections for a user */
+function pushToUser(userId, data) {
+  const set = clients.get(String(userId));
+  if (!set) return;
+  const payload = `data: ${JSON.stringify(data)}\n\n`;
+  for (const res of set) { try { res.write(payload); } catch { /* dead conn */ } }
+}
+
+// GET /api/notifications/stream — SSE endpoint (auth via query token)
+router.get('/stream', (req, res) => {
+  const token = req.query.token;
+  if (!token) return res.status(401).json({ message: 'token required' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = String(decoded.userId);
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no', // nginx/render proxy hint
+    });
+    res.write(':ok\n\n'); // initial comment to confirm connection
+
+    addClient(userId, res);
+    const heartbeat = setInterval(() => { try { res.write(':ping\n\n'); } catch {} }, 30000);
+
+    req.on('close', () => {
+      clearInterval(heartbeat);
+      removeClient(userId, res);
+    });
+  } catch {
+    return res.status(401).json({ message: 'invalid token' });
+  }
+});
 
 // GET /api/notifications — get all notifications for the logged-in user
 router.get('/', auth, async (req, res) => {
@@ -29,6 +77,8 @@ router.post('/', auth, async (req, res) => {
       amount:  amount  || undefined,
     });
     await note.populate('from', 'name email');
+    // Push real-time SSE event to the recipient
+    pushToUser(to, { type: 'notification', notification: note });
     res.status(201).json({ notification: note });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -59,3 +109,4 @@ router.patch('/:id/read', auth, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.pushToUser = pushToUser;
