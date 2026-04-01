@@ -113,7 +113,8 @@ export default function Navbar() {
   const handleLogout = () => {
     clearAuth();
     localStorage.removeItem("selectedAvatar");
-    navigate("/");
+    sessionStorage.clear();
+    navigate("/", { replace: true });
   };
 
   const fetchGroups = async () => {

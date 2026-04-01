@@ -8,7 +8,7 @@ import {
   FiSun, FiMoon, FiLogOut, FiCamera, FiLock, FiArrowLeft, FiUsers,
 } from "react-icons/fi";
 import { QRCodeSVG } from "qrcode.react";
-import { API_URL, apiFetch, getUserId } from "../utils/api";
+import { API_URL, apiFetch, getUserId, clearAuth } from "../utils/api";
 import {
   ACCENT_PRESETS,
   getGradientStyle,
@@ -230,7 +230,14 @@ export default function Profile() {
     }
   };
 
-  const handleLogout = () => { localStorage.clear(); navigate("/"); };
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleLogout = () => {
+    clearAuth();
+    localStorage.removeItem("selectedAvatar");
+    sessionStorage.clear();
+    navigate("/", { replace: true });
+  };
 
   if (loading || !user) {
     return (
@@ -598,12 +605,66 @@ export default function Profile() {
         {/* ── SIGN OUT ──────────────────────────────────────── */}
         <div className="rounded-2xl overflow-hidden mb-2"
           style={{ ...ss, border: isDark ? "1px solid rgba(239,68,68,0.18)" : "1px solid rgba(239,68,68,0.15)" }}>
-          <SettingsRow first danger icon={<FiLogOut size={13} />} label="Sign Out" onClick={handleLogout} right={null} />
+          <SettingsRow first danger icon={<FiLogOut size={13} />} label="Sign Out" onClick={() => setShowLogoutConfirm(true)} right={null} />
         </div>
 
       </div>
 
       <BottomNav />
+
+      {/* ── Logout confirmation modal ─────────────────────── */}
+      {showLogoutConfirm && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-end justify-center pb-8 px-4"
+          style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
+          onClick={() => setShowLogoutConfirm(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl overflow-hidden"
+            style={{
+              background: isDark ? "#1a1a24" : "#ffffff",
+              border: isDark ? "1px solid rgba(255,255,255,0.10)" : "1px solid rgba(0,0,0,0.08)",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.40)",
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="px-6 pt-6 pb-5">
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
+                style={{ background: "rgba(239,68,68,0.12)" }}
+              >
+                <FiLogOut size={22} style={{ color: "#ef4444" }} />
+              </div>
+              <h3 className="text-base font-bold mb-1" style={{ color: isDark ? "#fff" : "#111" }}>
+                Sign out?
+              </h3>
+              <p className="text-sm" style={{ color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)" }}>
+                You'll need to log in again to access your account.
+              </p>
+            </div>
+            <div
+              className="flex"
+              style={{ borderTop: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(0,0,0,0.06)" }}
+            >
+              <button
+                className="flex-1 py-4 text-sm font-semibold transition-colors"
+                style={{ color: isDark ? "rgba(255,255,255,0.50)" : "rgba(0,0,0,0.45)" }}
+                onClick={() => setShowLogoutConfirm(false)}
+              >
+                Cancel
+              </button>
+              <div style={{ width: 1, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)" }} />
+              <button
+                className="flex-1 py-4 text-sm font-bold"
+                style={{ color: "#ef4444" }}
+                onClick={handleLogout}
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div className={`fixed bottom-24 left-4 right-4 max-w-sm mx-auto z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl text-white text-sm font-bold pointer-events-none ${toast.type === "error" ? "bg-red-500" : "bg-green-500"}`}>

@@ -211,7 +211,7 @@ export default function MobileOnboarding({ onGetStarted, onGoogleSignIn }) {
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
+            transition={{ duration: 0.42, ease: [0.32, 0.72, 0, 1] }}
             className="absolute inset-0 flex flex-col"
           >
             <SlideContent
@@ -278,9 +278,9 @@ function SlideContent({ slide, slideIndex, theme, onNext, onGetStarted }) {
       {/* Visual */}
       <div className="flex items-center justify-center" style={{ flex: 1.5 }}>
         <motion.div
-          initial={{ scale: 0.86, opacity: 0, y: 18 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          transition={{ duration: 0.52, ease: [0.32, 0.72, 0, 1], delay: 0.04 }}
+          initial={{ scale: 0.88, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.55, ease: [0.32, 0.72, 0, 1] }}
           style={{ width: "100%", maxWidth: 310 }}
         >
           {slide.visual()}
@@ -293,7 +293,7 @@ function SlideContent({ slide, slideIndex, theme, onNext, onGetStarted }) {
         <motion.div
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.08, duration: 0.36 }}
+          transition={{ duration: 0.40 }}
           className="flex items-center gap-2 mb-3"
         >
           <div className="h-px w-5 rounded-full" style={{ background: theme.accent }} />
@@ -307,9 +307,9 @@ function SlideContent({ slide, slideIndex, theme, onNext, onGetStarted }) {
 
         {/* Headline with gradient accent word */}
         <motion.h1
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.14, duration: 0.42 }}
+          transition={{ duration: 0.48 }}
           className="font-black leading-[1.07] tracking-tight mb-3"
           style={{ fontSize: "clamp(1.9rem, 8.5vw, 2.6rem)" }}
         >
@@ -318,9 +318,9 @@ function SlideContent({ slide, slideIndex, theme, onNext, onGetStarted }) {
 
         {/* Sub-text */}
         <motion.p
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.20, duration: 0.38 }}
+          transition={{ duration: 0.44 }}
           className="text-sm leading-relaxed mb-7"
           style={{ color: "rgba(255,255,255,0.40)", maxWidth: 270 }}
         >
@@ -330,9 +330,9 @@ function SlideContent({ slide, slideIndex, theme, onNext, onGetStarted }) {
         {/* CTA: gradient button on slide 4, frosted Continue elsewhere */}
         {slide.isCTA ? (
           <motion.button
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.26, duration: 0.36 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.40 }}
             onClick={(e) => onGetStarted(e.currentTarget.getBoundingClientRect())}
             whileTap={{ scale: 0.97 }}
             className="w-full py-[14px] rounded-2xl text-white font-black text-sm flex items-center justify-center gap-2"
@@ -348,9 +348,9 @@ function SlideContent({ slide, slideIndex, theme, onNext, onGetStarted }) {
           </motion.button>
         ) : (
           <motion.button
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.26, duration: 0.36 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.40 }}
             onClick={onNext}
             whileTap={{ scale: 0.97 }}
             className="flex items-center justify-center gap-2 w-full py-[14px] rounded-2xl text-white font-semibold text-sm"
