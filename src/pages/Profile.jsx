@@ -51,6 +51,27 @@ const avatarOptions = [
   `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'><defs><linearGradient id='g3' x1='0' x2='1' y1='1' y2='0'><stop stop-color='%23ef4444'/><stop offset='1' stop-color='%233b82f6'/></linearGradient></defs><rect width='80' height='80' rx='16' fill='url(%23g3)'/><circle cx='40' cy='40' r='26' fill='white' opacity='.12'/><circle cx='40' cy='40' r='18' fill='white' opacity='.12'/></svg>`,
 ];
 
+const PRESET_SUBSCRIPTIONS = [
+  { name: "Spotify",             emoji: "🎵", color: "#1db954", category: "entertainment" },
+  { name: "YouTube Premium",     emoji: "▶️", color: "#ff0000", category: "entertainment" },
+  { name: "Netflix",             emoji: "🎬", color: "#e50914", category: "entertainment" },
+  { name: "Amazon Prime Video",  emoji: "📦", color: "#00a8e0", category: "entertainment" },
+  { name: "Disney+",             emoji: "✨", color: "#113ccf", category: "entertainment" },
+  { name: "Apple Music",         emoji: "🎶", color: "#fa243c", category: "entertainment" },
+  { name: "Apple TV+",           emoji: "🍎", color: "#555555", category: "entertainment" },
+  { name: "HBO Max",             emoji: "📺", color: "#6b2fff", category: "entertainment" },
+  { name: "Hulu",                emoji: "🟢", color: "#1ce783", category: "entertainment" },
+  { name: "Microsoft 365",       emoji: "💼", color: "#d83b01", category: "utilities" },
+  { name: "Google One",          emoji: "☁️", color: "#4285f4", category: "utilities" },
+  { name: "iCloud+",             emoji: "🌥️", color: "#3478f6", category: "utilities" },
+  { name: "ChatGPT Plus",        emoji: "🤖", color: "#10a37f", category: "utilities" },
+  { name: "Notion",              emoji: "📝", color: "#000000", category: "utilities" },
+  { name: "LinkedIn Premium",    emoji: "💼", color: "#0077b5", category: "other" },
+  { name: "Adobe Creative Cloud",emoji: "🎨", color: "#ff0000", category: "other" },
+  { name: "Gym / Fitness",       emoji: "💪", color: "#f59e0b", category: "health" },
+  { name: "Custom",              emoji: "✏️", color: "#6b7280", category: "subscription" },
+];
+
 export default function Profile() {
   const [user, setUser] = useState(null);
   const [groups, setGroups] = useState([]);
@@ -83,6 +104,8 @@ export default function Profile() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [subsLoading, setSubsLoading] = useState(false);
   const [showSubForm, setShowSubForm] = useState(false);
+  const [subStep, setSubStep] = useState("pick"); // "pick" | "form"
+  const [subSearch, setSubSearch] = useState("");
   const [subForm, setSubForm] = useState({ name: "", amount: "", billingCycle: "monthly", nextBillingDate: "", color: "#6b7280", icon: "" });
   const [totalSpent, setTotalSpent] = useState(0);
   const navigate = useNavigate();
@@ -291,6 +314,8 @@ export default function Profile() {
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.message); }
       setShowSubForm(false);
+      setSubStep("pick");
+      setSubSearch("");
       setSubForm({ name: "", amount: "", billingCycle: "monthly", nextBillingDate: "", color: "#6b7280", icon: "" });
       fetchSubscriptions();
       showToast("Subscription added!");
@@ -360,9 +385,12 @@ export default function Profile() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setShowLogoutConfirm(false);
     setLoggingOut(true);
+    try {
+      await apiFetch(`${API_URL}/auth/logout`, { method: "POST" });
+    } catch { /* ignore — clear locally regardless */ }
     setTimeout(() => {
       clearAuth();
       localStorage.removeItem("selectedAvatar");
@@ -965,16 +993,74 @@ export default function Profile() {
           <>
             <div className="flex items-center justify-between mb-3 px-1">
               <p className="text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: labelClr }}>Subscriptions</p>
-              <button onClick={() => setShowSubForm(v => !v)}
+              <button onClick={() => { setSubStep("pick"); setSubSearch(""); setShowSubForm(v => !v); }}
                 className="h-8 w-8 rounded-xl flex items-center justify-center text-white active:scale-90 transition"
                 style={getGradientStyle(theme)}>
                 <FiPlus size={14} />
               </button>
             </div>
 
-            {/* New subscription form */}
+            {/* New subscription — step 1: preset picker */}
             <AnimatePresence>
-              {showSubForm && (
+              {showSubForm && subStep === "pick" && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  className="rounded-2xl overflow-hidden mb-4"
+                  style={ss}
+                >
+                  <div className="p-4 space-y-3">
+                    <p className="text-xs font-bold" style={{ color: labelClr }}>Choose a service</p>
+                    {/* Search */}
+                    <input
+                      type="text"
+                      placeholder="Search…"
+                      value={subSearch}
+                      onChange={e => setSubSearch(e.target.value)}
+                      className={`w-full px-3 py-2 rounded-xl text-sm font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                      style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }}
+                    />
+                    {/* Preset grid */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {PRESET_SUBSCRIPTIONS
+                        .filter(p => p.name.toLowerCase().includes(subSearch.toLowerCase()))
+                        .map(preset => (
+                          <button
+                            key={preset.name}
+                            type="button"
+                            onClick={() => {
+                              if (preset.name === "Custom") {
+                                setSubForm({ name: "", amount: "", billingCycle: "monthly", nextBillingDate: "", color: "#6b7280", icon: "✏️" });
+                              } else {
+                                setSubForm({ name: preset.name, amount: "", billingCycle: "monthly", nextBillingDate: "", color: preset.color, icon: preset.emoji });
+                              }
+                              setSubStep("form");
+                            }}
+                            className="flex flex-col items-center gap-1.5 p-3 rounded-xl active:scale-95 transition"
+                            style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)" }}
+                          >
+                            <span className="text-xl">{preset.emoji}</span>
+                            <span className="text-[10px] font-semibold text-center leading-tight" style={{ color: textClr }}>
+                              {preset.name === "Adobe Creative Cloud" ? "Adobe CC" : preset.name === "Amazon Prime Video" ? "Prime Video" : preset.name === "LinkedIn Premium" ? "LinkedIn" : preset.name}
+                            </span>
+                          </button>
+                        ))}
+                    </div>
+                    <button type="button" onClick={() => setShowSubForm(false)}
+                      className="w-full py-2.5 rounded-xl text-sm font-bold transition active:scale-95 mt-1"
+                      style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", color: subClr }}>
+                      Cancel
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* New subscription — step 2: fill in details */}
+            <AnimatePresence>
+              {showSubForm && subStep === "form" && (
                 <motion.form
                   onSubmit={handleCreateSub}
                   initial={{ opacity: 0, y: -10 }}
@@ -985,7 +1071,17 @@ export default function Profile() {
                   style={ss}
                 >
                   <div className="p-4 space-y-3">
-                    <input type="text" placeholder="Name (e.g. Netflix, Spotify)" required
+                    {/* Back button + service name */}
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => setSubStep("pick")}
+                        className="h-8 w-8 rounded-lg flex items-center justify-center active:scale-90 transition"
+                        style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", color: subClr }}>
+                        <FiArrowLeft size={13} />
+                      </button>
+                      <span className="text-xl">{subForm.icon || "💳"}</span>
+                      <span className="text-sm font-bold" style={{ color: textClr }}>{subForm.name || "Custom"}</span>
+                    </div>
+                    <input type="text" placeholder="Name" required
                       value={subForm.name} onChange={e => setSubForm({ ...subForm, name: e.target.value })}
                       className={`w-full px-3 py-2.5 rounded-xl text-sm font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
                       style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />

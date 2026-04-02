@@ -1,11 +1,46 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const User = require('../models/User');
 const Group = require('../models/Group');
 const Expense = require('../models/Expense');
 const Payment = require('../models/Payment');
 
-const generateToken = (userId) => {
-  return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
+const REFRESH_COOKIE_NAME = 'refreshToken';
+const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+const generateAccessToken = (userId) =>
+  jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '15m' });
+
+const _hashToken = (raw) =>
+  crypto.createHash('sha256').update(raw).digest('hex');
+
+const _setRefreshCookie = (res, raw) => {
+  res.cookie(REFRESH_COOKIE_NAME, raw, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: REFRESH_TTL_MS,
+    path: '/',
+  });
+};
+
+const _clearRefreshCookie = (res) => {
+  res.clearCookie(REFRESH_COOKIE_NAME, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    path: '/',
+  });
+};
+
+const _issueTokens = async (res, userId) => {
+  const accessToken = generateAccessToken(userId);
+  const rawRefresh = crypto.randomBytes(64).toString('hex');
+  const hash = _hashToken(rawRefresh);
+  const expiry = new Date(Date.now() + REFRESH_TTL_MS);
+  await User.updateById(userId, { refreshTokenHash: hash, refreshTokenExpiry: expiry });
+  _setRefreshCookie(res, rawRefresh);
+  return accessToken;
 };
 
 // Google OAuth — verifies the access_token by calling Google's userinfo endpoint
@@ -38,7 +73,7 @@ exports.googleAuth = async (req, res) => {
       }
     }
 
-    const token = generateToken(user._id || user.id);
+    const token = await _issueTokens(res, user._id || user.id);
     res.json({
       message: 'Google auth successful',
       token,
@@ -68,7 +103,7 @@ exports.signup = async (req, res) => {
     }
 
     const user = await User.create({ email, password, name });
-    const token = generateToken(user._id);
+    const token = await _issueTokens(res, user._id);
 
     res.status(201).json({
       message: 'User created successfully',
@@ -103,7 +138,7 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const token = generateToken(user._id);
+    const token = await _issueTokens(res, user._id);
 
     res.json({
       message: 'Login successful',
@@ -190,6 +225,55 @@ exports.updateProfile = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// POST /api/auth/refresh — use httpOnly cookie to issue a new 15-min access token
+exports.refreshToken = async (req, res) => {
+  try {
+    const rawToken = req.cookies?.[REFRESH_COOKIE_NAME];
+    if (!rawToken) return res.status(401).json({ message: 'No refresh token' });
+
+    const hash = _hashToken(rawToken);
+    const user = await User.findByRefreshHash(hash);
+    if (!user) {
+      _clearRefreshCookie(res);
+      return res.status(401).json({ message: 'Invalid refresh token' });
+    }
+
+    if (!user.refreshTokenExpiry || Date.now() > new Date(user.refreshTokenExpiry).getTime()) {
+      await User.updateById(user._id || user.id, { refreshTokenHash: null, refreshTokenExpiry: null });
+      _clearRefreshCookie(res);
+      return res.status(401).json({ message: 'Refresh token expired' });
+    }
+
+    // Rotate: issue a new access + refresh token pair
+    const accessToken = await _issueTokens(res, user._id || user.id);
+    res.json({ token: accessToken });
+  } catch (err) {
+    console.error('Refresh token error:', err.message);
+    _clearRefreshCookie(res);
+    res.status(401).json({ message: 'Refresh failed' });
+  }
+};
+
+// POST /api/auth/logout — invalidate the refresh token and clear the cookie
+exports.logout = async (req, res) => {
+  try {
+    const rawToken = req.cookies?.[REFRESH_COOKIE_NAME];
+    if (rawToken) {
+      const hash = _hashToken(rawToken);
+      const user = await User.findByRefreshHash(hash);
+      if (user) {
+        await User.updateById(user._id || user.id, { refreshTokenHash: null, refreshTokenExpiry: null });
+      }
+    }
+    _clearRefreshCookie(res);
+    res.json({ message: 'Logged out successfully' });
+  } catch (err) {
+    console.error('Logout error:', err.message);
+    _clearRefreshCookie(res);
+    res.status(500).json({ message: 'Logout failed' });
   }
 };
 

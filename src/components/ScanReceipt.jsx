@@ -9,6 +9,19 @@ import { CATEGORIES, detectCategory, detectCategoryFromText, getCategoryInfo } f
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
+// Detect if running inside a Capacitor native wrapper
+const isNative = () => !!(window.Capacitor?.isNative);
+
+// Lazily load Capacitor plugins — fall back to null on web
+async function getNativeCamera() {
+  try { const { Camera } = await import("@capacitor/camera"); return Camera; }
+  catch { return null; }
+}
+async function getNativeApp() {
+  try { const { App } = await import("@capacitor/app"); return App; }
+  catch { return null; }
+}
+
 export default function ScanReceipt({ 
   groups, 
   userId, 
@@ -130,7 +143,35 @@ export default function ScanReceipt({
   };
 
   const startCamera = async (facing = "environment") => {
-    // Check for camera API availability (requires HTTPS or localhost)
+    // ── Native: use Capacitor Camera.getPhoto() ───────────────────────────
+    if (isNative()) {
+      try {
+        const Camera = await getNativeCamera();
+        if (!Camera) throw new Error("Camera plugin unavailable");
+        const { CameraResultType, CameraSource, CameraDirection } = await import("@capacitor/camera");
+        const photo = await Camera.getPhoto({
+          quality: 90,
+          allowEditing: false,
+          resultType: CameraResultType.Base64,
+          source: CameraSource.Camera,
+          direction: facing === "user" ? CameraDirection.Front : CameraDirection.Rear,
+        });
+        const base64 = `data:image/jpeg;base64,${photo.base64String}`;
+        const res = await fetch(base64);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        setImage(blob);
+        setImageUrl(url);
+        setMode(null);
+      } catch (err) {
+        if (err.message !== "User cancelled photos app") {
+          alert("Camera error: " + (err.message || "Unknown error"));
+        }
+      }
+      return;
+    }
+
+    // ── Web: use getUserMedia (existing behaviour) ────────────────────────
     if (!navigator.mediaDevices?.getUserMedia) {
       alert("Camera access is not available. Make sure you're using a secure connection (HTTPS) and your browser supports camera access.");
       return;
@@ -424,10 +465,20 @@ export default function ScanReceipt({
       cu: "INR",
       tn: `SmartSplit: ${s.groupName || ""}`,
     });
-    // Use anchor click instead of window.location.href — browsers block
-    // custom-scheme navigation initiated via window.location but allow <a> clicks
+    const upiLink = `${app.scheme}?${params.toString()}`;
+
+    // On native: use Capacitor App.openUrl for reliable deep-link handling
+    if (isNative()) {
+      getNativeApp().then((App) => {
+        if (App) App.openUrl({ url: upiLink }).catch(() => {});
+        else window.open(upiLink, "_blank");
+      });
+      return;
+    }
+
+    // On web: use anchor click — browsers block window.location custom-scheme
     const a = document.createElement('a');
-    a.href = `${app.scheme}?${params.toString()}`;
+    a.href = upiLink;
     a.rel = 'noopener';
     document.body.appendChild(a);
     a.click();
@@ -1009,7 +1060,14 @@ export default function ScanReceipt({
               }`}
               style={getGradientStyle(theme)}
               onClick={(e) => {
-                if (!qrPayAmount || parseFloat(qrPayAmount) <= 0) { e.preventDefault(); }
+                if (!qrPayAmount || parseFloat(qrPayAmount) <= 0) { e.preventDefault(); return; }
+                if (isNative()) {
+                  e.preventDefault();
+                  getNativeApp().then((App) => {
+                    if (App) App.openUrl({ url: e.currentTarget.href }).catch(() => {});
+                    else window.open(e.currentTarget.href, "_blank");
+                  });
+                }
               }}
             >
               <FiCreditCard size={16} /> Open UPI App &amp; Pay

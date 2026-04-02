@@ -1,14 +1,14 @@
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-// Check both storages; localStorage wins (means "remember me" was checked)
-function _storage() {
-  return localStorage.getItem('token') ? localStorage : sessionStorage;
-}
+// ── In-memory access token (never written to localStorage) ──────────────
+let _accessToken = null;
+let _refreshing = null; // deduplicates concurrent refresh calls
 
-export function getToken() {
-  return localStorage.getItem('token') || sessionStorage.getItem('token');
-}
+export function getToken() { return _accessToken; }
+export function setToken(token) { _accessToken = token || null; }
+export function clearToken() { _accessToken = null; }
 
+// Storage helpers for user/userId (NOT for the access token)
 export function getUserId() {
   return localStorage.getItem('userId') || sessionStorage.getItem('userId');
 }
@@ -18,39 +18,73 @@ export function getUser() {
   return raw ? JSON.parse(raw) : null;
 }
 
-/** Called after login/signup. remember=true → localStorage, false → sessionStorage */
+/** Called after login/signup. remember=true → localStorage, false → sessionStorage.
+ *  Stores user/userId in storage; access token stays in memory only. */
 export function setAuthData(token, user, userId, remember) {
+  setToken(token);
   const keep = remember ? localStorage : sessionStorage;
   const drop = remember ? sessionStorage : localStorage;
-  ['token', 'user', 'userId'].forEach(k => drop.removeItem(k));
-  keep.setItem('token', token);
+  ['user', 'userId'].forEach(k => drop.removeItem(k));
   keep.setItem('user', JSON.stringify(user));
   keep.setItem('userId', userId);
 }
 
-/** Clear auth from both storages (used on logout) */
+/** Clear all auth state */
 export function clearAuth() {
-  ['token', 'user', 'userId'].forEach(k => {
+  clearToken();
+  ['user', 'userId'].forEach(k => {
     localStorage.removeItem(k);
     sessionStorage.removeItem(k);
   });
 }
 
-/** @deprecated use setAuthData instead */
-export function setAuthToken(token) {
-  if (token) _storage().setItem('token', token);
-  else { localStorage.removeItem('token'); sessionStorage.removeItem('token'); }
+/** Attempt a silent token refresh using the httpOnly refresh cookie.
+ *  Returns the new access token string, or null on failure. */
+export async function silentRefresh() {
+  // Deduplicate: if already refreshing, wait for the same promise
+  if (_refreshing) return _refreshing;
+  _refreshing = (async () => {
+    try {
+      const res = await fetch(`${API_URL}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (data.token) { setToken(data.token); return data.token; }
+      return null;
+    } catch {
+      return null;
+    } finally {
+      _refreshing = null;
+    }
+  })();
+  return _refreshing;
 }
 
 export function apiFetch(url, options = {}) {
-  const token = getToken();
+  const token = _accessToken;
+  const { _isRetry, ...fetchOptions } = options;
   return fetch(url, {
-    ...options,
+    ...fetchOptions,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
+      ...fetchOptions.headers,
     },
+  }).then(async (res) => {
+    // On 401, try silent refresh once then retry the original request
+    if (res.status === 401 && !_isRetry) {
+      const newToken = await silentRefresh();
+      if (newToken) {
+        return apiFetch(url, { ...options, _isRetry: true });
+      }
+      // Refresh failed — clear state and signal logout
+      clearAuth();
+      window.dispatchEvent(new Event('auth:logout'));
+    }
+    return res;
   });
 }
 

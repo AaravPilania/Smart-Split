@@ -9,10 +9,10 @@ import Profile from "./pages/Profile";
 import Balances from "./pages/Balances";
 import Friends from "./pages/Friends";
 import AddFriend from "./pages/AddFriend";
-import { getToken, wakeUpServer, getUserId, API_URL, apiFetch } from "./utils/api";
+import { getToken, setToken, clearAuth, silentRefresh, wakeUpServer, getUserId, API_URL, apiFetch } from "./utils/api";
 import Aaru from "./components/Aaru";
 
-// Redirects to / if not logged in
+// Redirects to / if not logged in (checks in-memory access token)
 function ProtectedRoute({ element }) {
   return getToken() ? element : <Navigate to="/" replace />;
 }
@@ -141,9 +141,27 @@ function OfflineBanner() {
 }
 
 function App() {
-  // Kick off a health check immediately so cold-start happens ASAP
-  useEffect(() => { wakeUpServer(); }, []);
+  const [authReady, setAuthReady] = useState(false);
+
+  // Kick off a health check immediately so cold-start happens ASAP.
+  // Also attempt a silent refresh to restore the session from the httpOnly cookie.
+  useEffect(() => {
+    wakeUpServer();
+    silentRefresh().finally(() => setAuthReady(true));
+
+    // When apiFetch detects a 401 that can't be refreshed, clear everything and go home
+    const handleForceLogout = () => {
+      clearAuth();
+      window.location.replace('/');
+    };
+    window.addEventListener('auth:logout', handleForceLogout);
+    return () => window.removeEventListener('auth:logout', handleForceLogout);
+  }, []);
+
   usePWAAutoUpdate();
+
+  // Don't render routes until we know whether the session is valid
+  if (!authReady) return null;
 
   return (
     <BrowserRouter>

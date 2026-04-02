@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
 const { connectDB } = require('./config/database');
@@ -19,6 +20,9 @@ app.use(helmet());
 
 // Request logging
 app.use(morgan('short'));
+
+// Parse cookies (needed for httpOnly refresh token)
+app.use(cookieParser());
 
 // CORS — Updated for Cloudflare Pages
 const allowedOrigins = process.env.CORS_ORIGIN

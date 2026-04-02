@@ -8,7 +8,9 @@ const userSchema = new mongoose.Schema({
   googleId: { type: String, sparse: true },
   username: { type: String, unique: true, sparse: true, trim: true, lowercase: true },
   pfp: { type: String, default: '' },
-  upiId: { type: String, default: '' }
+  upiId: { type: String, default: '' },
+  refreshTokenHash: { type: String, select: false, default: null },
+  refreshTokenExpiry: { type: Date, default: null },
 }, { timestamps: true });
 
 const UserModel = mongoose.model('User', userSchema);
@@ -127,8 +129,15 @@ module.exports = {
     if (updates.pfp !== undefined) setFields.pfp = updates.pfp;
     if (updates.upiId !== undefined) setFields.upiId = updates.upiId.trim();
     if (updates.googleId !== undefined) setFields.googleId = updates.googleId;
+    if (updates.refreshTokenHash !== undefined) setFields.refreshTokenHash = updates.refreshTokenHash;
+    if (updates.refreshTokenExpiry !== undefined) setFields.refreshTokenExpiry = updates.refreshTokenExpiry;
     await UserModel.findByIdAndUpdate(id, { $set: setFields });
     return this.findById(id);
+  },
+
+  async findByRefreshHash(hash) {
+    if (!hash) return null;
+    return doc2obj(await UserModel.findOne({ refreshTokenHash: hash }).select('+refreshTokenHash +refreshTokenExpiry'));
   },
 
   async findByUsername(username) {

@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Subscription = require('../models/Subscription');
 const auth = require('../middleware/auth');
+const validate = require('../middleware/validate');
+const { createSubscriptionSchema, updateSubscriptionSchema } = require('../validators/subscriptionSchema');
 
 // All routes require authentication
 router.use(auth);
@@ -17,21 +19,18 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/subscriptions — create a subscription
-router.post('/', async (req, res) => {
+router.post('/', validate(createSubscriptionSchema), async (req, res) => {
   try {
     const { name, amount, category, billingCycle, nextBillingDate, color, icon } = req.body;
-    if (!name || !amount || !nextBillingDate) {
-      return res.status(400).json({ message: 'Name, amount, and next billing date are required' });
-    }
     const sub = await Subscription.create({
       user: req.user.id,
-      name: String(name).slice(0, 100),
-      amount: Number(amount),
-      category: category ? String(category).slice(0, 50) : 'subscription',
-      billingCycle: billingCycle || 'monthly',
+      name,
+      amount,
+      category,
+      billingCycle,
       nextBillingDate: new Date(nextBillingDate),
-      color: color || '#6b7280',
-      icon: icon ? String(icon).slice(0, 10) : '',
+      color,
+      icon,
     });
     res.status(201).json({ subscription: sub });
   } catch (err) {
@@ -40,7 +39,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/subscriptions/:id — update a subscription
-router.put('/:id', async (req, res) => {
+router.put('/:id', validate(updateSubscriptionSchema), async (req, res) => {
   try {
     const sub = await Subscription.findById(req.params.id);
     if (!sub) return res.status(404).json({ message: 'Subscription not found' });
