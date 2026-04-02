@@ -78,17 +78,34 @@ img[data-fit="contain"], .img-contain {
 
 /* ─── Login page animated gradient background ─────────────────── */
 
-/* ─── FAB neon lightning pulse ──────────────────────────── */
-@keyframes fabNeonPulse {
-  0%, 100% { box-shadow: 0 8px 28px var(--fab-glow, rgba(236,72,153,0.5)), 0 4px 14px rgba(0,0,0,0.35); }
-  50%      { box-shadow: 0 4px 20px var(--fab-glow, rgba(236,72,153,0.65)), 0 0 32px var(--fab-glow, rgba(236,72,153,0.35)), 0 0 8px rgba(255,255,255,0.15); }
+/* ─── FAB electric lightning arcs ──────────────────────── */
+@keyframes zapFlash {
+  0%, 18% { opacity: 0; }
+  22%     { opacity: 1; }
+  28%     { opacity: 0.15; }
+  34%     { opacity: 0.9; }
+  45%, 100% { opacity: 0; }
 }
-.fab-neon-pulse {
-  animation: fabNeonPulse 2.4s ease-in-out infinite;
+.zap {
+  opacity: 0;
+  animation: zapFlash 2.4s ease-in-out infinite;
 }
-.fab-neon-pulse:active {
-  animation: none;
-  box-shadow: 0 0 24px rgba(255,255,255,0.3), 0 0 48px var(--fab-glow, rgba(236,72,153,0.6)), 0 8px 28px var(--fab-glow, rgba(236,72,153,0.5)) !important;
+.zap-1 { animation-delay: 0s; }
+.zap-2 { animation-delay: 0.6s; }
+.zap-3 { animation-delay: 1.2s; }
+.zap-4 { animation-delay: 1.8s; }
+
+/* Idle subtle glow on FAB */
+.fab-lightning {
+  box-shadow: 0 10px 36px rgba(236,72,153,0.45), 0 4px 16px rgba(0,0,0,0.4), 0 0 18px rgba(96,165,250,0.25);
+}
+/* Tap: all arcs visible + blue-white flash */
+.fab-lightning:active .zap {
+  animation: none !important;
+  opacity: 1 !important;
+}
+.fab-lightning:active {
+  box-shadow: 0 0 28px rgba(96,165,250,0.6), 0 0 56px rgba(96,165,250,0.35), 0 10px 36px rgba(236,72,153,0.5) !important;
 }
 
 /* ─── Login animated gradient background ──────────────────── */
