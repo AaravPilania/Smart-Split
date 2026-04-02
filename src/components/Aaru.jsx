@@ -287,6 +287,21 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
     };
   }, [open]);
 
+  // Keyboard spacing — shift sheet up when virtual keyboard opens
+  const [kbOffset, setKbOffset] = useState(0);
+  useEffect(() => {
+    if (!open) { setKbOffset(0); return; }
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => {
+      const offset = window.innerHeight - vv.height;
+      setKbOffset(offset > 50 ? offset : 0);
+    };
+    vv.addEventListener("resize", onResize);
+    vv.addEventListener("scroll", onResize);
+    return () => { vv.removeEventListener("resize", onResize); vv.removeEventListener("scroll", onResize); };
+  }, [open]);
+
   // Scroll to bottom on new messages
   useEffect(() => {
     if (open)
@@ -432,6 +447,9 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
             className="relative flex flex-col rounded-t-3xl z-10 overflow-hidden"
             style={{
               height: "78vh",
+              maxHeight: kbOffset > 0 ? `calc(100vh - ${kbOffset}px)` : undefined,
+              transform: kbOffset > 0 ? `translateY(-${kbOffset}px)` : undefined,
+              transition: "transform 0.15s ease, max-height 0.15s ease",
               background: isDark ? "rgba(11,11,20,0.98)" : "#ffffff",
               backdropFilter: "blur(32px)",
               borderTop: isDark

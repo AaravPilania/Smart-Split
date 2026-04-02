@@ -75,7 +75,7 @@ const TopoBackground = () => {
 };
 
 const GRAD_STYLE = {
-  background:"linear-gradient(90deg,#f472b6 0%,#c084fc 45%,#fb923c 100%)",
+  background:"linear-gradient(90deg,#f472b6 0%,#fb923c 100%)",
   WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",
 };
 
@@ -143,7 +143,7 @@ function BlobTransition({ origin = null, variant = "in" }) {
           left: ox - DIAM / 2,
           top: oy - DIAM / 2,
           borderRadius: "50%",
-          background: "linear-gradient(135deg, #ec4899 0%, #a855f7 50%, #f97316 100%)",
+          background: "linear-gradient(135deg, #ec4899, #f97316)",
           transformOrigin: "center center",
           pointerEvents: "none",
         }}
@@ -214,8 +214,7 @@ function MobileLogin({ onSuccess, onGuest }) {
 
   return (
     <motion.div
-      className="h-full w-full overflow-y-auto flex flex-col"
-      style={{ background: "#0c0e1a" }}
+      className="h-full w-full overflow-y-auto flex flex-col login-anim-bg"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
     >
       <div className="flex flex-col items-center px-8 pt-16 pb-10 w-full max-w-sm mx-auto">
@@ -226,7 +225,7 @@ function MobileLogin({ onSuccess, onGuest }) {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 300, damping: 22 }}
           className="w-14 h-14 rounded-[18px] flex items-center justify-center text-2xl font-black text-white mb-6"
-          style={{ background: "linear-gradient(145deg, #ec4899, #a855f7, #f97316)" }}
+          style={{ background: "linear-gradient(145deg, #ec4899, #f97316)" }}
         >
           ₹
         </motion.div>
@@ -343,7 +342,7 @@ function MobileLogin({ onSuccess, onGuest }) {
               type="submit" disabled={loading} whileTap={{ scale: 0.97 }}
               className="w-full py-4 rounded-full text-white text-sm font-black mt-2 relative overflow-hidden"
               style={{
-                background: "linear-gradient(135deg, #ec4899 0%, #a855f7 50%, #f97316 100%)",
+                background: "linear-gradient(135deg, #ec4899 0%, #f97316 100%)",
                 opacity: loading ? 0.75 : 1,
               }}
             >
@@ -459,7 +458,7 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
       <div className="flex items-center gap-3">
         <motion.button onClick={onGetStarted} whileTap={{ scale:0.97 }}
           className="px-10 py-4 rounded-2xl text-white font-black text-base"
-          style={{ background:"linear-gradient(135deg,#ec4899,#a855f7,#f97316)",boxShadow:"0 8px 32px rgba(236,72,153,0.45)" }}>
+          style={{ background:"linear-gradient(135deg,#ec4899,#f97316)",boxShadow:"0 8px 32px rgba(236,72,153,0.45)" }}>
           Get Started →
         </motion.button>
         {onGoogleSignIn && (
@@ -527,7 +526,7 @@ function DesktopLogin({ onSuccess, onGuest }) {
       <div className="w-px self-stretch opacity-20" style={{ background:"linear-gradient(to bottom,transparent,rgba(255,255,255,0.6),transparent)" }}/>
       <div className="w-[400px] flex-shrink-0">
         <div className="rounded-3xl overflow-hidden shadow-2xl shadow-black/70" style={CARD_STYLE}>
-          <div className="h-[3px]" style={{ background:"linear-gradient(90deg,#ec4899,#a855f7,#f97316)" }}/>
+          <div className="h-[3px]" style={{ background:"linear-gradient(90deg,#ec4899,#f97316)" }}/>
           <div className="p-7">
             <h2 className="text-xl font-bold text-white">{isLogin?"Welcome back":"Create account"}</h2>
             <p className="text-xs text-white/55 mt-1 mb-4">{isLogin?"Sign in to your Smart Split account":"Join Smart Split — it's free forever"}</p>
@@ -544,7 +543,7 @@ function DesktopLogin({ onSuccess, onGuest }) {
                 suffix={<button type="button" onMouseDown={e=>e.preventDefault()} onClick={()=>setShowPassword(p=>!p)} className="text-white/50 hover:text-white/80 transition" tabIndex={-1}>{showPassword?<FiEyeOff size={15}/>:<FiEye size={15}/>}</button>}
               />
               {isLogin&&<label className="flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" checked={rememberMe} onChange={e=>setRememberMe(e.target.checked)} className="w-3.5 h-3.5 rounded accent-pink-500"/><span className="text-xs text-white/55">Keep me signed in</span></label>}
-              <button type="submit" disabled={loading} className="w-full py-3 text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-50" style={{ background:"linear-gradient(135deg,#ec4899 0%,#a855f7 50%,#f97316 100%)" }}>
+              <button type="submit" disabled={loading} className="w-full py-3 text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-50" style={{ background:"linear-gradient(135deg,#ec4899 0%,#f97316 100%)" }}>
                 {loading?"Please wait…":<>{isLogin?"Sign In":"Create Account"}<FiArrowRight size={16}/></>}
               </button>
             </form>

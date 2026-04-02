@@ -13,53 +13,11 @@ import ScanReceipt from "./ScanReceipt";
 import { apiFetch, API_URL, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
 
-/* ── Animated scissors icon — proper crossing blades ── */
-function ScissorsMoneyIcon() {
+/* ── Lightning bolt icon for center FAB ── */
+function LightningBoltIcon() {
   return (
-    <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "100%", height: "100%", display: "block" }}>
-      <style>{`
-        @keyframes snip-upper {
-          0%, 30%, 100% { transform: rotate(0deg); }
-          48%, 62% { transform: rotate(-18deg); }
-        }
-        @keyframes snip-lower {
-          0%, 30%, 100% { transform: rotate(0deg); }
-          48%, 62% { transform: rotate(18deg); }
-        }
-        @keyframes rupee-fly {
-          0% { opacity: 0; transform: translate(0px, 0px) scale(0.5); }
-          18% { opacity: 1; }
-          55% { opacity: 0.9; transform: translate(6px, -9px) scale(1.1); }
-          100% { opacity: 0; transform: translate(10px, -16px) scale(0.7); }
-        }
-      `}</style>
-
-      {/* Upper blade */}
-      <g style={{ transformOrigin: "18px 18px", animation: "snip-upper 2.4s ease-in-out infinite" }}>
-        <circle cx="5.5" cy="9" r="4.5" stroke="white" strokeWidth="2.2" fill="none" />
-        <line x1="9.5" y1="11" x2="32" y2="28" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
-      </g>
-
-      {/* Lower blade */}
-      <g style={{ transformOrigin: "18px 18px", animation: "snip-lower 2.4s ease-in-out infinite" }}>
-        <circle cx="5.5" cy="27" r="4.5" stroke="white" strokeWidth="2.2" fill="none" />
-        <line x1="9.5" y1="25" x2="32" y2="8" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
-      </g>
-
-      {/* Pivot screw */}
-      <circle cx="18" cy="18" r="2.8" fill="white" />
-
-      {/* ₹ flying out — larger font */}
-      <text
-        x="21"
-        y="13"
-        fontSize="12"
-        fill="white"
-        fontWeight="900"
-        style={{ animation: "rupee-fly 2.4s ease-in-out infinite", transformOrigin: "24px 11px" }}
-      >
-        ₹
-      </text>
+    <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "55%", height: "55%", display: "block" }}>
+      <path d="M20.5 3L8 20h8.5l-2.5 13L29 16h-8.5L23 3h-2.5z" fill="white" stroke="white" strokeWidth="0.5" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -137,15 +95,15 @@ export default function BottomNav() {
                   key="camera-fab"
                   onClick={handleCameraPress}
                   data-guide="fab"
-                  className="relative w-16 h-16 rounded-[22px] text-white shadow-2xl transition-transform active:scale-95 overflow-hidden"
+                  className="relative w-14 h-14 rounded-[18px] text-white shadow-2xl transition-all active:scale-95 overflow-hidden flex items-center justify-center fab-neon-press"
                   style={{
                     ...getGradientStyle(theme),
-                    marginTop: "-28px",
+                    marginTop: "-24px",
                     boxShadow: `0 10px 36px ${theme.gradFrom}70, 0 4px 16px rgba(0,0,0,0.4)`,
                   }}
                   aria-label="Quick actions"
                 >
-                  <ScissorsMoneyIcon />
+                  <LightningBoltIcon />
                 </button>
               );
             }

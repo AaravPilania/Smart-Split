@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
 import { FiArrowRight, FiX } from "react-icons/fi";
-import { API_URL, apiFetch, getUser, getUserId } from "../utils/api";
+import { API_URL, apiFetch, getUser, getUserId, cachedApiFetch, setCache } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 import { detectCategory, getCategoryInfo } from "../utils/categories";
 import { computeInsights } from "../utils/insights";
@@ -110,7 +110,7 @@ export default function Dashboard() {
     try {
       setLoading(true);
 
-      const summaryRes = await apiFetch(`${API_URL}/auth/dashboard/summary`);
+      const summaryRes = await cachedApiFetch(`${API_URL}/auth/dashboard/summary`, 'dashboard_summary');
       if (summaryRes.ok) {
         const {
           groups: userGroups,
@@ -697,43 +697,66 @@ export default function Dashboard() {
                       })}
                     </div>
 
-                    {/* Monthly trend */}
+                    {/* Monthly trend — smooth wave chart */}
                     {monthlyData.some((m) => m.amount > 0) && (
                       <>
                         <p className="text-[10px] font-bold uppercase tracking-[0.17em] mb-3"
                           style={{ color: isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.28)" }}>
                           6-Month Trend
                         </p>
-                        <div className="p-4 rounded-2xl mb-5"
-                          style={{
-                            background: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
-                            border: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.06)",
-                          }}>
-                          <div className="flex items-end gap-2 h-24">
-                            {monthlyData.map((m, i) => {
-                              const max = Math.max(...monthlyData.map((d) => d.amount), 1);
-                              return (
-                                <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
-                                  <motion.div
-                                    initial={{ height: "4%" }}
-                                    animate={{ height: `${Math.max((m.amount / max) * 100, 4)}%` }}
-                                    transition={{ delay: i * 0.07, duration: 0.5, ease: "easeOut" }}
-                                    className="w-full rounded-lg"
-                                    style={{
-                                      background: m.isCurrent
-                                        ? `linear-gradient(to top, ${theme.gradFrom}, ${theme.gradTo})`
-                                        : isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.07)",
-                                    }}
-                                  />
-                                  <span className="text-[9px] font-bold"
-                                    style={{ color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)" }}>
-                                    {m.label}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
+                        {(() => {
+                          const max = Math.max(...monthlyData.map(d => d.amount), 1);
+                          const W = 300, H = 140, PX = 24, PY = 20;
+                          const plotW = W - PX * 2, plotH = H - PY * 2;
+                          const pts = monthlyData.map((m, i) => ({
+                            x: PX + (i / Math.max(monthlyData.length - 1, 1)) * plotW,
+                            y: PY + plotH - (m.amount / max) * plotH,
+                          }));
+                          // Smooth cubic bezier path
+                          let d = `M${pts[0].x},${pts[0].y}`;
+                          for (let i = 0; i < pts.length - 1; i++) {
+                            const cp = (pts[i + 1].x - pts[i].x) * 0.4;
+                            d += ` C${pts[i].x + cp},${pts[i].y} ${pts[i + 1].x - cp},${pts[i + 1].y} ${pts[i + 1].x},${pts[i + 1].y}`;
+                          }
+                          const fillD = `${d} L${pts[pts.length - 1].x},${H} L${pts[0].x},${H} Z`;
+                          return (
+                            <div className="rounded-2xl mb-5 overflow-hidden"
+                              style={{
+                                background: isDark
+                                  ? "linear-gradient(135deg, #0c1929, #0f2744, #0c1929)"
+                                  : "linear-gradient(135deg, #e0f2fe, #bae6fd, #e0f2fe)",
+                              }}>
+                              <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ display: "block", height: 160 }}>
+                                <defs>
+                                  <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor={isDark ? "rgba(59,130,246,0.35)" : "rgba(59,130,246,0.25)"} />
+                                    <stop offset="100%" stopColor="transparent" />
+                                  </linearGradient>
+                                  <filter id="trendGlow">
+                                    <feGaussianBlur stdDeviation="3" result="blur" />
+                                    <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                                  </filter>
+                                </defs>
+                                {/* Gradient fill under curve */}
+                                <path d={fillD} fill="url(#trendFill)" />
+                                {/* Glowing curve */}
+                                <path d={d} fill="none" stroke={isDark ? "#60a5fa" : "#3b82f6"} strokeWidth="2.5" strokeLinecap="round" filter="url(#trendGlow)" />
+                                {/* Dots on data points */}
+                                {pts.map((p, i) => (
+                                  <circle key={i} cx={p.x} cy={p.y} r={monthlyData[i].isCurrent ? 4 : 2.5}
+                                    fill={monthlyData[i].isCurrent ? "#fff" : isDark ? "#60a5fa" : "#3b82f6"}
+                                    stroke={monthlyData[i].isCurrent ? "#3b82f6" : "none"} strokeWidth={monthlyData[i].isCurrent ? 2 : 0} />
+                                ))}
+                                {/* Month labels */}
+                                {monthlyData.map((m, i) => (
+                                  <text key={`l-${i}`} x={pts[i].x} y={H - 4} textAnchor="middle"
+                                    fill={isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)"}
+                                    fontSize="9" fontWeight="600">{m.label}</text>
+                                ))}
+                              </svg>
+                            </div>
+                          );
+                        })()}
                       </>
                     )}
 

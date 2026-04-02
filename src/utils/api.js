@@ -54,6 +54,61 @@ export function apiFetch(url, options = {}) {
   });
 }
 
+/* ─── Local cache layer for faster loads ────────────────────── */
+const CACHE_PREFIX = 'ss_cache_';
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/** Returns cached data for a GET endpoint, or null if stale/missing */
+export function getCached(key) {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + key);
+    if (!raw) return null;
+    const { ts, data } = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL) return null;
+    return data;
+  } catch { return null; }
+}
+
+/** Store data in local cache */
+export function setCache(key, data) {
+  try {
+    localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ ts: Date.now(), data }));
+  } catch { /* quota exceeded — ignore */ }
+}
+
+/**
+ * Fetch with cache-first strategy.
+ * Returns cached data immediately if available, then refreshes in background.
+ * @param {string} url - API URL
+ * @param {string} cacheKey - Cache key (e.g. 'dashboard_summary')
+ * @param {function} onFresh - Callback when fresh data arrives (optional)
+ * @returns {Promise<Response>} - The fetch response (from network)
+ */
+export async function cachedApiFetch(url, cacheKey, onFresh) {
+  // Start network fetch immediately
+  const networkPromise = apiFetch(url);
+  // If we have cached data, return it wrapped in a fake Response
+  const cached = getCached(cacheKey);
+  if (cached) {
+    // Still refresh in background
+    networkPromise.then(async (res) => {
+      if (res.ok) {
+        const data = await res.clone().json();
+        setCache(cacheKey, data);
+        if (onFresh) onFresh(data);
+      }
+    }).catch(() => {});
+    return new Response(JSON.stringify(cached), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+  // No cache — wait for network
+  const res = await networkPromise;
+  if (res.ok) {
+    const data = await res.clone().json();
+    setCache(cacheKey, data);
+  }
+  return res;
+}
+
 /**
  * Pings the backend health endpoint.
  * Returns true if reachable, false otherwise.

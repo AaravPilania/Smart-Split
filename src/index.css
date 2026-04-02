@@ -77,6 +77,28 @@ img[data-fit="contain"], .img-contain {
 }
 
 /* ─── Login page animated gradient background ─────────────────── */
+
+/* ─── FAB neon blue ray on press ──────────────────────────── */
+@keyframes neonRay {
+  0%   { box-shadow: 0 10px 36px var(--fab-glow, rgba(236,72,153,0.44)), 0 4px 16px rgba(0,0,0,0.4); }
+  50%  { box-shadow: 0 0 22px rgba(59,130,246,0.8), 0 0 44px rgba(59,130,246,0.35), 0 10px 36px var(--fab-glow, rgba(236,72,153,0.44)); }
+  100% { box-shadow: 0 10px 36px var(--fab-glow, rgba(236,72,153,0.44)), 0 4px 16px rgba(0,0,0,0.4); }
+}
+.fab-neon-press:active {
+  animation: neonRay 0.45s ease-out;
+}
+
+/* ─── Login animated gradient background ──────────────────── */
+@keyframes loginGradShift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+.login-anim-bg {
+  background: linear-gradient(135deg, #0c0e1a, #1a0a14, #0c0e1a, #0a1018) !important;
+  background-size: 400% 400% !important;
+  animation: loginGradShift 12s ease-in-out infinite;
+}
+
 .home-bg {
   background: #0c0e1a;
 }

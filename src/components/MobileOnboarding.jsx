@@ -3,10 +3,10 @@ import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "
 
 /* ─── Per-slide themes ─────────────────────────────────────── */
 const UNIFIED_THEME = {
-  bg: "linear-gradient(155deg, #130826 0%, #0a0512 100%)",
+  bg: "linear-gradient(155deg, #1a0a10 0%, #10060a 100%)",
   accent: "#ec4899",
-  glow1: { c: "rgba(236,72,153,0.50)", t: "-18%", l: "-14%", an: "glowDrift1 16s ease-in-out infinite" },
-  glow2: { c: "rgba(168,85,247,0.28)", b: "0%",   r: "-10%", an: "glowDrift2 22s ease-in-out infinite" },
+  glow1: { c: "rgba(236,72,153,0.45)", t: "-18%", l: "-14%", an: "glowDrift1 16s ease-in-out infinite" },
+  glow2: { c: "rgba(249,115,22,0.30)", b: "0%",   r: "-10%", an: "glowDrift2 22s ease-in-out infinite" },
 };
 const SLIDE_THEMES = [UNIFIED_THEME, UNIFIED_THEME, UNIFIED_THEME, UNIFIED_THEME];
 
@@ -18,7 +18,7 @@ const SLIDES = [
     title: "Stop doing\nmath at dinner.",
     accentWord: "math",
     sub: "AI-powered bill splitting for the real world — fast, fair, zero drama.",
-    visual: () => <DinnerVisual />,
+    visual: () => <LogoVisual />,
   },
   {
     id: "scan",
@@ -47,7 +47,7 @@ const SLIDES = [
   },
 ];
 
-const GRAD = "linear-gradient(135deg, #f472b6 0%, #c084fc 45%, #fb923c 100%)";
+const GRAD = "linear-gradient(135deg, #f472b6 0%, #fb923c 100%)";
 const GRAD_STYLE = {
   background: GRAD,
   WebkitBackgroundClip: "text",
@@ -129,7 +129,7 @@ export default function MobileOnboarding({ onGetStarted, onGoogleSignIn }) {
         <div className="flex items-center gap-2">
           <div
             className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, #ec4899, #a855f7)" }}
+            style={{ background: "linear-gradient(135deg, #ec4899, #f97316)" }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2v6M8 6l4-4 4 4M4 20h16M6 20V10a2 2 0 012-2h8a2 2 0 012 2v10" />
@@ -329,15 +329,11 @@ function SlideContent({ slide, slideIndex, theme, onNext, onGetStarted }) {
 
         {/* CTA: gradient button on slide 4, frosted Continue elsewhere */}
         {slide.isCTA ? (
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.40 }}
+          <button
             onClick={(e) => onGetStarted(e.currentTarget.getBoundingClientRect())}
-            whileTap={{ scale: 0.97 }}
-            className="w-full py-[14px] rounded-2xl text-white font-black text-sm flex items-center justify-center gap-2"
+            className="w-full py-[14px] rounded-2xl text-white font-black text-sm flex items-center justify-center gap-2 active:scale-[0.97] transition-transform"
             style={{
-              background: "linear-gradient(135deg, #ec4899, #a855f7, #f97316)",
+              background: "linear-gradient(135deg, #ec4899, #f97316)",
               boxShadow: "0 8px 24px rgba(236,72,153,0.40)",
             }}
           >
@@ -345,26 +341,22 @@ function SlideContent({ slide, slideIndex, theme, onNext, onGetStarted }) {
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
-          </motion.button>
+          </button>
         ) : (
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.40 }}
+          <button
             onClick={onNext}
-            whileTap={{ scale: 0.97 }}
-            className="flex items-center justify-center gap-2 w-full py-[14px] rounded-2xl text-white font-semibold text-sm"
+            className="flex items-center justify-center gap-2 w-full py-[14px] rounded-2xl text-white font-semibold text-sm active:scale-[0.97] transition-transform"
             style={{
               background: "linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.05))",
               border: "1px solid rgba(255,255,255,0.15)",
               backdropFilter: "blur(14px)",
             }}
           >
-            Continue
+            Next
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
-          </motion.button>
+          </button>
         )}
       </div>
     </div>
@@ -494,6 +486,31 @@ function SliderButton({ onComplete }) {
         </button>
       </motion.p>
     </motion.div>
+  );
+}
+
+/* Slide 1 — App logo showcase */
+function LogoVisual() {
+  return (
+    <div className="flex items-center justify-center">
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 200, damping: 18 }}
+        className="relative"
+      >
+        <div
+          className="w-32 h-32 rounded-[2.2rem] overflow-hidden shadow-2xl"
+          style={{ boxShadow: "0 20px 60px rgba(236,72,153,0.35), 0 8px 24px rgba(0,0,0,0.4)" }}
+        >
+          <img src="/icon.png" alt="Smart Split" className="w-full h-full object-cover" />
+        </div>
+        <div
+          className="absolute -inset-3 rounded-[2.6rem] pointer-events-none"
+          style={{ border: "1.5px solid rgba(236,72,153,0.25)", boxShadow: "0 0 30px rgba(236,72,153,0.15)" }}
+        />
+      </motion.div>
+    </div>
   );
 }
 

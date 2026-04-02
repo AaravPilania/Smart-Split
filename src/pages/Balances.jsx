@@ -495,20 +495,34 @@ export default function Balances() {
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Paying to</p>
             <p className="font-bold text-gray-900 dark:text-white mb-1">{upiModal.toName}</p>
-            <p className="text-2xl font-bold mb-4" style={{ color: theme.gradFrom }}>
-              {new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(upiModal.amount)}
-            </p>
+            {/* Editable amount for partial settlement */}
+            <div className="mb-4">
+              <input
+                type="number"
+                min="1"
+                max={upiModal.amount}
+                step="0.01"
+                value={upiModal.editAmount ?? upiModal.amount.toFixed(2)}
+                onChange={(e) => setUpiModal(prev => ({ ...prev, editAmount: e.target.value }))}
+                className="text-2xl font-bold text-center w-full bg-transparent outline-none"
+                style={{ color: theme.gradFrom, border: "none", borderBottom: `2px dashed ${theme.gradFrom}44` }}
+              />
+              {Number(upiModal.editAmount ?? upiModal.amount) < upiModal.amount && (
+                <p className="text-[10px] mt-1" style={{ color: theme.gradFrom }}>
+                  Partial: ₹{Number(upiModal.editAmount).toFixed(2)} of ₹{upiModal.amount.toFixed(2)}
+                </p>
+              )}
+            </div>
             {/* QR Code — only shown when payee has a UPI ID */}
             {upiModal.toUpiId ? (
               <>
                 <div className="inline-block bg-white p-3 rounded-2xl shadow mb-2">
                   <QRCodeSVG
-                    value={`upi://pay?pa=${encodeURIComponent(upiModal.toUpiId)}&pn=${encodeURIComponent(upiModal.toName)}&am=${upiModal.amount.toFixed(2)}&cu=INR&tn=SmartSplit`}
+                    value={`upi://pay?pa=${encodeURIComponent(upiModal.toUpiId)}&pn=${encodeURIComponent(upiModal.toName)}&am=${Number(upiModal.editAmount ?? upiModal.amount).toFixed(2)}&cu=INR&tn=SmartSplit`}
                     size={160}
                   />
                 </div>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mb-1 font-mono">{upiModal.toUpiId}</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Scan with any UPI app (GPay, PhonePe, Paytm…)</p>
               </>
             ) : (
               <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl px-4 py-3 mb-4 text-left">
@@ -519,15 +533,38 @@ export default function Balances() {
                 </p>
               </div>
             )}
+            {/* Individual UPI app buttons with logos */}
+            <div className="flex gap-2 mb-3 justify-center">
+              {[
+                { name: "GPay", scheme: "tez://upi/pay", color: "#4285F4", logo: (<svg width="18" height="18" viewBox="0 0 48 48"><path d="M24 9.5c3.04 0 5.78 1.14 7.9 3l5.88-5.88C33.86 3.02 29.22 1 24 1 14.6 1 6.6 6.76 3.1 14.88l6.82 5.3C11.46 14.26 17.2 9.5 24 9.5z" fill="#EA4335"/><path d="M46.1 24.5c0-1.68-.15-3.3-.43-4.88H24v9.24h12.42a10.63 10.63 0 01-4.6 6.98l7.02 5.46C43.02 37.56 46.1 31.5 46.1 24.5z" fill="#4285F4"/><path d="M9.92 28.18A14.37 14.37 0 019 24c0-1.46.25-2.86.7-4.18L2.88 14.5A23.36 23.36 0 001 24c0 3.8.9 7.4 2.52 10.58l7.4-6.4z" fill="#FBBC05"/><path d="M24 47c6.48 0 11.92-2.14 15.9-5.82l-7.56-5.86c-2.1 1.42-4.78 2.26-8.34 2.26-6.42 0-11.86-4.34-13.8-10.18l-7.36 5.68C6.6 41.24 14.6 47 24 47z" fill="#34A853"/></svg>) },
+                { name: "PhonePe", scheme: "phonepe://pay", color: "#5f259f", logo: (<svg width="18" height="18" viewBox="0 0 24 24"><rect width="24" height="24" rx="4" fill="#5f259f"/><path d="M7 18V6h4.5l4 5.5V6H18v12h-4l-4.5-6v6H7z" fill="white"/></svg>) },
+                { name: "Paytm", scheme: "paytmmp://pay", color: "#00BAF2", logo: (<svg width="18" height="18" viewBox="0 0 24 24"><rect width="24" height="24" rx="4" fill="#00BAF2"/><text x="12" y="16" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">₹</text></svg>) },
+              ].map(app => {
+                const payAmt = Number(upiModal.editAmount ?? upiModal.amount).toFixed(2);
+                const href = upiModal.toUpiId
+                  ? `${app.scheme}?pa=${encodeURIComponent(upiModal.toUpiId)}&pn=${encodeURIComponent(upiModal.toName)}&am=${payAmt}&cu=INR&tn=SmartSplit`
+                  : `${app.scheme}?pn=${encodeURIComponent(upiModal.toName)}&am=${payAmt}&cu=INR&tn=SmartSplit`;
+                return (
+                  <a
+                    key={app.name}
+                    href={href}
+                    onClick={() => { upiOpenedRef.current = true; }}
+                    className="flex flex-col items-center gap-1.5 px-4 py-2.5 rounded-xl transition active:scale-95"
+                    style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.08)" }}
+                  >
+                    {app.logo}
+                    <span className="text-[10px] font-semibold" style={{ color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.6)" }}>{app.name}</span>
+                  </a>
+                );
+              })}
+            </div>
             <a
-              href={upiModal.toUpiId
-                ? `upi://pay?pa=${encodeURIComponent(upiModal.toUpiId)}&pn=${encodeURIComponent(upiModal.toName)}&am=${upiModal.amount.toFixed(2)}&cu=INR&tn=SmartSplit`
-                : `upi://pay?pn=${encodeURIComponent(upiModal.toName)}&am=${upiModal.amount.toFixed(2)}&cu=INR&tn=SmartSplit`}
+              href={(() => { const amt = Number(upiModal.editAmount ?? upiModal.amount).toFixed(2); return upiModal.toUpiId ? `upi://pay?pa=${encodeURIComponent(upiModal.toUpiId)}&pn=${encodeURIComponent(upiModal.toName)}&am=${amt}&cu=INR&tn=SmartSplit` : `upi://pay?pn=${encodeURIComponent(upiModal.toName)}&am=${amt}&cu=INR&tn=SmartSplit`; })()}
               onClick={() => { upiOpenedRef.current = true; }}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm mb-2"
               style={getGradientStyle(theme)}
             >
-              <FiSmartphone size={15} /> Open UPI App
+              <FiSmartphone size={15} /> Open Any UPI App
             </a>
             {showPaidPrompt && (
               <div className="mb-2 px-3 py-2.5 rounded-xl text-xs text-center"
