@@ -78,29 +78,43 @@ img[data-fit="contain"], .img-contain {
 
 /* ─── Login page animated gradient background ─────────────────── */
 
-/* ─── FAB electric lightning arcs ──────────────────────── */
-@keyframes zapFlash {
-  0%, 18% { opacity: 0; }
-  22%     { opacity: 1; }
-  28%     { opacity: 0.15; }
-  34%     { opacity: 0.9; }
-  45%, 100% { opacity: 0; }
+/* ─── FAB bolt edge-tracing electric sparks ─────────────── */
+@keyframes boltTrace {
+  0%   { stroke-dashoffset: 59; }
+  100% { stroke-dashoffset: -59; }
 }
-.zap {
+@keyframes zagFlash {
+  0%, 20%  { opacity: 0; }
+  25%      { opacity: 1; }
+  35%      { opacity: 0.1; }
+  40%      { opacity: 0.85; }
+  50%, 100%{ opacity: 0; }
+}
+.bolt-trace {
+  animation: boltTrace 1.8s linear infinite;
+}
+.bolt-trace-2 {
+  animation-delay: -0.9s;
+}
+.bolt-zag {
   opacity: 0;
-  animation: zapFlash 2.4s ease-in-out infinite;
+  animation: zagFlash 2.4s ease-in-out infinite;
 }
-.zap-1 { animation-delay: 0s; }
-.zap-2 { animation-delay: 0.6s; }
-.zap-3 { animation-delay: 1.2s; }
-.zap-4 { animation-delay: 1.8s; }
+.bolt-zag-1 { animation-delay: 0s; }
+.bolt-zag-2 { animation-delay: 0.8s; }
+.bolt-zag-3 { animation-delay: 1.6s; }
 
 /* Idle subtle glow on FAB */
 .fab-lightning {
-  box-shadow: 0 10px 36px rgba(236,72,153,0.45), 0 4px 16px rgba(0,0,0,0.4), 0 0 18px rgba(96,165,250,0.25);
+  box-shadow: 0 10px 36px rgba(236,72,153,0.45), 0 4px 16px rgba(0,0,0,0.4), 0 0 14px rgba(96,165,250,0.2);
 }
-/* Tap: all arcs visible + blue-white flash */
-.fab-lightning:active .zap {
+/* Tap: full outline lights up + all zaps visible + bright glow */
+.fab-lightning:active .bolt-trace {
+  animation: none !important;
+  stroke-dasharray: 60 0 !important;
+  stroke-width: 2 !important;
+}
+.fab-lightning:active .bolt-zag {
   animation: none !important;
   opacity: 1 !important;
 }

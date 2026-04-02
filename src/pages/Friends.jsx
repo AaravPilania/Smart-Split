@@ -172,7 +172,7 @@ export default function Friends() {
               initial={{ opacity: 0, height: 0, marginBottom: 0 }}
               animate={{ opacity: 1, height: "auto", marginBottom: 20 }}
               exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
               style={{ overflow: "hidden" }}
             >
             <div className="bg-white p-3 rounded-2xl shadow border border-gray-100">

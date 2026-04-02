@@ -8,7 +8,7 @@ import {
   FiX,
   FiCamera,
 } from "react-icons/fi";
-import { IoFlash } from "react-icons/io5";
+
 import { motion, AnimatePresence } from "framer-motion";
 import ScanReceipt from "./ScanReceipt";
 import { apiFetch, API_URL, getUserId } from "../utils/api";
@@ -95,22 +95,29 @@ export default function BottomNav() {
                   }}
                   aria-label="Quick actions"
                 >
-                  <IoFlash size={24} className="relative z-10 drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]" />
-                  {/* Electric zigzag arcs */}
-                  <span className="absolute inset-[-6px] pointer-events-none" aria-hidden="true">
-                    <svg viewBox="0 0 68 68" fill="none" className="w-full h-full" style={{ overflow: 'visible' }}>
-                      <defs>
-                        <filter id="zap-glow" x="-50%" y="-50%" width="200%" height="200%">
-                          <feGaussianBlur stdDeviation="2" result="blur"/>
-                          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                        </filter>
-                      </defs>
-                      <polyline points="18,5 22,1 27,7 32,2 37,6 42,1 47,5" stroke="#60a5fa" strokeWidth="1.4" strokeLinecap="round" filter="url(#zap-glow)" className="zap zap-1"/>
-                      <polyline points="63,18 67,22 61,27 66,32 62,37 67,42 63,47" stroke="#60a5fa" strokeWidth="1.4" strokeLinecap="round" filter="url(#zap-glow)" className="zap zap-2"/>
-                      <polyline points="50,63 46,67 41,61 36,66 31,62 26,67 21,63" stroke="#93c5fd" strokeWidth="1.3" strokeLinecap="round" filter="url(#zap-glow)" className="zap zap-3"/>
-                      <polyline points="5,50 1,46 7,41 2,36 6,31 1,26 5,21" stroke="#93c5fd" strokeWidth="1.3" strokeLinecap="round" filter="url(#zap-glow)" className="zap zap-4"/>
-                    </svg>
-                  </span>
+                  {/* Custom bolt with edge-tracing electric sparks */}
+                  <svg width="28" height="28" viewBox="0 0 24 24" className="relative z-10" style={{ overflow: 'visible', filter: 'drop-shadow(0 0 5px rgba(255,255,255,0.5))' }}>
+                    <defs>
+                      <filter id="spark-glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="1" result="blur"/>
+                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                      </filter>
+                    </defs>
+                    {/* Main bolt shape */}
+                    <path d="M13 2 L5.5 13 L11 13 L8 22 L18.5 11 L13 11 L16 2 Z" fill="white" />
+                    {/* Traveling spark 1 — races around bolt outline */}
+                    <path d="M13 2 L5.5 13 L11 13 L8 22 L18.5 11 L13 11 L16 2 Z"
+                      fill="none" stroke="#60a5fa" strokeWidth="1.4" strokeLinecap="round"
+                      strokeDasharray="6 53" filter="url(#spark-glow)" className="bolt-trace" />
+                    {/* Traveling spark 2 — opposite phase */}
+                    <path d="M13 2 L5.5 13 L11 13 L8 22 L18.5 11 L13 11 L16 2 Z"
+                      fill="none" stroke="#93c5fd" strokeWidth="1" strokeLinecap="round"
+                      strokeDasharray="4 55" filter="url(#spark-glow)" className="bolt-trace bolt-trace-2" />
+                    {/* Corner zap sparks — branch out at jag points */}
+                    <polyline points="5.5,13 3.5,11.5 4.8,10.6 3,9.5" stroke="#60a5fa" strokeWidth="0.9" fill="none" strokeLinecap="round" filter="url(#spark-glow)" className="bolt-zag bolt-zag-1" />
+                    <polyline points="18.5,11 20.5,12.5 19.2,13.3 21,14.5" stroke="#60a5fa" strokeWidth="0.9" fill="none" strokeLinecap="round" filter="url(#spark-glow)" className="bolt-zag bolt-zag-2" />
+                    <polyline points="8,22 6.5,23 7.5,23.8 6,24.5" stroke="#93c5fd" strokeWidth="0.8" fill="none" strokeLinecap="round" filter="url(#spark-glow)" className="bolt-zag bolt-zag-3" />
+                  </svg>
                 </button>
               );
             }
