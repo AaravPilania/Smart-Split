@@ -19,6 +19,7 @@ import {
   toggleDarkMode,
 } from "../utils/theme";
 import { detectCategory, getCategoryInfo } from "../utils/categories";
+import BillingCalendar from "../components/BillingCalendar";
 
 const APP_URL = import.meta.env.VITE_APP_URL || "https://thesmartsplit.pages.dev";
 
@@ -78,6 +79,7 @@ export default function Profile() {
   const [goalsLoading, setGoalsLoading] = useState(false);
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [goalForm, setGoalForm] = useState({ title: "", targetAmount: "", monthlyBudget: "", deadline: "" });
+  const [goalSubmitting, setGoalSubmitting] = useState(false);
   const [subscriptions, setSubscriptions] = useState([]);
   const [subsLoading, setSubsLoading] = useState(false);
   const [showSubForm, setShowSubForm] = useState(false);
@@ -223,6 +225,8 @@ export default function Profile() {
 
   const handleCreateGoal = async (e) => {
     e.preventDefault();
+    if (goalSubmitting) return;
+    setGoalSubmitting(true);
     try {
       const res = await apiFetch(`${API_URL}/goals`, {
         method: "POST", body: JSON.stringify({
@@ -238,6 +242,7 @@ export default function Profile() {
       fetchGoals();
       showToast("Goal created!");
     } catch (err) { showToast(err.message || "Failed", "error"); }
+    finally { setGoalSubmitting(false); }
   };
 
   const handleDeleteGoal = async (id) => {
@@ -787,7 +792,7 @@ export default function Profile() {
                   className="rounded-2xl overflow-hidden mb-4"
                   style={ss}
                 >
-                  <div className="p-4 space-y-2.5">
+                  <div className="p-3.5 space-y-2.5">
                     <input type="text" placeholder="Goal title (e.g. New Laptop)" required
                       value={goalForm.title} onChange={e => setGoalForm({ ...goalForm, title: e.target.value })}
                       className={`w-full px-3 py-2.5 rounded-xl text-[13px] font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
@@ -802,20 +807,30 @@ export default function Profile() {
                         className={`w-full px-3 py-2.5 rounded-xl text-[13px] font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
                         style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
                     </div>
-                    <input type="date" placeholder="Deadline (optional)"
-                      value={goalForm.deadline} onChange={e => setGoalForm({ ...goalForm, deadline: e.target.value })}
-                      className={`w-full px-3 py-2.5 rounded-xl text-[13px] font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
-                      style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] mb-1.5 px-0.5" style={{ color: labelClr }}>Deadline</p>
+                      <BillingCalendar
+                        selectedDate={goalForm.deadline}
+                        onSelectDate={(d) => {
+                          const yyyy = d.getFullYear();
+                          const mm = String(d.getMonth() + 1).padStart(2, "0");
+                          const dd = String(d.getDate()).padStart(2, "0");
+                          setGoalForm({ ...goalForm, deadline: `${yyyy}-${mm}-${dd}` });
+                        }}
+                        theme={theme}
+                        isDark={isDark}
+                      />
+                    </div>
                     <div className="grid grid-cols-2 gap-2 pt-0.5">
                       <button type="button" onClick={() => setShowGoalForm(false)}
                         className="py-2.5 rounded-xl text-[13px] font-bold transition active:scale-95"
                         style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", color: subClr }}>
                         Cancel
                       </button>
-                      <button type="submit"
+                      <button type="submit" disabled={goalSubmitting}
                         className="py-2.5 rounded-xl text-[13px] font-bold text-white transition active:scale-95"
-                        style={getGradientStyle(theme)}>
-                        Create Goal
+                        style={{ ...getGradientStyle(theme), opacity: goalSubmitting ? 0.6 : 1 }}>
+                        {goalSubmitting ? "Creating..." : "Create Goal"}
                       </button>
                     </div>
                   </div>
@@ -839,45 +854,63 @@ export default function Profile() {
                   const progress = goal.targetAmount > 0 ? Math.min(1, (goal.savedAmount || 0) / goal.targetAmount) : 0;
                   const monthlySaved = Math.max(0, goal.monthlyBudget - totalSpent);
                   const daysLeft = goal.deadline ? Math.max(0, Math.ceil((new Date(goal.deadline) - new Date()) / 86400000)) : null;
+                  const pct = Math.round(progress * 100);
+                  // SVG ring values
+                  const ringR = 34, ringC = 2 * Math.PI * ringR;
+                  const ringGap = ringC * (1 - progress);
                   return (
                     <div key={goal._id} className="rounded-2xl overflow-hidden" style={ss}>
-                      <div className="px-4 pt-4 pb-3.5">
-                        <div className="flex items-start justify-between gap-2 mb-3">
-                          <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-3.5 p-3.5">
+                        {/* Circular progress ring */}
+                        <div className="relative flex-shrink-0" style={{ width: 78, height: 78 }}>
+                          <svg viewBox="0 0 80 80" className="w-full h-full -rotate-90">
+                            {/* Track */}
+                            <circle cx="40" cy="40" r={ringR} fill="none"
+                              stroke={isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"} strokeWidth="5" />
+                            {/* Progress arc */}
+                            <motion.circle cx="40" cy="40" r={ringR} fill="none"
+                              stroke={`url(#goalGrad-${goal._id})`} strokeWidth="5" strokeLinecap="round"
+                              strokeDasharray={ringC}
+                              initial={{ strokeDashoffset: ringC }}
+                              animate={{ strokeDashoffset: ringGap }}
+                              transition={{ duration: 0.8, ease: "easeOut" }}
+                            />
+                            <defs>
+                              <linearGradient id={`goalGrad-${goal._id}`} x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0%" stopColor={theme.gradFrom} />
+                                <stop offset="100%" stopColor={theme.gradTo} />
+                              </linearGradient>
+                            </defs>
+                          </svg>
+                          {/* Center text */}
+                          <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <span className="text-[14px] font-black leading-none" style={{ color: theme.gradFrom }}>{pct}%</span>
+                          </div>
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-1.5">
                             <p className="text-[13px] font-bold truncate" style={{ color: textClr }}>{goal.title}</p>
-                            <p className="text-[11px] mt-0.5" style={{ color: subClr }}>
-                              Budget: {fmt(goal.monthlyBudget)}/mo
-                              {daysLeft !== null && ` · ${daysLeft}d left`}
-                            </p>
+                            <button onClick={() => handleDeleteGoal(goal._id)}
+                              className="h-6 w-6 rounded-md flex items-center justify-center flex-shrink-0 active:scale-90 transition"
+                              style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", color: "#ef4444" }}>
+                              <FiTrash2 size={10} />
+                            </button>
                           </div>
-                          <button onClick={() => handleDeleteGoal(goal._id)}
-                            className="h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0 active:scale-90 transition"
-                            style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", color: "#ef4444" }}>
-                            <FiTrash2 size={12} />
-                          </button>
-                        </div>
-
-                        {/* Progress bar */}
-                        <div className="relative h-2.5 rounded-full overflow-hidden mb-3"
-                          style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }}>
-                          <motion.div
-                            className="absolute inset-y-0 left-0 rounded-full"
-                            style={{ background: `linear-gradient(90deg, ${theme.gradFrom}, ${theme.gradTo})` }}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${progress * 100}%` }}
-                            transition={{ duration: 0.6, ease: "easeOut" }}
-                          />
-                        </div>
-
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[11px] font-bold truncate" style={{ color: theme.gradFrom }}>
-                              {fmt(goal.savedAmount || 0)} / {fmt(goal.targetAmount)}
+                          <p className="text-[10.5px] mt-0.5" style={{ color: subClr }}>
+                            Required: {fmt(goal.targetAmount)}
+                          </p>
+                          <p className="text-[10.5px]" style={{ color: subClr }}>
+                            Collect: <span style={{ color: theme.gradFrom, fontWeight: 700 }}>{fmt(goal.savedAmount || 0)}</span>
+                          </p>
+                          {daysLeft !== null && (
+                            <p className="text-[10px] mt-0.5" style={{ color: labelClr }}>
+                              {daysLeft}d remaining · {fmt(goal.monthlyBudget)}/mo
                             </p>
-                            <p className="text-[10px]" style={{ color: subClr }}>{Math.round(progress * 100)}% complete</p>
-                          </div>
+                          )}
                           <button onClick={() => handleUpdateSaved(goal)}
-                            className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-white active:scale-95 transition whitespace-nowrap flex-shrink-0"
+                            className="mt-1.5 px-3 py-1 rounded-lg text-[10px] font-bold text-white active:scale-95 transition"
                             style={getGradientStyle(theme)}>
                             +₹{Math.round(monthlySaved)} saved
                           </button>
@@ -952,16 +985,28 @@ export default function Profile() {
                         <option value="yearly">Yearly</option>
                       </select>
                     </div>
-                    <div className="flex gap-2">
-                      <input type="date" required placeholder="Next billing date"
-                        value={subForm.nextBillingDate} onChange={e => setSubForm({ ...subForm, nextBillingDate: e.target.value })}
-                        className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
-                        style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
+                    <div className="flex gap-2 items-center">
                       <input type="text" placeholder="Emoji icon" maxLength={2}
                         value={subForm.icon} onChange={e => setSubForm({ ...subForm, icon: e.target.value })}
-                        className={`w-16 px-3 py-2.5 rounded-xl text-sm text-center font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                        className={`w-14 px-2 py-2.5 rounded-xl text-sm text-center font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
                         style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
+                      <p className="text-[11px] font-semibold flex-1 truncate" style={{ color: subClr }}>
+                        {subForm.nextBillingDate ? new Date(subForm.nextBillingDate + "T00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Pick date below ↓"}
+                      </p>
                     </div>
+                    <BillingCalendar
+                      selectedDate={subForm.nextBillingDate}
+                      onSelectDate={(d) => {
+                        const yyyy = d.getFullYear();
+                        const mm = String(d.getMonth() + 1).padStart(2, "0");
+                        const dd = String(d.getDate()).padStart(2, "0");
+                        setSubForm({ ...subForm, nextBillingDate: `${yyyy}-${mm}-${dd}` });
+                      }}
+                      billingCycle={subForm.billingCycle}
+                      theme={theme}
+                      isDark={isDark}
+                      existingSubs={subscriptions}
+                    />
                     <div className="flex gap-2">
                       <button type="button" onClick={() => setShowSubForm(false)}
                         className="flex-1 py-2.5 rounded-xl text-sm font-bold transition active:scale-95"
