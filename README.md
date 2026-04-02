@@ -481,8 +481,9 @@ Input → Regex-first (200+ keywords, instant)
 
 ```
 ┌─────────┐   SSE stream   ┌─────────┐
-│ Browser │ ◄──────────── │  Server  │
-│EventSource│   text/event  │ Express  │
+│ Browser │ ◄────────────  │  Server │
+│ Event   |                |         |
+| Source  │   text/event   │ Express │
 └─────────┘   -stream      └─────────┘
                                │
                Push on:        │
@@ -637,7 +638,7 @@ Triggered automatically for guest users and first-time signups via `sessionStora
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                     Cloudflare Pages CDN                      │
+│                     Cloudflare Pages CDN                     │
 │               React 19 + Vite 7 + Tailwind PWA               │
 ├──────────────────────────────────────────────────────────────┤
 │  Home.jsx       │  Dashboard    │  Aaru.jsx    │  Balances   │
@@ -645,17 +646,17 @@ Triggered automatically for guest users and first-time signups via `sessionStora
 │  Google OAuth   │  activity feed│  quick chips │  links      │
 │  onboarding     │  spotlight    │  NL parsing  │  auto-prompt│
 ├──────────────────────────────────────────────────────────────┤
-│              EventSource (SSE) ← Notifications →              │
+│              EventSource (SSE) ← Notifications →             │
 ├──────────────────────────────────────────────────────────────┤
-│                       Render (Express 4)                      │
-│  JWT + Google OAuth │ Helmet │ Morgan │ Rate Limiting         │
-│  requireGroupMember │ Zod    │ Multer │ aaruRateLimit         │
+│                       Render (Express 4)                     │
+│  JWT + Google OAuth │ Helmet │ Morgan │ Rate Limiting        │
+│  requireGroupMember │ Zod    │ Multer │ aaruRateLimit        │
 ├──────────────────────────────────────────────────────────────┤
 │  Gemini 1.5 Flash API  │  Regex fallback  │  AaruCache (24h) │
 ├──────────────────────────────────────────────────────────────┤
-│                     MongoDB Atlas (M0)                         │
-│  Users │ Groups │ Expenses │ Notifications │ ActivityLog      │
-│  Friendships │ GroupRequests │ AaruCache │ AaruUsage          │
+│                     MongoDB Atlas (M0)                       │
+│  Users │ Groups │ Expenses │ Notifications │ ActivityLog     │
+│  Friendships │ GroupRequests │ AaruCache │ AaruUsage         │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -712,11 +713,6 @@ Triggered automatically for guest users and first-time signups via `sessionStora
 
 <br/>
 
-## 📝 License
-
-MIT License — see [LICENSE](LICENSE).
-
-<br/>
 
 <div align="center">
 
