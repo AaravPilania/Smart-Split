@@ -78,14 +78,17 @@ img[data-fit="contain"], .img-contain {
 
 /* ─── Login page animated gradient background ─────────────────── */
 
-/* ─── FAB neon blue ray on press ──────────────────────────── */
-@keyframes neonRay {
-  0%   { box-shadow: 0 10px 36px var(--fab-glow, rgba(236,72,153,0.44)), 0 4px 16px rgba(0,0,0,0.4); }
-  50%  { box-shadow: 0 0 22px rgba(59,130,246,0.8), 0 0 44px rgba(59,130,246,0.35), 0 10px 36px var(--fab-glow, rgba(236,72,153,0.44)); }
-  100% { box-shadow: 0 10px 36px var(--fab-glow, rgba(236,72,153,0.44)), 0 4px 16px rgba(0,0,0,0.4); }
+/* ─── FAB neon lightning pulse ──────────────────────────── */
+@keyframes fabNeonPulse {
+  0%, 100% { box-shadow: 0 8px 28px var(--fab-glow, rgba(236,72,153,0.5)), 0 4px 14px rgba(0,0,0,0.35); }
+  50%      { box-shadow: 0 4px 20px var(--fab-glow, rgba(236,72,153,0.65)), 0 0 32px var(--fab-glow, rgba(236,72,153,0.35)), 0 0 8px rgba(255,255,255,0.15); }
 }
-.fab-neon-press:active {
-  animation: neonRay 0.45s ease-out;
+.fab-neon-pulse {
+  animation: fabNeonPulse 2.4s ease-in-out infinite;
+}
+.fab-neon-pulse:active {
+  animation: none;
+  box-shadow: 0 0 24px rgba(255,255,255,0.3), 0 0 48px var(--fab-glow, rgba(236,72,153,0.6)), 0 8px 28px var(--fab-glow, rgba(236,72,153,0.5)) !important;
 }
 
 /* ─── Login animated gradient background ──────────────────── */

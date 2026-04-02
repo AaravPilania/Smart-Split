@@ -539,19 +539,33 @@ export default function Balances() {
             {/* Individual UPI app buttons with logos */}
             <div className="flex gap-2 mb-3 justify-center">
               {[
-                { name: "GPay", scheme: "tez://upi/pay", color: "#4285F4", logo: (<svg width="18" height="18" viewBox="0 0 48 48"><path d="M24 9.5c3.04 0 5.78 1.14 7.9 3l5.88-5.88C33.86 3.02 29.22 1 24 1 14.6 1 6.6 6.76 3.1 14.88l6.82 5.3C11.46 14.26 17.2 9.5 24 9.5z" fill="#EA4335"/><path d="M46.1 24.5c0-1.68-.15-3.3-.43-4.88H24v9.24h12.42a10.63 10.63 0 01-4.6 6.98l7.02 5.46C43.02 37.56 46.1 31.5 46.1 24.5z" fill="#4285F4"/><path d="M9.92 28.18A14.37 14.37 0 019 24c0-1.46.25-2.86.7-4.18L2.88 14.5A23.36 23.36 0 001 24c0 3.8.9 7.4 2.52 10.58l7.4-6.4z" fill="#FBBC05"/><path d="M24 47c6.48 0 11.92-2.14 15.9-5.82l-7.56-5.86c-2.1 1.42-4.78 2.26-8.34 2.26-6.42 0-11.86-4.34-13.8-10.18l-7.36 5.68C6.6 41.24 14.6 47 24 47z" fill="#34A853"/></svg>) },
-                { name: "PhonePe", scheme: "phonepe://pay", color: "#5f259f", logo: (<svg width="18" height="18" viewBox="0 0 24 24"><rect width="24" height="24" rx="4" fill="#5f259f"/><path d="M7 18V6h4.5l4 5.5V6H18v12h-4l-4.5-6v6H7z" fill="white"/></svg>) },
-                { name: "Paytm", scheme: "paytmmp://pay", color: "#00BAF2", logo: (<svg width="18" height="18" viewBox="0 0 24 24"><rect width="24" height="24" rx="4" fill="#00BAF2"/><text x="12" y="16" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">₹</text></svg>) },
+                { name: "GPay", scheme: "tez://upi/pay", fallback: "https://pay.google.com/gp/v/transaction", color: "#4285F4", logo: (<svg width="18" height="18" viewBox="0 0 48 48"><path d="M24 9.5c3.04 0 5.78 1.14 7.9 3l5.88-5.88C33.86 3.02 29.22 1 24 1 14.6 1 6.6 6.76 3.1 14.88l6.82 5.3C11.46 14.26 17.2 9.5 24 9.5z" fill="#EA4335"/><path d="M46.1 24.5c0-1.68-.15-3.3-.43-4.88H24v9.24h12.42a10.63 10.63 0 01-4.6 6.98l7.02 5.46C43.02 37.56 46.1 31.5 46.1 24.5z" fill="#4285F4"/><path d="M9.92 28.18A14.37 14.37 0 019 24c0-1.46.25-2.86.7-4.18L2.88 14.5A23.36 23.36 0 001 24c0 3.8.9 7.4 2.52 10.58l7.4-6.4z" fill="#FBBC05"/><path d="M24 47c6.48 0 11.92-2.14 15.9-5.82l-7.56-5.86c-2.1 1.42-4.78 2.26-8.34 2.26-6.42 0-11.86-4.34-13.8-10.18l-7.36 5.68C6.6 41.24 14.6 47 24 47z" fill="#34A853"/></svg>) },
+                { name: "PhonePe", scheme: "phonepe://pay", fallback: "https://phon.pe/pay", color: "#5f259f", logo: (<svg width="18" height="18" viewBox="0 0 24 24"><rect width="24" height="24" rx="4" fill="#5f259f"/><path d="M7 18V6h4.5l4 5.5V6H18v12h-4l-4.5-6v6H7z" fill="white"/></svg>) },
+                { name: "Paytm", scheme: "paytmmp://pay", fallback: "https://paytm.com/pay", color: "#00BAF2", logo: (<svg width="18" height="18" viewBox="0 0 24 24"><rect width="24" height="24" rx="4" fill="#00BAF2"/><text x="12" y="16" textAnchor="middle" fill="white" fontSize="9" fontWeight="bold">₹</text></svg>) },
               ].map(app => {
                 const payAmt = Number(upiModal.editAmount ?? upiModal.amount).toFixed(2);
-                const href = upiModal.toUpiId
-                  ? `${app.scheme}?pa=${encodeURIComponent(upiModal.toUpiId)}&pn=${encodeURIComponent(upiModal.toName)}&am=${payAmt}&cu=INR&tn=SmartSplit`
-                  : `${app.scheme}?pn=${encodeURIComponent(upiModal.toName)}&am=${payAmt}&cu=INR&tn=SmartSplit`;
+                const upiParams = new URLSearchParams({
+                  ...(upiModal.toUpiId ? { pa: upiModal.toUpiId } : {}),
+                  pn: upiModal.toName,
+                  am: payAmt,
+                  cu: "INR",
+                  tn: `SmartSplit payment to ${upiModal.toName}`,
+                  mode: "02",
+                });
+                const href = `${app.scheme}?${upiParams.toString()}`;
                 return (
                   <a
                     key={app.name}
                     href={href}
-                    onClick={() => { upiOpenedRef.current = true; }}
+                    onClick={(e) => {
+                      upiOpenedRef.current = true;
+                      // Fallback: if app scheme fails, try generic upi:// after a short delay
+                      setTimeout(() => {
+                        if (document.visibilityState !== "hidden") {
+                          window.location.href = `upi://pay?${upiParams.toString()}`;
+                        }
+                      }, 1500);
+                    }}
                     className="flex flex-col items-center gap-1.5 px-4 py-2.5 rounded-xl transition active:scale-95"
                     style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.08)" }}
                   >
@@ -562,7 +576,18 @@ export default function Balances() {
               })}
             </div>
             <a
-              href={(() => { const amt = Number(upiModal.editAmount ?? upiModal.amount).toFixed(2); return upiModal.toUpiId ? `upi://pay?pa=${encodeURIComponent(upiModal.toUpiId)}&pn=${encodeURIComponent(upiModal.toName)}&am=${amt}&cu=INR&tn=SmartSplit` : `upi://pay?pn=${encodeURIComponent(upiModal.toName)}&am=${amt}&cu=INR&tn=SmartSplit`; })()}
+              href={(() => {
+                const amt = Number(upiModal.editAmount ?? upiModal.amount).toFixed(2);
+                const params = new URLSearchParams({
+                  ...(upiModal.toUpiId ? { pa: upiModal.toUpiId } : {}),
+                  pn: upiModal.toName,
+                  am: amt,
+                  cu: "INR",
+                  tn: `SmartSplit payment to ${upiModal.toName}`,
+                  mode: "02",
+                });
+                return `upi://pay?${params.toString()}`;
+              })()}
               onClick={() => { upiOpenedRef.current = true; }}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm mb-2"
               style={getGradientStyle(theme)}

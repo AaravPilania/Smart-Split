@@ -8,19 +8,11 @@ import {
   FiX,
   FiCamera,
 } from "react-icons/fi";
+import { IoFlash } from "react-icons/io5";
 import { motion, AnimatePresence } from "framer-motion";
 import ScanReceipt from "./ScanReceipt";
 import { apiFetch, API_URL, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
-
-/* ── Lightning bolt icon for center FAB ── */
-function LightningBoltIcon() {
-  return (
-    <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "55%", height: "55%", display: "block" }}>
-      <path d="M20.5 3L8 20h8.5l-2.5 13L29 16h-8.5L23 3h-2.5z" fill="white" stroke="white" strokeWidth="0.5" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 const TABS = [
   { path: "/dashboard", icon: FiHome, label: "Home", guide: "home" },
@@ -95,7 +87,7 @@ export default function BottomNav() {
                   key="camera-fab"
                   onClick={handleCameraPress}
                   data-guide="fab"
-                  className="relative w-14 h-14 rounded-[18px] text-white shadow-2xl transition-all active:scale-95 overflow-hidden flex items-center justify-center fab-neon-press"
+                  className="relative w-14 h-14 rounded-[18px] text-white shadow-2xl transition-all active:scale-95 overflow-hidden flex items-center justify-center fab-neon-pulse"
                   style={{
                     ...getGradientStyle(theme),
                     marginTop: "-24px",
@@ -103,7 +95,7 @@ export default function BottomNav() {
                   }}
                   aria-label="Quick actions"
                 >
-                  <LightningBoltIcon />
+                  <IoFlash size={24} className="drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]" />
                 </button>
               );
             }
