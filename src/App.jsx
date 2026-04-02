@@ -22,17 +22,17 @@ function PublicRoute({ element }) {
   return getToken() ? <Navigate to="/dashboard" replace /> : element;
 }
 
-// Smooth animated page transition — fade only (no y-offset to avoid "spring snap" glitch)
+// Smooth animated page transition — instant exit, quick fade-in (no blank gap)
 const pageVariants = {
   initial: { opacity: 0 },
-  animate: { opacity: 1, transition: { duration: 0.18, ease: [0.4, 0, 0.2, 1] } },
-  exit:    { opacity: 0, transition: { duration: 0.10, ease: [0.4, 0, 1, 1] } },
+  animate: { opacity: 1, transition: { duration: 0.13, ease: [0.4, 0, 0.2, 1] } },
+  exit:    { opacity: 0, transition: { duration: 0 } },
 };
 
 function PageTransition({ children }) {
   const location = useLocation();
   return (
-    <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence mode="popLayout" initial={false}>
       <motion.div
         key={location.pathname}
         variants={pageVariants}

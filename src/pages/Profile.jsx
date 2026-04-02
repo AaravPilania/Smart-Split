@@ -7,6 +7,7 @@ import {
   FiUser, FiMail, FiEdit2, FiCheck, FiX,
   FiCopy, FiChevronRight,
   FiSun, FiMoon, FiLogOut, FiCamera, FiLock, FiArrowLeft, FiUsers,
+  FiTarget, FiRepeat, FiPlus, FiTrash2, FiCalendar,
 } from "react-icons/fi";
 import { QRCodeSVG } from "qrcode.react";
 import { API_URL, apiFetch, getUserId, clearAuth } from "../utils/api";
@@ -72,6 +73,16 @@ export default function Profile() {
   const [monthlyData, setMonthly] = useState([]);
   const [insights, setInsights] = useState([]);
   const [insightsFetched, setIFetched] = useState(false);
+  const [profileTab, setProfileTab] = useState("account");
+  const [goals, setGoals] = useState([]);
+  const [goalsLoading, setGoalsLoading] = useState(false);
+  const [showGoalForm, setShowGoalForm] = useState(false);
+  const [goalForm, setGoalForm] = useState({ title: "", targetAmount: "", monthlyBudget: "", deadline: "" });
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [subsLoading, setSubsLoading] = useState(false);
+  const [showSubForm, setShowSubForm] = useState(false);
+  const [subForm, setSubForm] = useState({ name: "", amount: "", billingCycle: "monthly", nextBillingDate: "", color: "#6b7280", icon: "" });
+  const [totalSpent, setTotalSpent] = useState(0);
   const navigate = useNavigate();
 
   const showToast = (msg, type = "success") => {
@@ -122,6 +133,12 @@ export default function Profile() {
     fetchGroups(uid);
     fetchFR();
   }, [navigate]);
+
+  // Lazy-load goals, subscriptions, and spending data when switching tabs
+  useEffect(() => {
+    if (profileTab === "goals") { fetchGoals(); if (!insightsFetched) fetchInsightsData(); }
+    if (profileTab === "subscriptions") fetchSubscriptions();
+  }, [profileTab]);
 
   const fetchProfile = async (uid) => {
     try {
@@ -184,8 +201,111 @@ export default function Profile() {
       const mData = Object.values(buckets);
       setMonthly(mData);
       setInsights(computeInsights({ expenses: allExpenses, categoryData: catArr, monthlyData: mData }));
+      // total spent this month for goal savings calc
+      const now2 = new Date();
+      const thisMonthExp = allExpenses.filter(e => {
+        const d = new Date(e.createdAt || e.created_at);
+        return d.getMonth() === now2.getMonth() && d.getFullYear() === now2.getFullYear();
+      });
+      setTotalSpent(thisMonthExp.reduce((s, e) => s + parseFloat(e.amount || 0), 0));
     } catch {}
     setIFetched(true);
+  };
+
+  const fetchGoals = async () => {
+    setGoalsLoading(true);
+    try {
+      const res = await apiFetch(`${API_URL}/goals`);
+      if (res.ok) { const d = await res.json(); setGoals(d.goals || []); }
+    } catch {}
+    finally { setGoalsLoading(false); }
+  };
+
+  const handleCreateGoal = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await apiFetch(`${API_URL}/goals`, {
+        method: "POST", body: JSON.stringify({
+          title: goalForm.title,
+          targetAmount: Number(goalForm.targetAmount),
+          monthlyBudget: Number(goalForm.monthlyBudget),
+          deadline: goalForm.deadline || undefined,
+        }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message); }
+      setShowGoalForm(false);
+      setGoalForm({ title: "", targetAmount: "", monthlyBudget: "", deadline: "" });
+      fetchGoals();
+      showToast("Goal created!");
+    } catch (err) { showToast(err.message || "Failed", "error"); }
+  };
+
+  const handleDeleteGoal = async (id) => {
+    try {
+      await apiFetch(`${API_URL}/goals/${id}`, { method: "DELETE" });
+      fetchGoals();
+      showToast("Goal deleted");
+    } catch { showToast("Failed to delete", "error"); }
+  };
+
+  const handleUpdateSaved = async (goal) => {
+    // Calculate savings this month: budget - spent
+    const savings = Math.max(0, goal.monthlyBudget - totalSpent);
+    const newSaved = (goal.savedAmount || 0) + savings;
+    try {
+      await apiFetch(`${API_URL}/goals/${goal._id}`, {
+        method: "PUT", body: JSON.stringify({ savedAmount: newSaved }),
+      });
+      fetchGoals();
+      showToast(`Added ₹${Math.round(savings)} savings!`);
+    } catch { showToast("Failed to update", "error"); }
+  };
+
+  const fetchSubscriptions = async () => {
+    setSubsLoading(true);
+    try {
+      const res = await apiFetch(`${API_URL}/subscriptions`);
+      if (res.ok) { const d = await res.json(); setSubscriptions(d.subscriptions || []); }
+    } catch {}
+    finally { setSubsLoading(false); }
+  };
+
+  const handleCreateSub = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await apiFetch(`${API_URL}/subscriptions`, {
+        method: "POST", body: JSON.stringify({
+          name: subForm.name,
+          amount: Number(subForm.amount),
+          billingCycle: subForm.billingCycle,
+          nextBillingDate: subForm.nextBillingDate,
+          color: subForm.color,
+          icon: subForm.icon,
+        }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message); }
+      setShowSubForm(false);
+      setSubForm({ name: "", amount: "", billingCycle: "monthly", nextBillingDate: "", color: "#6b7280", icon: "" });
+      fetchSubscriptions();
+      showToast("Subscription added!");
+    } catch (err) { showToast(err.message || "Failed", "error"); }
+  };
+
+  const handleToggleSub = async (sub) => {
+    try {
+      await apiFetch(`${API_URL}/subscriptions/${sub._id}`, {
+        method: "PUT", body: JSON.stringify({ active: !sub.active }),
+      });
+      fetchSubscriptions();
+    } catch { showToast("Failed to update", "error"); }
+  };
+
+  const handleDeleteSub = async (id) => {
+    try {
+      await apiFetch(`${API_URL}/subscriptions/${id}`, { method: "DELETE" });
+      fetchSubscriptions();
+      showToast("Subscription removed");
+    } catch { showToast("Failed to delete", "error"); }
   };
 
   const handleAcceptFR = async (id) => {
@@ -520,104 +640,428 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* ── ACCOUNT SECTION ───────────────────────────────── */}
-        <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Account</p>
-        <div className="rounded-2xl overflow-hidden mb-5" style={ss}>
-          <SettingsRow first icon={<FiEdit2 size={13} />} label="Edit Profile"
-            sub="Name, username, UPI, password"
-            onClick={() => { setEditing(true); }} />
-          <SettingsRow icon={<FiUsers size={13} />} label="Add a Friend"
-            sub={`${APP_URL}/add-friend/${user.id}`}
-            onClick={() => {
-              const link = `${APP_URL}/add-friend/${user.id}`;
-              navigator.clipboard.writeText(link).then(() => showToast("Share link copied!"));
-            }}
-            right={
-              <span style={{ color: copied ? "#10b981" : labelClr }}>
-                {copied ? <FiCheck size={14} /> : <FiCopy size={14} />}
-              </span>
-            } />
+        {/* ── TAB BAR ─────────────────────────────────────── */}
+        <div className="flex rounded-2xl overflow-hidden mb-5" style={ss}>
+          {[
+            { key: "account", label: "Account", icon: <FiUser size={13} /> },
+            { key: "goals", label: "Goals", icon: <FiTarget size={13} /> },
+            { key: "subscriptions", label: "Subs", icon: <FiRepeat size={13} /> },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setProfileTab(tab.key)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-bold uppercase tracking-wide transition-all"
+              style={{
+                background: profileTab === tab.key
+                  ? `linear-gradient(135deg, ${theme.gradFrom}22, ${theme.gradTo}18)`
+                  : "transparent",
+                color: profileTab === tab.key ? theme.gradFrom : subClr,
+                borderBottom: profileTab === tab.key ? `2px solid ${theme.gradFrom}` : "2px solid transparent",
+              }}
+            >
+              {tab.icon} {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* ── SOCIAL SECTION ────────────────────────────────── */}
-        {(friendRequests.length > 0 || frLoading) && (
+        {/* ── ACCOUNT TAB ────────────────────────────────────── */}
+        {profileTab === "account" && (
           <>
-            <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1 flex items-center gap-2" style={{ color: labelClr }}>
-              Friend Requests
-              <span className="px-1.5 py-0.5 rounded-full text-white text-[9px] font-black" style={getGradientStyle(theme)}>{friendRequests.length}</span>
-            </p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Account</p>
             <div className="rounded-2xl overflow-hidden mb-5" style={ss}>
-              {frLoading ? (
-                <div className="flex justify-center py-6">
-                  <div className={`animate-spin rounded-full h-5 w-5 border-b-2 ${theme.spinner}`} />
+              <SettingsRow first icon={<FiEdit2 size={13} />} label="Edit Profile"
+                sub="Name, username, UPI, password"
+                onClick={() => { setEditing(true); }} />
+              <SettingsRow icon={<FiUsers size={13} />} label="Add a Friend"
+                sub={`${APP_URL}/add-friend/${user.id}`}
+                onClick={() => {
+                  const link = `${APP_URL}/add-friend/${user.id}`;
+                  navigator.clipboard.writeText(link).then(() => showToast("Share link copied!"));
+                }}
+                right={
+                  <span style={{ color: copied ? "#10b981" : labelClr }}>
+                    {copied ? <FiCheck size={14} /> : <FiCopy size={14} />}
+                  </span>
+                } />
+            </div>
+
+            {(friendRequests.length > 0 || frLoading) && (
+              <>
+                <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1 flex items-center gap-2" style={{ color: labelClr }}>
+                  Friend Requests
+                  <span className="px-1.5 py-0.5 rounded-full text-white text-[9px] font-black" style={getGradientStyle(theme)}>{friendRequests.length}</span>
+                </p>
+                <div className="rounded-2xl overflow-hidden mb-5" style={ss}>
+                  {frLoading ? (
+                    <div className="flex justify-center py-6">
+                      <div className={`animate-spin rounded-full h-5 w-5 border-b-2 ${theme.spinner}`} />
+                    </div>
+                  ) : (
+                    friendRequests.map((r, i) => (
+                      <div key={r._id} className="flex items-center gap-3 px-4 py-3.5" style={i > 0 ? sep : {}}>
+                        <div className="h-10 w-10 rounded-xl flex items-center justify-center text-white font-black flex-shrink-0" style={getGradientStyle(theme)}>
+                          {r.requester?.name?.[0]?.toUpperCase() || "?"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold truncate" style={{ color: textClr }}>{r.requester?.name}</p>
+                          <p className="text-xs truncate" style={{ color: subClr }}>{r.requester?.email}</p>
+                        </div>
+                        <div className="flex gap-2 flex-shrink-0">
+                          <button onClick={() => handleAcceptFR(r._id)} disabled={frAction === r._id}
+                            className="h-9 w-9 rounded-xl flex items-center justify-center text-white shadow active:scale-90 transition" style={getGradientStyle(theme)}>
+                            <FiCheck size={14} />
+                          </button>
+                          <button onClick={() => handleRejectFR(r._id)} disabled={frAction === r._id}
+                            className="h-9 w-9 rounded-xl flex items-center justify-center active:scale-90 transition"
+                            style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)" }}>
+                            <FiX size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
-              ) : (
-                friendRequests.map((r, i) => (
-                  <div key={r._id} className="flex items-center gap-3 px-4 py-3.5" style={i > 0 ? sep : {}}>
-                    <div className="h-10 w-10 rounded-xl flex items-center justify-center text-white font-black flex-shrink-0" style={getGradientStyle(theme)}>
-                      {r.requester?.name?.[0]?.toUpperCase() || "?"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold truncate" style={{ color: textClr }}>{r.requester?.name}</p>
-                      <p className="text-xs truncate" style={{ color: subClr }}>{r.requester?.email}</p>
-                    </div>
-                    <div className="flex gap-2 flex-shrink-0">
-                      <button onClick={() => handleAcceptFR(r._id)} disabled={frAction === r._id}
-                        className="h-9 w-9 rounded-xl flex items-center justify-center text-white shadow active:scale-90 transition" style={getGradientStyle(theme)}>
-                        <FiCheck size={14} />
-                      </button>
-                      <button onClick={() => handleRejectFR(r._id)} disabled={frAction === r._id}
-                        className="h-9 w-9 rounded-xl flex items-center justify-center active:scale-90 transition"
-                        style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)" }}>
-                        <FiX size={14} />
-                      </button>
-                    </div>
+              </>
+            )}
+
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Preferences</p>
+            <div className="rounded-2xl overflow-hidden mb-5" style={ss}>
+              <SettingsRow first
+                icon={isDark ? <FiMoon size={13} style={{ color: "white" }} /> : <FiSun size={13} style={{ color: "white" }} />}
+                label={isDark ? "Dark Mode" : "Light Mode"}
+                sub="Switch appearance"
+                onClick={toggleDarkMode}
+                right={
+                  <div className="relative h-[26px] w-[46px] rounded-full flex-shrink-0 transition-all duration-300"
+                    style={{ background: isDark ? `linear-gradient(to right, ${theme.gradFrom}, ${theme.gradTo})` : "rgba(0,0,0,0.12)" }}>
+                    <div className="absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-md transition-all duration-300"
+                      style={{ left: isDark ? "calc(100% - 23px)" : "3px" }} />
                   </div>
-                ))
-              )}
+                }
+              />
+              <div className="px-4 py-4" style={sep}>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] mb-3" style={{ color: labelClr }}>Accent Color</p>
+                <div className="flex gap-3 flex-wrap">
+                  {Object.values(ACCENT_PRESETS).map((preset) => (
+                    <button key={preset.key} onClick={() => saveAccent(preset.key)} title={preset.label}
+                      className="relative h-9 w-9 rounded-full transition-all duration-200 active:scale-90"
+                      style={{
+                        background: `linear-gradient(135deg, ${preset.gradFrom}, ${preset.gradTo})`,
+                        boxShadow: localAccent === preset.key ? `0 0 0 2.5px ${isDark ? "#ffffff" : "#000000"}, 0 0 0 4.5px ${preset.gradFrom}` : "none",
+                        transform: localAccent === preset.key ? "scale(1.18)" : "scale(1)",
+                      }}>
+                      {localAccent === preset.key && <FiCheck size={12} className="absolute inset-0 m-auto text-white" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl overflow-hidden mb-2"
+              style={{ ...ss, border: isDark ? "1px solid rgba(239,68,68,0.18)" : "1px solid rgba(239,68,68,0.15)" }}>
+              <SettingsRow first danger icon={<FiLogOut size={13} />} label="Sign Out" onClick={() => setShowLogoutConfirm(true)} right={null} />
             </div>
           </>
         )}
 
-        {/* ── PREFERENCES SECTION ───────────────────────────── */}
-        <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Preferences</p>
-        <div className="rounded-2xl overflow-hidden mb-5" style={ss}>
-          <SettingsRow first
-            icon={isDark ? <FiMoon size={13} style={{ color: "white" }} /> : <FiSun size={13} style={{ color: "white" }} />}
-            label={isDark ? "Dark Mode" : "Light Mode"}
-            sub="Switch appearance"
-            onClick={toggleDarkMode}
-            right={
-              <div className="relative h-[26px] w-[46px] rounded-full flex-shrink-0 transition-all duration-300"
-                style={{ background: isDark ? `linear-gradient(to right, ${theme.gradFrom}, ${theme.gradTo})` : "rgba(0,0,0,0.12)" }}>
-                <div className="absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-md transition-all duration-300"
-                  style={{ left: isDark ? "calc(100% - 23px)" : "3px" }} />
-              </div>
-            }
-          />
-          <div className="px-4 py-4" style={sep}>
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] mb-3" style={{ color: labelClr }}>Accent Color</p>
-            <div className="flex gap-3 flex-wrap">
-              {Object.values(ACCENT_PRESETS).map((preset) => (
-                <button key={preset.key} onClick={() => saveAccent(preset.key)} title={preset.label}
-                  className="relative h-9 w-9 rounded-full transition-all duration-200 active:scale-90"
-                  style={{
-                    background: `linear-gradient(135deg, ${preset.gradFrom}, ${preset.gradTo})`,
-                    boxShadow: localAccent === preset.key ? `0 0 0 2.5px ${isDark ? "#ffffff" : "#000000"}, 0 0 0 4.5px ${preset.gradFrom}` : "none",
-                    transform: localAccent === preset.key ? "scale(1.18)" : "scale(1)",
-                  }}>
-                  {localAccent === preset.key && <FiCheck size={12} className="absolute inset-0 m-auto text-white" />}
-                </button>
-              ))}
+        {/* ── GOALS TAB ──────────────────────────────────────── */}
+        {profileTab === "goals" && (
+          <>
+            <div className="flex items-center justify-between mb-3 px-1">
+              <p className="text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: labelClr }}>Savings Goals</p>
+              <button onClick={() => setShowGoalForm(v => !v)}
+                className="h-8 w-8 rounded-xl flex items-center justify-center text-white active:scale-90 transition"
+                style={getGradientStyle(theme)}>
+                <FiPlus size={14} />
+              </button>
             </div>
-          </div>
-        </div>
 
-        {/* ── SIGN OUT ──────────────────────────────────────── */}
-        <div className="rounded-2xl overflow-hidden mb-2"
-          style={{ ...ss, border: isDark ? "1px solid rgba(239,68,68,0.18)" : "1px solid rgba(239,68,68,0.15)" }}>
-          <SettingsRow first danger icon={<FiLogOut size={13} />} label="Sign Out" onClick={() => setShowLogoutConfirm(true)} right={null} />
-        </div>
+            {/* New goal form */}
+            <AnimatePresence>
+              {showGoalForm && (
+                <motion.form
+                  onSubmit={handleCreateGoal}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="rounded-2xl overflow-hidden mb-4"
+                  style={ss}
+                >
+                  <div className="p-4 space-y-3">
+                    <input type="text" placeholder="Goal title (e.g. New Laptop)" required
+                      value={goalForm.title} onChange={e => setGoalForm({ ...goalForm, title: e.target.value })}
+                      className={`w-full px-3 py-2.5 rounded-xl text-sm font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                      style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
+                    <div className="flex gap-2">
+                      <input type="number" placeholder="Target ₹" required min="1"
+                        value={goalForm.targetAmount} onChange={e => setGoalForm({ ...goalForm, targetAmount: e.target.value })}
+                        className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                        style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
+                      <input type="number" placeholder="Monthly budget ₹" required min="1"
+                        value={goalForm.monthlyBudget} onChange={e => setGoalForm({ ...goalForm, monthlyBudget: e.target.value })}
+                        className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                        style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
+                    </div>
+                    <input type="date" placeholder="Deadline (optional)"
+                      value={goalForm.deadline} onChange={e => setGoalForm({ ...goalForm, deadline: e.target.value })}
+                      className={`w-full px-3 py-2.5 rounded-xl text-sm font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                      style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => setShowGoalForm(false)}
+                        className="flex-1 py-2.5 rounded-xl text-sm font-bold transition active:scale-95"
+                        style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", color: subClr }}>
+                        Cancel
+                      </button>
+                      <button type="submit"
+                        className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition active:scale-95"
+                        style={getGradientStyle(theme)}>
+                        Create Goal
+                      </button>
+                    </div>
+                  </div>
+                </motion.form>
+              )}
+            </AnimatePresence>
+
+            {goalsLoading ? (
+              <div className="flex justify-center py-10">
+                <div className={`animate-spin rounded-full h-6 w-6 border-b-2 ${theme.spinner}`} />
+              </div>
+            ) : goals.length === 0 ? (
+              <div className="rounded-2xl py-12 flex flex-col items-center gap-2" style={ss}>
+                <FiTarget size={28} style={{ color: subClr }} />
+                <p className="text-sm font-semibold" style={{ color: subClr }}>No goals yet</p>
+                <p className="text-xs" style={{ color: labelClr }}>Set a monthly budget and track your savings</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {goals.map((goal) => {
+                  const progress = goal.targetAmount > 0 ? Math.min(1, (goal.savedAmount || 0) / goal.targetAmount) : 0;
+                  const monthlySaved = Math.max(0, goal.monthlyBudget - totalSpent);
+                  const daysLeft = goal.deadline ? Math.max(0, Math.ceil((new Date(goal.deadline) - new Date()) / 86400000)) : null;
+                  return (
+                    <div key={goal._id} className="rounded-2xl overflow-hidden" style={ss}>
+                      <div className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-bold truncate" style={{ color: textClr }}>{goal.title}</p>
+                            <p className="text-xs mt-0.5" style={{ color: subClr }}>
+                              Budget: {fmt(goal.monthlyBudget)}/mo
+                              {daysLeft !== null && ` · ${daysLeft}d left`}
+                            </p>
+                          </div>
+                          <button onClick={() => handleDeleteGoal(goal._id)}
+                            className="h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 active:scale-90 transition"
+                            style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", color: "#ef4444" }}>
+                            <FiTrash2 size={13} />
+                          </button>
+                        </div>
+
+                        {/* Progress bar */}
+                        <div className="relative h-3 rounded-full overflow-hidden mb-2"
+                          style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }}>
+                          <motion.div
+                            className="absolute inset-y-0 left-0 rounded-full"
+                            style={{ background: `linear-gradient(90deg, ${theme.gradFrom}, ${theme.gradTo})` }}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${progress * 100}%` }}
+                            transition={{ duration: 0.6, ease: "easeOut" }}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-bold" style={{ color: theme.gradFrom }}>
+                            {fmt(goal.savedAmount || 0)} / {fmt(goal.targetAmount)}
+                            <span className="font-normal" style={{ color: subClr }}> ({Math.round(progress * 100)}%)</span>
+                          </p>
+                          <button onClick={() => handleUpdateSaved(goal)}
+                            className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white active:scale-95 transition"
+                            style={getGradientStyle(theme)}>
+                            +₹{Math.round(monthlySaved)} saved
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Monthly budget overview */}
+            {goals.length > 0 && (
+              <div className="rounded-2xl p-4 mt-4" style={ss}>
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] mb-2" style={{ color: labelClr }}>This Month</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs" style={{ color: subClr }}>Spent</p>
+                    <p className="text-base font-black" style={{ color: textClr }}>{fmt(totalSpent)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs" style={{ color: subClr }}>Saved</p>
+                    <p className="text-base font-black" style={{ color: goals[0] ? (goals[0].monthlyBudget - totalSpent > 0 ? "#10b981" : "#ef4444") : textClr }}>
+                      {fmt(Math.max(0, (goals[0]?.monthlyBudget || 0) - totalSpent))}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── SUBSCRIPTIONS TAB ──────────────────────────────── */}
+        {profileTab === "subscriptions" && (
+          <>
+            <div className="flex items-center justify-between mb-3 px-1">
+              <p className="text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: labelClr }}>Subscriptions</p>
+              <button onClick={() => setShowSubForm(v => !v)}
+                className="h-8 w-8 rounded-xl flex items-center justify-center text-white active:scale-90 transition"
+                style={getGradientStyle(theme)}>
+                <FiPlus size={14} />
+              </button>
+            </div>
+
+            {/* New subscription form */}
+            <AnimatePresence>
+              {showSubForm && (
+                <motion.form
+                  onSubmit={handleCreateSub}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="rounded-2xl overflow-hidden mb-4"
+                  style={ss}
+                >
+                  <div className="p-4 space-y-3">
+                    <input type="text" placeholder="Name (e.g. Netflix, Spotify)" required
+                      value={subForm.name} onChange={e => setSubForm({ ...subForm, name: e.target.value })}
+                      className={`w-full px-3 py-2.5 rounded-xl text-sm font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                      style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
+                    <div className="flex gap-2">
+                      <input type="number" placeholder="Amount ₹" required min="1"
+                        value={subForm.amount} onChange={e => setSubForm({ ...subForm, amount: e.target.value })}
+                        className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                        style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
+                      <select value={subForm.billingCycle} onChange={e => setSubForm({ ...subForm, billingCycle: e.target.value })}
+                        className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                        style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }}>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="quarterly">Quarterly</option>
+                        <option value="yearly">Yearly</option>
+                      </select>
+                    </div>
+                    <div className="flex gap-2">
+                      <input type="date" required placeholder="Next billing date"
+                        value={subForm.nextBillingDate} onChange={e => setSubForm({ ...subForm, nextBillingDate: e.target.value })}
+                        className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                        style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
+                      <input type="text" placeholder="Emoji icon" maxLength={2}
+                        value={subForm.icon} onChange={e => setSubForm({ ...subForm, icon: e.target.value })}
+                        className={`w-16 px-3 py-2.5 rounded-xl text-sm text-center font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                        style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => setShowSubForm(false)}
+                        className="flex-1 py-2.5 rounded-xl text-sm font-bold transition active:scale-95"
+                        style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", color: subClr }}>
+                        Cancel
+                      </button>
+                      <button type="submit"
+                        className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition active:scale-95"
+                        style={getGradientStyle(theme)}>
+                        Add Subscription
+                      </button>
+                    </div>
+                  </div>
+                </motion.form>
+              )}
+            </AnimatePresence>
+
+            {/* Monthly total */}
+            {subscriptions.length > 0 && (
+              <div className="rounded-2xl p-4 mb-4" style={ss}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: labelClr }}>Monthly Cost</p>
+                    <p className="text-xl font-black mt-0.5" style={{ color: textClr }}>
+                      {fmt(subscriptions.filter(s => s.active).reduce((sum, s) => {
+                        const amt = s.amount || 0;
+                        if (s.billingCycle === "weekly") return sum + amt * 4.33;
+                        if (s.billingCycle === "quarterly") return sum + amt / 3;
+                        if (s.billingCycle === "yearly") return sum + amt / 12;
+                        return sum + amt;
+                      }, 0))}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: labelClr }}>Active</p>
+                    <p className="text-xl font-black mt-0.5" style={{ color: theme.gradFrom }}>
+                      {subscriptions.filter(s => s.active).length}/{subscriptions.length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {subsLoading ? (
+              <div className="flex justify-center py-10">
+                <div className={`animate-spin rounded-full h-6 w-6 border-b-2 ${theme.spinner}`} />
+              </div>
+            ) : subscriptions.length === 0 ? (
+              <div className="rounded-2xl py-12 flex flex-col items-center gap-2" style={ss}>
+                <FiRepeat size={28} style={{ color: subClr }} />
+                <p className="text-sm font-semibold" style={{ color: subClr }}>No subscriptions</p>
+                <p className="text-xs text-center px-8" style={{ color: labelClr }}>
+                  Track your recurring payments — Netflix, Spotify, iCloud, etc.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {subscriptions.map((sub) => {
+                  const nextDate = new Date(sub.nextBillingDate);
+                  const daysUntil = Math.ceil((nextDate - new Date()) / 86400000);
+                  const isOverdue = daysUntil < 0;
+                  const isSoon = daysUntil >= 0 && daysUntil <= 3;
+                  return (
+                    <div key={sub._id} className="rounded-2xl overflow-hidden" style={{ ...ss, opacity: sub.active ? 1 : 0.5 }}>
+                      <div className="flex items-center gap-3 p-4">
+                        <div className="h-11 w-11 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+                          style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }}>
+                          {sub.icon || "💳"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-bold truncate" style={{ color: textClr }}>{sub.name}</p>
+                            {!sub.active && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                              style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", color: subClr }}>PAUSED</span>}
+                          </div>
+                          <p className="text-xs mt-0.5" style={{ color: isOverdue ? "#ef4444" : isSoon ? "#f59e0b" : subClr }}>
+                            {sub.billingCycle} · {isOverdue ? `${Math.abs(daysUntil)}d overdue` : daysUntil === 0 ? "Due today" : `in ${daysUntil}d`}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <p className="text-sm font-black" style={{ color: textClr }}>{fmt(sub.amount)}</p>
+                          <div className="flex gap-1">
+                            <button onClick={() => handleToggleSub(sub)}
+                              className="h-8 w-8 rounded-lg flex items-center justify-center active:scale-90 transition"
+                              style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", color: sub.active ? "#10b981" : subClr }}>
+                              {sub.active ? <FiCheck size={12} /> : <FiRepeat size={12} />}
+                            </button>
+                            <button onClick={() => handleDeleteSub(sub._id)}
+                              className="h-8 w-8 rounded-lg flex items-center justify-center active:scale-90 transition"
+                              style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", color: "#ef4444" }}>
+                              <FiTrash2 size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
 
       </div>
 

@@ -92,6 +92,8 @@ app.use('/api/expenses', require('./routes/expenseRoutes'));
 app.use('/api/requests', require('./routes/groupRequestRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/friends', require('./routes/friendRoutes'));
+app.use('/api/goals', require('./routes/goalRoutes'));
+app.use('/api/subscriptions', require('./routes/subscriptionRoutes'));
 
 // User search endpoint
 app.get('/api/users/search', auth, async (req, res) => {
