@@ -78,7 +78,7 @@ export default function Profile() {
   const [goals, setGoals] = useState([]);
   const [goalsLoading, setGoalsLoading] = useState(false);
   const [showGoalForm, setShowGoalForm] = useState(false);
-  const [goalForm, setGoalForm] = useState({ title: "", targetAmount: "", monthlyBudget: "", deadline: "" });
+  const [goalForm, setGoalForm] = useState({ title: "", targetAmount: "", monthlyBudget: "", startDate: "", deadline: "" });
   const [goalSubmitting, setGoalSubmitting] = useState(false);
   const [subscriptions, setSubscriptions] = useState([]);
   const [subsLoading, setSubsLoading] = useState(false);
@@ -233,12 +233,13 @@ export default function Profile() {
           title: goalForm.title,
           targetAmount: Number(goalForm.targetAmount),
           monthlyBudget: Number(goalForm.monthlyBudget),
+          startDate: goalForm.startDate || undefined,
           deadline: goalForm.deadline || undefined,
         }),
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.message); }
       setShowGoalForm(false);
-      setGoalForm({ title: "", targetAmount: "", monthlyBudget: "", deadline: "" });
+      setGoalForm({ title: "", targetAmount: "", monthlyBudget: "", startDate: "", deadline: "" });
       fetchGoals();
       showToast("Goal created!");
     } catch (err) { showToast(err.message || "Failed", "error"); }
@@ -786,14 +787,15 @@ export default function Profile() {
               {showGoalForm && (
                 <motion.form
                   onSubmit={handleCreateGoal}
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
                   className="rounded-2xl overflow-hidden mb-4"
                   style={ss}
                 >
                   <div className="p-3.5 space-y-2.5">
-                    <input type="text" placeholder="Goal title (e.g. New Laptop)" required
+                    <input type="text" placeholder="Goal title (e.g. iPhone 17 Pro)" required
                       value={goalForm.title} onChange={e => setGoalForm({ ...goalForm, title: e.target.value })}
                       className={`w-full px-3 py-2.5 rounded-xl text-[13px] font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
                       style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
@@ -808,18 +810,33 @@ export default function Profile() {
                         style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] mb-1.5 px-0.5" style={{ color: labelClr }}>Deadline</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] mb-1.5 px-0.5" style={{ color: labelClr }}>Start &amp; End Date</p>
                       <BillingCalendar
-                        selectedDate={goalForm.deadline}
+                        selectedDate={goalForm.startDate}
+                        rangeEnd={goalForm.deadline}
                         onSelectDate={(d) => {
-                          const yyyy = d.getFullYear();
-                          const mm = String(d.getMonth() + 1).padStart(2, "0");
-                          const dd = String(d.getDate()).padStart(2, "0");
-                          setGoalForm({ ...goalForm, deadline: `${yyyy}-${mm}-${dd}` });
+                          const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                          if (!goalForm.startDate || (goalForm.startDate && goalForm.deadline)) {
+                            setGoalForm({ ...goalForm, startDate: iso, deadline: "" });
+                          } else {
+                            const start = new Date(goalForm.startDate);
+                            if (d >= start) {
+                              setGoalForm({ ...goalForm, deadline: iso });
+                            } else {
+                              setGoalForm({ ...goalForm, startDate: iso, deadline: "" });
+                            }
+                          }
                         }}
+                        mode="range"
                         theme={theme}
                         isDark={isDark}
                       />
+                      {goalForm.startDate && (
+                        <p className="text-[10px] mt-1.5 px-0.5 font-semibold" style={{ color: subClr }}>
+                          {new Date(goalForm.startDate + "T00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                          {goalForm.deadline ? ` → ${new Date(goalForm.deadline + "T00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}` : " — tap end date"}
+                        </p>
+                      )}
                     </div>
                     <div className="grid grid-cols-2 gap-2 pt-0.5">
                       <button type="button" onClick={() => setShowGoalForm(false)}
@@ -960,9 +977,10 @@ export default function Profile() {
               {showSubForm && (
                 <motion.form
                   onSubmit={handleCreateSub}
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
                   className="rounded-2xl overflow-hidden mb-4"
                   style={ss}
                 >

@@ -22,24 +22,23 @@ function PublicRoute({ element }) {
   return getToken() ? <Navigate to="/dashboard" replace /> : element;
 }
 
-// Smooth animated page transition — instant exit, quick fade-in (no blank gap)
-const pageVariants = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1, transition: { duration: 0.13, ease: [0.4, 0, 0.2, 1] } },
-  exit:    { opacity: 0, transition: { duration: 0 } },
-};
+// Smooth page transition — cross-fade with no layout shift
+const PAGE_ENTER = { opacity: 1 };
+const PAGE_EXIT  = { opacity: 0 };
+const PAGE_INIT  = { opacity: 0 };
+const PAGE_TRAN  = { duration: 0.12, ease: "easeOut" };
 
 function PageTransition({ children }) {
   const location = useLocation();
   return (
-    <AnimatePresence mode="popLayout" initial={false}>
+    <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={location.pathname}
-        variants={pageVariants}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        style={{ minHeight: "100vh" }}
+        initial={PAGE_INIT}
+        animate={PAGE_ENTER}
+        exit={PAGE_EXIT}
+        transition={PAGE_TRAN}
+        style={{ minHeight: "100dvh" }}
       >
         {children}
       </motion.div>

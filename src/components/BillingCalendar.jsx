@@ -57,6 +57,8 @@ export default function BillingCalendar({
   theme,
   isDark,
   existingSubs = [],
+  mode = "single",      // "single" | "range"
+  rangeEnd = null,       // ISO string for end date (range mode)
 }) {
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
@@ -113,6 +115,12 @@ export default function BillingCalendar({
   const isToday = (d) => d && sameDay(d, today);
   const isSelected = (d) => d && selectedDate && sameDay(d, new Date(selectedDate));
   const isRecurring = (d) => d && recurringDates.some(r => sameDay(r, d));
+  const isEnd = (d) => d && rangeEnd && sameDay(d, new Date(rangeEnd));
+  const isInRange = (d) => {
+    if (!d || mode !== "range" || !selectedDate || !rangeEnd) return false;
+    const t = d.getTime(), s = new Date(selectedDate).getTime(), e = new Date(rangeEnd).getTime();
+    return t > s && t < e;
+  };
 
   const monthLabel = new Date(viewYear, viewMonth).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
@@ -152,13 +160,13 @@ export default function BillingCalendar({
 
       {/* Calendar grid */}
       <div className="px-1.5 pb-2">
-        <AnimatePresence mode="popLayout" initial={false}>
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={`${viewYear}-${viewMonth}`}
-            initial={{ opacity: 0, x: direction * 30 }}
+            initial={{ opacity: 0, x: direction * 20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: direction * -30 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
+            exit={{ opacity: 0, x: direction * -20 }}
+            transition={{ duration: 0.12, ease: "easeOut" }}
           >
             {calendarDays.map((week, wi) => (
               <div key={wi} className="grid grid-cols-7">
@@ -167,28 +175,33 @@ export default function BillingCalendar({
                     return <div key={di} className="aspect-square" />;
                   }
                   const sel = isSelected(day);
+                  const end = isEnd(day);
+                  const inRange = isInRange(day);
                   const tod = isToday(day);
-                  const rec = isRecurring(day) && !sel;
+                  const rec = isRecurring(day) && !sel && !end;
                   const dots = existingDots.get(day.getDate()) || [];
                   const dayNum = day.getDate();
+                  const highlighted = sel || end;
 
                   return (
                     <button
                       key={di}
                       type="button"
                       onClick={() => onSelectDate(day)}
-                      className="aspect-square flex flex-col items-center justify-center rounded-lg mx-0.5 my-0.5 transition-all active:scale-90 relative"
+                      className="aspect-square flex flex-col items-center justify-center rounded-lg mx-0.5 my-0.5 transition-colors active:scale-90 relative"
                       style={{
-                        background: sel
+                        background: highlighted
                           ? `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})`
-                          : rec
-                            ? `${theme.gradFrom}22`
-                            : cellBg,
-                        border: tod && !sel ? `1.5px solid ${theme.gradFrom}` : "1.5px solid transparent",
+                          : inRange
+                            ? `${theme.gradFrom}18`
+                            : rec
+                              ? `${theme.gradFrom}22`
+                              : cellBg,
+                        border: tod && !highlighted ? `1.5px solid ${theme.gradFrom}` : inRange ? `1.5px solid ${theme.gradFrom}33` : "1.5px solid transparent",
                       }}
                     >
                       <span className="text-[11px] font-bold leading-none" style={{
-                        color: sel ? "#fff" : rec ? theme.gradFrom : textNormal,
+                        color: highlighted ? "#fff" : inRange ? theme.gradFrom : rec ? theme.gradFrom : textNormal,
                       }}>
                         {dayNum}
                       </span>
@@ -200,7 +213,12 @@ export default function BillingCalendar({
                       )}
                       {sel && (
                         <span className="text-[6px] font-bold uppercase mt-0.5 leading-none text-white/80">
-                          Start
+                          {mode === "range" ? "Start" : "Start"}
+                        </span>
+                      )}
+                      {end && (
+                        <span className="text-[6px] font-bold uppercase mt-0.5 leading-none text-white/80">
+                          End
                         </span>
                       )}
                       {/* Existing subscription dots */}
@@ -224,16 +242,25 @@ export default function BillingCalendar({
       <div className="flex items-center justify-center gap-4 px-3 pb-2.5 pt-0.5">
         <div className="flex items-center gap-1.5">
           <div className="h-2 w-2 rounded-full" style={{ background: `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})` }} />
-          <span className="text-[9px] font-semibold" style={{ color: textMuted }}>Selected</span>
+          <span className="text-[9px] font-semibold" style={{ color: textMuted }}>{mode === "range" ? "Start/End" : "Selected"}</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="h-2 w-2 rounded-full" style={{ background: `${theme.gradFrom}55` }} />
-          <span className="text-[9px] font-semibold" style={{ color: textMuted }}>Recurring</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="h-1 w-1 rounded-full" style={{ background: "#10b981" }} />
-          <span className="text-[9px] font-semibold" style={{ color: textMuted }}>Existing</span>
-        </div>
+        {mode === "range" ? (
+          <div className="flex items-center gap-1.5">
+            <div className="h-2 w-2 rounded-sm" style={{ background: `${theme.gradFrom}18`, border: `1px solid ${theme.gradFrom}33` }} />
+            <span className="text-[9px] font-semibold" style={{ color: textMuted }}>In Range</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            <div className="h-2 w-2 rounded-full" style={{ background: `${theme.gradFrom}55` }} />
+            <span className="text-[9px] font-semibold" style={{ color: textMuted }}>Recurring</span>
+          </div>
+        )}
+        {existingSubs.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            <div className="h-1 w-1 rounded-full" style={{ background: "#10b981" }} />
+            <span className="text-[9px] font-semibold" style={{ color: textMuted }}>Existing</span>
+          </div>
+        )}
       </div>
     </div>
   );

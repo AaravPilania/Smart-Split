@@ -6,6 +6,7 @@ const goalSchema = new mongoose.Schema({
   targetAmount: { type: Number, required: true },
   monthlyBudget: { type: Number, required: true },
   savedAmount: { type: Number, default: 0 },
+  startDate: { type: Date },
   deadline: { type: Date },
   active: { type: Boolean, default: true },
 }, { timestamps: true });

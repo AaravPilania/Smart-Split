@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
+import PhoneMockup from "./PhoneMockup";
 
 /* ─── Per-slide themes ─────────────────────────────────────── */
 const UNIFIED_THEME = {
@@ -272,15 +273,17 @@ function SlideContent({ slide, slideIndex, theme, onNext, onGetStarted }) {
 
   return (
     <div className="flex flex-col h-full w-full px-6 pb-20" style={{ paddingTop: 72 }}>
-      {/* Visual */}
+      {/* Visual inside phone frame */}
       <div className="flex items-center justify-center" style={{ flex: 1.5 }}>
         <motion.div
           initial={{ scale: 0.88, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.55, ease: [0.32, 0.72, 0, 1] }}
-          style={{ width: "100%", maxWidth: 310 }}
+          style={{ width: "100%", maxWidth: 280 }}
         >
-          {slide.visual()}
+          <PhoneMockup>
+            {slide.visual()}
+          </PhoneMockup>
         </motion.div>
       </div>
 
