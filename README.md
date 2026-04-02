@@ -709,10 +709,6 @@ Triggered automatically for guest users and first-time signups via `sessionStora
 
 <br/>
 
----
-
-<br/>
-
 
 <div align="center">
 
