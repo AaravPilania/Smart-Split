@@ -14,11 +14,11 @@ const SLIDE_THEMES = [UNIFIED_THEME, UNIFIED_THEME, UNIFIED_THEME, UNIFIED_THEME
 const SLIDES = [
   {
     id: "dinner",
-    tag: "Smart Split",
+    tag: "AI-Powered",
     title: "Stop doing\nmath at dinner.",
     accentWord: "math",
     sub: "AI-powered bill splitting for the real world — fast, fair, zero drama.",
-    visual: () => <LogoVisual />,
+    visual: () => <DinnerVisual />,
   },
   {
     id: "scan",
@@ -127,14 +127,11 @@ export default function MobileOnboarding({ onGetStarted, onGoogleSignIn }) {
         style={{ zIndex: 20 }}
       >
         <div className="flex items-center gap-2">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, #ec4899, #f97316)" }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2v6M8 6l4-4 4 4M4 20h16M6 20V10a2 2 0 012-2h8a2 2 0 012 2v10" />
-            </svg>
-          </div>
+          <img
+            src="/icon.png"
+            alt="Smart Split"
+            className="w-7 h-7 rounded-lg shadow"
+          />
           <span className="text-xs font-black tracking-wide" style={{ color: "rgba(255,255,255,0.55)", letterSpacing: "0.06em" }}>
             SMART SPLIT
           </span>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
 import {
@@ -164,8 +165,16 @@ export default function Friends() {
         </div>
 
         {/* My QR panel */}
-        {showMyQR && userId && (
-          <div className="mb-5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm flex flex-col sm:flex-row items-center gap-5">
+        <AnimatePresence>
+          {showMyQR && userId && (
+            <motion.div
+              className="mb-5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm flex flex-col sm:flex-row items-center gap-5"
+              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+              animate={{ opacity: 1, height: "auto", marginBottom: 20 }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              style={{ overflow: "hidden" }}
+            >
             <div className="bg-white p-3 rounded-2xl shadow border border-gray-100">
               <QRCodeSVG value={myQRValue} size={140} />
             </div>
@@ -182,8 +191,9 @@ export default function Friends() {
                 Copy Link
               </button>
             </div>
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
 
         {/* Tabs */}
         <div className="flex bg-gray-100 dark:bg-gray-800 rounded-2xl p-1 mb-5 gap-1">

@@ -47,7 +47,7 @@ Built for the way real friend groups actually work — messy tabs, forgotten IOU
 | 👥 | **Smart Group Splits** | Create groups, add members, log expenses — the greedy debt-simplification algorithm calculates who owes what with minimum transactions. **Admin roles** and **group membership guards** for security. |
 | 📊 | **Live Dashboard** | Real-time metrics: total spend, debts owed, monthly trends, category donut chart, recent activity feed with an **interactive onboarding spotlight guide** for new users. |
 | 🔴 | **Real-Time Notifications** | **Server-Sent Events (SSE)** push notifications instantly — no polling needed. Automatic fallback to 60s polling if SSE disconnects. Payment confirmations delivered in real time. |
-| ⚡ | **UPI Settle Flow** | Pick a settlement, choose your UPI app (Google Pay, PhonePe, Paytm...), and pay — with "set default app" memory. **Auto-detects when you return from the UPI app** and prompts you to confirm payment. |
+| ⚡ | **UPI Settle Flow** | Pick a settlement, choose GPay/PhonePe/Paytm (with logos), enter partial or full amount, and pay — with "set default app" memory. **Auto-detects when you return from the UPI app** and prompts you to confirm payment. |
 | 📷 | **QR Code Payments** | Scan any UPI QR code to pay directly from within the app. |
 | 🤝 | **QR Friend Invites** | Share your personal QR code — friends scan it and connect instantly, no manual search needed. |
 | 🔔 | **Smart Reminders** | Nudge friends about pending payments with one tap — notifications pushed via SSE in real time. |
@@ -547,7 +547,7 @@ Triggered automatically for guest users and first-time signups via `sessionStora
 | **Slowdown** | +50ms/req over 200/15min, capped at 2s |
 | **Headers** | Helmet.js (XSS, HSTS, CSP) |
 | **CORS** | `thesmartsplit.pages.dev`, `*.pages.dev`, localhost only |
-| **Body limit** | 10 KB JSON |
+| **Body limit** | 2 MB JSON (supports base64 group images) |
 | **Validation** | Zod on all mutation endpoints |
 | **Group guards** | `requireGroupMember` middleware — only members can view/modify group data |
 | **Admin roles** | Group creators are auto-assigned admin; admin-only operations enforced |
@@ -658,6 +658,39 @@ Triggered automatically for guest users and first-time signups via `sessionStora
 │  Friendships │ GroupRequests │ AaruCache │ AaruUsage          │
 └──────────────────────────────────────────────────────────────┘
 ```
+
+<br/>
+
+---
+
+<br/>
+
+## 🆕 Latest Updates
+
+### UI Overhaul — Pink & Amber Theme
+
+| Change | Details |
+|:-------|:--------|
+| **Theme Refresh** | Full pink (`#ec4899`) + amber (`#f97316`) palette — all purple references removed across the entire app |
+| **Hero Section** | 4-slide swipeable intro with AI-Powered receipt visual on slide 1, actual app logo in top-left branding bar |
+| **Lightning Bolt FAB** | Center FAB redesigned with bolt icon, neon press animation, and smaller 14×14 profile |
+| **Login Page** | Animated gradient background, floating ambient orbs, app logo replaces generic icon, smooth form transitions |
+| **Blob Transitions** | Expand **from the button you pressed** — origin tracked via `getBoundingClientRect()`, 0.55s ease curve |
+| **Wave Trend Chart** | 6-month spending visualized as a smooth SVG cubic bezier curve with gradient fill and glow filter |
+| **UPI App Logos** | GPay, PhonePe, Paytm buttons with inline SVG logos + app-specific URL schemes (`tez://`, `phonepe://`, `paytmmp://`) |
+| **Partial Settlement** | Editable amount input in UPI modal — pay any portion with real-time "Partial: ₹X of ₹Y" indicator |
+| **Local Caching** | `cachedApiFetch()` with 5-min TTL stale-while-revalidate — Dashboard loads instantly from cache |
+| **Keyboard Fix** | Virtual keyboard on mobile no longer covers Aaru's input — `visualViewport` listener adjusts sheet position |
+
+### Smooth Animations Everywhere
+
+| Element | Animation |
+|:--------|:----------|
+| **Sign Out** | Page fades + scales down before navigating; confirmation modal slides up with spring physics |
+| **QR Code (Friends)** | Height-animated reveal with spring transition instead of abrupt toggle |
+| **All Modals** | 11 modals across Groups, Expenses, Balances, and ScanReceipt wrapped in `AnimatePresence` — backdrop fades, card slides up with spring |
+| **Camera/QR Overlays** | Fade in/out transitions for fullscreen camera and QR scanner views |
+| **Page Transitions** | `AnimatePresence mode="wait"` with 0.22s fade-in, 0.14s fade-out on all routes |
 
 <br/>
 

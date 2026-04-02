@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
 import {
@@ -231,12 +232,17 @@ export default function Profile() {
   };
 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = () => {
-    clearAuth();
-    localStorage.removeItem("selectedAvatar");
-    sessionStorage.clear();
-    navigate("/", { replace: true });
+    setShowLogoutConfirm(false);
+    setLoggingOut(true);
+    setTimeout(() => {
+      clearAuth();
+      localStorage.removeItem("selectedAvatar");
+      sessionStorage.clear();
+      navigate("/", { replace: true });
+    }, 400);
   };
 
   if (loading || !user) {
@@ -446,7 +452,12 @@ export default function Profile() {
 
   // ── MAIN PROFILE VIEW ──────────────────────────────────────────────
   return (
-    <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
+    <motion.div
+      className="min-h-screen"
+      style={getPageBgStyle(theme, isDark)}
+      animate={{ opacity: loggingOut ? 0 : 1, scale: loggingOut ? 0.97 : 1 }}
+      transition={{ duration: 0.35, ease: "easeInOut" }}
+    >
       <Navbar />
       <div className="max-w-lg mx-auto px-4 pt-4 pb-28">
 
@@ -613,21 +624,30 @@ export default function Profile() {
       <BottomNav />
 
       {/* ── Logout confirmation modal ─────────────────────── */}
-      {showLogoutConfirm && (
-        <div
-          className="fixed inset-0 z-[9999] flex items-end justify-center pb-8 px-4"
-          style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
-          onClick={() => setShowLogoutConfirm(false)}
-        >
-          <div
-            className="w-full max-w-sm rounded-3xl overflow-hidden"
-            style={{
-              background: isDark ? "#1a1a24" : "#ffffff",
-              border: isDark ? "1px solid rgba(255,255,255,0.10)" : "1px solid rgba(0,0,0,0.08)",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.40)",
-            }}
-            onClick={e => e.stopPropagation()}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <motion.div
+            className="fixed inset-0 z-[9999] flex items-end justify-center pb-8 px-4"
+            style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
+            onClick={() => setShowLogoutConfirm(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22 }}
           >
+            <motion.div
+              className="w-full max-w-sm rounded-3xl overflow-hidden"
+              style={{
+                background: isDark ? "#1a1a24" : "#ffffff",
+                border: isDark ? "1px solid rgba(255,255,255,0.10)" : "1px solid rgba(0,0,0,0.08)",
+                boxShadow: "0 20px 60px rgba(0,0,0,0.40)",
+              }}
+              onClick={e => e.stopPropagation()}
+              initial={{ opacity: 0, y: 60, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 40, scale: 0.97 }}
+              transition={{ type: "spring", stiffness: 340, damping: 28 }}
+            >
             <div className="px-6 pt-6 pb-5">
               <div
                 className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
@@ -662,9 +682,10 @@ export default function Profile() {
                 Sign Out
               </button>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {toast && (
         <div className={`fixed bottom-24 left-4 right-4 max-w-sm mx-auto z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl text-white text-sm font-bold pointer-events-none ${toast.type === "error" ? "bg-red-500" : "bg-green-500"}`}>
@@ -672,6 +693,6 @@ export default function Profile() {
           {toast.msg}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { FiCamera, FiUpload, FiX, FiCheck, FiPlus, FiRefreshCw, FiCreditCard, FiChevronRight, FiUserPlus, FiCopy } from "react-icons/fi";
 import jsQR from "jsqr";
 import Tesseract from "tesseract.js";
@@ -785,8 +786,9 @@ export default function ScanReceipt({
   return (
     <>
       {/* ── Fullscreen Camera UI (receipt) ── */}
+      <AnimatePresence>
       {mode === "camera" && (
-        <div className="fixed inset-0 z-[60] bg-black flex flex-col">
+        <motion.div className="fixed inset-0 z-[60] bg-black flex flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
           {/* Video feed */}
           <div className="flex-1 relative overflow-hidden">
             <video
@@ -835,12 +837,15 @@ export default function ScanReceipt({
               <div className="w-14 h-14 rounded-full bg-white" />
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* ── Fullscreen QR Scan UI ── */}
+      <AnimatePresence>
       {mode === "qrscan" && (
-        <div className="fixed inset-0 z-[60] bg-black flex flex-col">
+        <motion.div className="fixed inset-0 z-[60] bg-black flex flex-col"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
           <div className="flex-1 relative overflow-hidden">
             <video
               ref={(el) => { videoRef.current = el; if (el && streamRef.current) { el.srcObject = streamRef.current; el.play().catch(() => {}); } }}
@@ -884,11 +889,14 @@ export default function ScanReceipt({
             </div>
             <span className="text-white/40 text-xs">Works with GPay, PhonePe, Paytm, any UPI QR</span>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-3xl w-full p-4 sm:p-6 my-8 max-h-[90vh] overflow-y-auto">
+    <motion.div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
+      <motion.div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-3xl w-full p-4 sm:p-6 my-8 max-h-[90vh] overflow-y-auto"
+        initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 340, damping: 28 }}>
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-2xl font-bold text-gray-800 dark:text-white">
             {settleStep ? "Settle Payment" : friendQrResult ? "Add Friend" : qrResult ? "Pay via UPI" : "Scan Receipt"}
@@ -1565,8 +1573,8 @@ export default function ScanReceipt({
             )}
           </div>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
     </>
   );
 }

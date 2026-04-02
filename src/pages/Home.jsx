@@ -133,8 +133,8 @@ function BlobTransition({ origin = null, variant = "in" }) {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{
-          duration: variant === "out" ? 2.2 : 0.3,
-          ease: [0.22, 1, 0.36, 1],
+          duration: variant === "out" ? 2.2 : 0.55,
+          ease: [0.16, 1, 0.3, 1],
         }}
         style={{
           position: "absolute",
@@ -217,18 +217,40 @@ function MobileLogin({ onSuccess, onGuest }) {
       className="h-full w-full overflow-y-auto flex flex-col login-anim-bg"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
     >
-      <div className="flex flex-col items-center px-8 pt-16 pb-10 w-full max-w-sm mx-auto">
+      {/* Floating ambient orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
+        <motion.div
+          className="absolute w-48 h-48 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.18) 0%, transparent 70%)", filter: "blur(40px)", top: "8%", left: "-12%" }}
+          animate={{ x: [0, 30, 0], y: [0, -20, 0] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute w-40 h-40 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(249,115,22,0.16) 0%, transparent 70%)", filter: "blur(36px)", bottom: "15%", right: "-8%" }}
+          animate={{ x: [0, -25, 0], y: [0, 20, 0] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute w-32 h-32 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.12) 0%, transparent 70%)", filter: "blur(30px)", top: "45%", right: "10%" }}
+          animate={{ x: [0, 15, 0], y: [0, -15, 0] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+        />
+      </div>
+
+      <div className="flex flex-col items-center px-8 pt-16 pb-10 w-full max-w-sm mx-auto relative" style={{ zIndex: 1 }}>
 
         {/* Logo */}
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
+        <motion.img
+          src="/icon.png"
+          alt="Smart Split"
+          initial={{ scale: 0.7, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 300, damping: 22 }}
-          className="w-14 h-14 rounded-[18px] flex items-center justify-center text-2xl font-black text-white mb-6"
-          style={{ background: "linear-gradient(145deg, #ec4899, #f97316)" }}
-        >
-          ₹
-        </motion.div>
+          transition={{ type: "spring", stiffness: 280, damping: 22 }}
+          className="w-16 h-16 rounded-[20px] mb-6 shadow-lg"
+          style={{ boxShadow: "0 8px 32px rgba(236,72,153,0.30)" }}
+        />
 
         {/* Heading */}
         <motion.h1
@@ -601,7 +623,7 @@ export default function Home() {
     isGuestRef.current=guest;
     if(rect) setBlobOrigin({ x: rect.left + rect.width/2, y: rect.top + rect.height/2 });
     setPhase("blob_in");
-    setTimeout(()=>setPhase("login"),350);
+    setTimeout(()=>setPhase("login"),650);
   };
 
   // Auth success → blob_out → white phase → dashboard
