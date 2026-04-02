@@ -787,33 +787,33 @@ export default function Profile() {
                   className="rounded-2xl overflow-hidden mb-4"
                   style={ss}
                 >
-                  <div className="p-4 space-y-3">
+                  <div className="p-4 space-y-2.5">
                     <input type="text" placeholder="Goal title (e.g. New Laptop)" required
                       value={goalForm.title} onChange={e => setGoalForm({ ...goalForm, title: e.target.value })}
-                      className={`w-full px-3 py-2.5 rounded-xl text-sm font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                      className={`w-full px-3 py-2.5 rounded-xl text-[13px] font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
                       style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
-                    <div className="flex gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       <input type="number" placeholder="Target ₹" required min="1"
                         value={goalForm.targetAmount} onChange={e => setGoalForm({ ...goalForm, targetAmount: e.target.value })}
-                        className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                        className={`w-full px-3 py-2.5 rounded-xl text-[13px] font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
                         style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
-                      <input type="number" placeholder="Monthly budget ₹" required min="1"
+                      <input type="number" placeholder="Budget/mo ₹" required min="1"
                         value={goalForm.monthlyBudget} onChange={e => setGoalForm({ ...goalForm, monthlyBudget: e.target.value })}
-                        className={`flex-1 px-3 py-2.5 rounded-xl text-sm font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                        className={`w-full px-3 py-2.5 rounded-xl text-[13px] font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
                         style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
                     </div>
                     <input type="date" placeholder="Deadline (optional)"
                       value={goalForm.deadline} onChange={e => setGoalForm({ ...goalForm, deadline: e.target.value })}
-                      className={`w-full px-3 py-2.5 rounded-xl text-sm font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                      className={`w-full px-3 py-2.5 rounded-xl text-[13px] font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
                       style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
-                    <div className="flex gap-2">
+                    <div className="grid grid-cols-2 gap-2 pt-0.5">
                       <button type="button" onClick={() => setShowGoalForm(false)}
-                        className="flex-1 py-2.5 rounded-xl text-sm font-bold transition active:scale-95"
+                        className="py-2.5 rounded-xl text-[13px] font-bold transition active:scale-95"
                         style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", color: subClr }}>
                         Cancel
                       </button>
                       <button type="submit"
-                        className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition active:scale-95"
+                        className="py-2.5 rounded-xl text-[13px] font-bold text-white transition active:scale-95"
                         style={getGradientStyle(theme)}>
                         Create Goal
                       </button>
@@ -841,24 +841,24 @@ export default function Profile() {
                   const daysLeft = goal.deadline ? Math.max(0, Math.ceil((new Date(goal.deadline) - new Date()) / 86400000)) : null;
                   return (
                     <div key={goal._id} className="rounded-2xl overflow-hidden" style={ss}>
-                      <div className="p-4">
-                        <div className="flex items-start justify-between mb-2">
+                      <div className="px-4 pt-4 pb-3.5">
+                        <div className="flex items-start justify-between gap-2 mb-3">
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-bold truncate" style={{ color: textClr }}>{goal.title}</p>
-                            <p className="text-xs mt-0.5" style={{ color: subClr }}>
+                            <p className="text-[13px] font-bold truncate" style={{ color: textClr }}>{goal.title}</p>
+                            <p className="text-[11px] mt-0.5" style={{ color: subClr }}>
                               Budget: {fmt(goal.monthlyBudget)}/mo
                               {daysLeft !== null && ` · ${daysLeft}d left`}
                             </p>
                           </div>
                           <button onClick={() => handleDeleteGoal(goal._id)}
-                            className="h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 active:scale-90 transition"
+                            className="h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0 active:scale-90 transition"
                             style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", color: "#ef4444" }}>
-                            <FiTrash2 size={13} />
+                            <FiTrash2 size={12} />
                           </button>
                         </div>
 
                         {/* Progress bar */}
-                        <div className="relative h-3 rounded-full overflow-hidden mb-2"
+                        <div className="relative h-2.5 rounded-full overflow-hidden mb-3"
                           style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }}>
                           <motion.div
                             className="absolute inset-y-0 left-0 rounded-full"
@@ -869,13 +869,15 @@ export default function Profile() {
                           />
                         </div>
 
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs font-bold" style={{ color: theme.gradFrom }}>
-                            {fmt(goal.savedAmount || 0)} / {fmt(goal.targetAmount)}
-                            <span className="font-normal" style={{ color: subClr }}> ({Math.round(progress * 100)}%)</span>
-                          </p>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-bold truncate" style={{ color: theme.gradFrom }}>
+                              {fmt(goal.savedAmount || 0)} / {fmt(goal.targetAmount)}
+                            </p>
+                            <p className="text-[10px]" style={{ color: subClr }}>{Math.round(progress * 100)}% complete</p>
+                          </div>
                           <button onClick={() => handleUpdateSaved(goal)}
-                            className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white active:scale-95 transition"
+                            className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-white active:scale-95 transition whitespace-nowrap flex-shrink-0"
                             style={getGradientStyle(theme)}>
                             +₹{Math.round(monthlySaved)} saved
                           </button>
@@ -889,16 +891,16 @@ export default function Profile() {
 
             {/* Monthly budget overview */}
             {goals.length > 0 && (
-              <div className="rounded-2xl p-4 mt-4" style={ss}>
+              <div className="rounded-2xl px-4 py-3.5 mt-3" style={ss}>
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] mb-2" style={{ color: labelClr }}>This Month</p>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs" style={{ color: subClr }}>Spent</p>
-                    <p className="text-base font-black" style={{ color: textClr }}>{fmt(totalSpent)}</p>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px]" style={{ color: subClr }}>Spent</p>
+                    <p className="text-[15px] font-black" style={{ color: textClr }}>{fmt(totalSpent)}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs" style={{ color: subClr }}>Saved</p>
-                    <p className="text-base font-black" style={{ color: goals[0] ? (goals[0].monthlyBudget - totalSpent > 0 ? "#10b981" : "#ef4444") : textClr }}>
+                  <div className="text-right min-w-0">
+                    <p className="text-[11px]" style={{ color: subClr }}>Saved</p>
+                    <p className="text-[15px] font-black" style={{ color: goals[0] ? (goals[0].monthlyBudget - totalSpent > 0 ? "#10b981" : "#ef4444") : textClr }}>
                       {fmt(Math.max(0, (goals[0]?.monthlyBudget || 0) - totalSpent))}
                     </p>
                   </div>
