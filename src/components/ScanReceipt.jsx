@@ -41,10 +41,10 @@ export default function ScanReceipt({
   const [showAllApps, setShowAllApps] = useState(false);
 
   const UPI_APPS = [
-    { key: "gpay",    label: "Google Pay",  scheme: "upi://pay", initial: "G", bg: "bg-blue-500" },
-    { key: "phonepe", label: "PhonePe",     scheme: "upi://pay", initial: "P", bg: "bg-purple-600" },
-    { key: "paytm",   label: "Paytm",       scheme: "upi://pay", initial: "₹", bg: "bg-sky-500" },
-    { key: "generic", label: "Other UPI",   scheme: "upi://pay", initial: "U", bg: "bg-gray-500" },
+    { key: "gpay",    label: "Google Pay",  scheme: "upi://pay", logo: (<svg width="24" height="24" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="white"/><path d="M24 9.5c3.04 0 5.78 1.14 7.9 3l5.88-5.88C33.86 3.02 29.22 1 24 1 14.6 1 6.6 6.76 3.1 14.88l6.82 5.3C11.46 14.26 17.2 9.5 24 9.5z" fill="#EA4335"/><path d="M46.1 24.5c0-1.68-.15-3.3-.43-4.88H24v9.24h12.42a10.63 10.63 0 01-4.6 6.98l7.02 5.46C43.02 37.56 46.1 31.5 46.1 24.5z" fill="#4285F4"/><path d="M9.92 28.18A14.37 14.37 0 019 24c0-1.46.25-2.86.7-4.18L2.88 14.5A23.36 23.36 0 001 24c0 3.8.9 7.4 2.52 10.58l7.4-6.4z" fill="#FBBC05"/><path d="M24 47c6.48 0 11.92-2.14 15.9-5.82l-7.56-5.86c-2.1 1.42-4.78 2.26-8.34 2.26-6.42 0-11.86-4.34-13.8-10.18l-7.36 5.68C6.6 41.24 14.6 47 24 47z" fill="#34A853"/></svg>) },
+    { key: "phonepe", label: "PhonePe",     scheme: "upi://pay", logo: (<svg width="24" height="24" viewBox="0 0 28 28"><rect width="28" height="28" rx="7" fill="#5f259f"/><path d="M9 21V7h6a5 5 0 0 1 0 10h-3v4H9z" fill="white"/><path d="M12 10v4h3a2 2 0 1 0 0-4h-3z" fill="#5f259f"/></svg>) },
+    { key: "paytm",   label: "Paytm",       scheme: "upi://pay", logo: (<svg width="24" height="24" viewBox="0 0 28 28"><rect width="28" height="28" rx="7" fill="#00BAF2"/><path d="M6.5 11.5h4.5c1.4 0 2.5 1.1 2.5 2.5s-1.1 2.5-2.5 2.5H8.5v3H6.5V11.5z" fill="white"/><path d="M8.5 13.2v1.6h2.5c.44 0 .8-.36.8-.8s-.36-.8-.8-.8H8.5z" fill="#00BAF2"/><path d="M15 11.5h2v3.2h2.6v-3.2h2v8h-2v-3.2H17v3.2h-2v-8z" fill="white"/></svg>) },
+    { key: "generic", label: "Other UPI",   scheme: "upi://pay", logo: (<svg width="24" height="24" viewBox="0 0 28 28"><rect width="28" height="28" rx="7" fill="#6b7280"/><text x="14" y="19" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">U</text></svg>) },
   ];
 
   const [formData, setFormData] = useState({
@@ -1108,10 +1108,8 @@ export default function ScanReceipt({
                   className="w-full py-4 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-3 shadow-lg active:scale-[0.98] transition-transform"
                   style={getGradientStyle(theme)}
                 >
-                  <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                    UPI_APPS.find(a => a.key === defaultUpiApp)?.bg || "bg-white/20"
-                  }`}>
-                    {UPI_APPS.find(a => a.key === defaultUpiApp)?.initial}
+                  <span className="w-8 h-8 rounded-full flex items-center justify-center bg-white/20">
+                    {UPI_APPS.find(a => a.key === defaultUpiApp)?.logo}
                   </span>
                   Pay with {UPI_APPS.find(a => a.key === defaultUpiApp)?.label}
                 </button>
@@ -1136,8 +1134,8 @@ export default function ScanReceipt({
                 <p className="text-xs text-gray-400 dark:text-gray-500">Choose a payment app:</p>
                 {UPI_APPS.map((app) => (
                   <div key={app.key} className="flex items-center gap-3 p-3 pr-4 rounded-xl border dark:border-gray-700 bg-white dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-                    <div className={`w-10 h-10 rounded-full ${app.bg} flex items-center justify-center text-white font-bold text-base flex-shrink-0`}>
-                      {app.initial}
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-50 dark:bg-gray-700/50">
+                      {app.logo}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">

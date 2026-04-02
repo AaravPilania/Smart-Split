@@ -5,8 +5,8 @@ import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "
 const UNIFIED_THEME = {
   bg: "linear-gradient(155deg, #1a0a10 0%, #10060a 100%)",
   accent: "#ec4899",
-  glow1: { c: "rgba(236,72,153,0.45)", t: "-18%", l: "-14%", an: "glowDrift1 16s ease-in-out infinite" },
-  glow2: { c: "rgba(249,115,22,0.30)", b: "0%",   r: "-10%", an: "glowDrift2 22s ease-in-out infinite" },
+  glow1: { c: "rgba(236,72,153,0.50)", t: "-18%", l: "-14%", an: "glowDrift1 28s ease-in-out infinite" },
+  glow2: { c: "rgba(249,115,22,0.35)", b: "0%",   r: "-10%", an: "glowDrift2 36s ease-in-out infinite" },
 };
 const SLIDE_THEMES = [UNIFIED_THEME, UNIFIED_THEME, UNIFIED_THEME, UNIFIED_THEME];
 
@@ -94,8 +94,8 @@ export default function MobileOnboarding({ onGetStarted, onGoogleSignIn }) {
           <div
             style={{
               position: "absolute",
-              width: "80vw", height: "80vw",
-              maxWidth: 460, maxHeight: 460,
+              width: "95vw", height: "95vw",
+              maxWidth: 540, maxHeight: 540,
               top: theme.glow1.t, left: theme.glow1.l,
               right: theme.glow1.r,
               borderRadius: "50%",
@@ -107,8 +107,8 @@ export default function MobileOnboarding({ onGetStarted, onGoogleSignIn }) {
           <div
             style={{
               position: "absolute",
-              width: "64vw", height: "64vw",
-              maxWidth: 360, maxHeight: 360,
+              width: "80vw", height: "80vw",
+              maxWidth: 440, maxHeight: 440,
               bottom: theme.glow2.b, right: theme.glow2.r,
               left: theme.glow2.l,
               borderRadius: "50%",

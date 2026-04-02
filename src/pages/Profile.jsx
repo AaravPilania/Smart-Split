@@ -33,9 +33,9 @@ function fmt(amount) {
 }
 
 const sectionSty = (isDark) => ({
-  background: isDark ? "rgba(255,255,255,0.06)" : "#ffffff",
-  border: isDark ? "1px solid rgba(255,255,255,0.085)" : "1px solid rgba(0,0,0,0.07)",
-  boxShadow: isDark ? "0 4px 28px rgba(0,0,0,0.35)" : "0 2px 14px rgba(0,0,0,0.06)",
+  background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.85)",
+  border: isDark ? "1px solid rgba(255,255,255,0.085)" : "1px solid rgba(0,0,0,0.06)",
+  boxShadow: isDark ? "0 4px 28px rgba(0,0,0,0.35)" : "0 2px 14px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.02)",
 });
 
 const sepSty = (isDark) => ({

@@ -220,22 +220,22 @@ function MobileLogin({ onSuccess, onGuest }) {
       {/* Floating ambient orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
         <motion.div
-          className="absolute w-48 h-48 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.18) 0%, transparent 70%)", filter: "blur(40px)", top: "8%", left: "-12%" }}
+          className="absolute w-64 h-64 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.22) 0%, transparent 70%)", filter: "blur(44px)", top: "5%", left: "-15%" }}
           animate={{ x: [0, 30, 0], y: [0, -20, 0] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
-          className="absolute w-40 h-40 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(249,115,22,0.16) 0%, transparent 70%)", filter: "blur(36px)", bottom: "15%", right: "-8%" }}
+          className="absolute w-56 h-56 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(249,115,22,0.20) 0%, transparent 70%)", filter: "blur(40px)", bottom: "12%", right: "-10%" }}
           animate={{ x: [0, -25, 0], y: [0, 20, 0] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
-          className="absolute w-32 h-32 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.12) 0%, transparent 70%)", filter: "blur(30px)", top: "45%", right: "10%" }}
+          className="absolute w-44 h-44 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.16) 0%, transparent 70%)", filter: "blur(34px)", top: "42%", right: "8%" }}
           animate={{ x: [0, 15, 0], y: [0, -15, 0] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 2 }}
         />
       </div>
 
@@ -622,8 +622,7 @@ export default function Home() {
     sessionStorage.setItem("smartsplit_intro_seen","1");
     isGuestRef.current=guest;
     if(rect) setBlobOrigin({ x: rect.left + rect.width/2, y: rect.top + rect.height/2 });
-    setPhase("blob_in");
-    setTimeout(()=>setPhase("login"),650);
+    setPhase("login");
   };
 
   // Auth success → blob_out → white phase → dashboard

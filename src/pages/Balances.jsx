@@ -17,7 +17,7 @@ import {
 } from "react-icons/fi";
 import { QRCodeSVG } from "qrcode.react";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
-import { useTheme, getGradientStyle } from "../utils/theme";
+import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 import { simplifyDebts } from "../utils/debts";
 
 export default function Balances() {
@@ -203,7 +203,7 @@ export default function Balances() {
     .reduce((sum, s) => sum + s.amount, 0);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
       <Navbar />
 
       <div className="max-w-2xl mx-auto py-6 px-4 sm:px-6 pb-28">
@@ -541,7 +541,7 @@ export default function Balances() {
               {[
                 { name: "GPay", scheme: "tez://upi/pay", fallback: "https://pay.google.com/gp/v/transaction", color: "#4285F4", logo: (<svg width="28" height="28" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="white"/><path d="M24 9.5c3.04 0 5.78 1.14 7.9 3l5.88-5.88C33.86 3.02 29.22 1 24 1 14.6 1 6.6 6.76 3.1 14.88l6.82 5.3C11.46 14.26 17.2 9.5 24 9.5z" fill="#EA4335"/><path d="M46.1 24.5c0-1.68-.15-3.3-.43-4.88H24v9.24h12.42a10.63 10.63 0 01-4.6 6.98l7.02 5.46C43.02 37.56 46.1 31.5 46.1 24.5z" fill="#4285F4"/><path d="M9.92 28.18A14.37 14.37 0 019 24c0-1.46.25-2.86.7-4.18L2.88 14.5A23.36 23.36 0 001 24c0 3.8.9 7.4 2.52 10.58l7.4-6.4z" fill="#FBBC05"/><path d="M24 47c6.48 0 11.92-2.14 15.9-5.82l-7.56-5.86c-2.1 1.42-4.78 2.26-8.34 2.26-6.42 0-11.86-4.34-13.8-10.18l-7.36 5.68C6.6 41.24 14.6 47 24 47z" fill="#34A853"/></svg>) },
                 { name: "PhonePe", scheme: "phonepe://pay", fallback: "https://phon.pe/pay", color: "#5f259f", logo: (<svg width="28" height="28" viewBox="0 0 28 28"><rect width="28" height="28" rx="7" fill="#5f259f"/><path d="M9 21V7h6a5 5 0 0 1 0 10h-3v4H9z" fill="white"/><path d="M12 10v4h3a2 2 0 1 0 0-4h-3z" fill="#5f259f"/></svg>) },
-                { name: "Paytm", scheme: "paytmmp://pay", fallback: "https://paytm.com/pay", color: "#00BAF2", logo: (<svg width="28" height="28" viewBox="0 0 28 28"><rect width="28" height="28" rx="7" fill="#002E6E"/><path d="M9 10h10" stroke="white" strokeWidth="2" strokeLinecap="round"/><path d="M9 14h10" stroke="white" strokeWidth="2" strokeLinecap="round"/><path d="M13.5 10c0 4-1.5 7-3.5 11" stroke="white" strokeWidth="2" strokeLinecap="round" fill="none"/></svg>) },
+                { name: "Paytm", scheme: "paytmmp://pay", fallback: "https://paytm.com/pay", color: "#00BAF2", logo: (<svg width="28" height="28" viewBox="0 0 28 28"><rect width="28" height="28" rx="7" fill="#00BAF2"/><path d="M6.5 11.5h4.5c1.4 0 2.5 1.1 2.5 2.5s-1.1 2.5-2.5 2.5H8.5v3H6.5V11.5z" fill="white"/><path d="M8.5 13.2v1.6h2.5c.44 0 .8-.36.8-.8s-.36-.8-.8-.8H8.5z" fill="#00BAF2"/><path d="M15 11.5h2v3.2h2.6v-3.2h2v8h-2v-3.2H17v3.2h-2v-8z" fill="white"/></svg>) },
               ].map(app => {
                 const payAmt = Number(upiModal.editAmount ?? upiModal.amount).toFixed(2);
                 const upiParams = new URLSearchParams({

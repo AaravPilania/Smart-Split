@@ -8,7 +8,7 @@ import {
 } from "react-icons/fi";
 import { QRCodeSVG } from "qrcode.react";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
-import { useTheme, getGradientStyle } from "../utils/theme";
+import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 
 const APP_URL = import.meta.env.VITE_APP_URL || "https://thesmartsplit.pages.dev";
 
@@ -143,7 +143,7 @@ export default function Friends() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
       <Navbar />
       <BottomNav />
 
@@ -168,28 +168,29 @@ export default function Friends() {
         <AnimatePresence>
           {showMyQR && userId && (
             <motion.div
-              className="mb-5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm flex flex-col sm:flex-row items-center gap-5"
-              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-              animate={{ opacity: 1, height: "auto", marginBottom: 20 }}
-              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-              transition={{ duration: 0.35, ease: "easeOut" }}
-              style={{ overflow: "hidden" }}
+              className="mb-5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
             >
-            <div className="bg-white p-3 rounded-2xl shadow border border-gray-100">
-              <QRCodeSVG value={myQRValue} size={140} />
-            </div>
-            <div>
-              <p className="font-semibold text-gray-800 dark:text-white text-sm mb-1">Your Friend QR</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[220px]">
-                Others scan this to send you a friend request. Works with any QR scanner — it opens smartsplit directly.
-              </p>
-              <button
-                onClick={() => navigator.clipboard.writeText(myQRValue).then(() => alert("Link copied!"))}
-                className="mt-3 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg text-white"
-                style={getGradientStyle(theme)}
-              >
-                Copy Link
-              </button>
+            <div className="flex flex-col sm:flex-row items-center gap-5">
+              <div className="bg-white p-3 rounded-2xl shadow border border-gray-100">
+                <QRCodeSVG value={myQRValue} size={140} />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-800 dark:text-white text-sm mb-1">Your Friend QR</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[220px]">
+                  Others scan this to send you a friend request. Works with any QR scanner — it opens smartsplit directly.
+                </p>
+                <button
+                  onClick={() => navigator.clipboard.writeText(myQRValue).then(() => alert("Link copied!"))}
+                  className="mt-3 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg text-white"
+                  style={getGradientStyle(theme)}
+                >
+                  Copy Link
+                </button>
+              </div>
             </div>
           </motion.div>
         )}

@@ -5,7 +5,7 @@ import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
 import { FiUsers, FiPlus, FiX, FiUserPlus, FiLink, FiZap, FiHeart, FiClock, FiTrash2, FiCamera } from "react-icons/fi";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
-import { useTheme, getGradientStyle } from "../utils/theme";
+import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 import { simplifyDebts } from "../utils/debts";
 
 export default function Groups() {
@@ -230,7 +230,7 @@ export default function Groups() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
         <Navbar />
         <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-28 space-y-4">
           <div className="flex justify-between items-center mb-2">
@@ -260,7 +260,7 @@ export default function Groups() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
       {/* Hidden file input shared across all group pfp pickers */}
       <input
         ref={pfpInputRef}

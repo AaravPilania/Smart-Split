@@ -149,38 +149,38 @@ img[data-fit="contain"], .img-contain {
 /* Ambient colour glows — very subtle, slow drift */
 .glow-1 {
   position: absolute;
-  width: 90vw; height: 90vw;
-  max-width: 900px; max-height: 900px;
-  top: -30%; left: -15%;
+  width: 110vw; height: 110vw;
+  max-width: 1100px; max-height: 1100px;
+  top: -30%; left: -20%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(236,72,153,0.40) 0%, rgba(168,85,247,0.20) 40%, transparent 60%);
-  filter: blur(32px);
+  background: radial-gradient(circle, rgba(236,72,153,0.45) 0%, rgba(168,85,247,0.22) 40%, transparent 60%);
+  filter: blur(36px);
   mix-blend-mode: screen;
-  animation: glowDrift1 30s ease-in-out infinite;
+  animation: glowDrift1 50s ease-in-out infinite;
 }
 
 .glow-2 {
   position: absolute;
-  width: 85vw; height: 85vw;
-  max-width: 850px; max-height: 850px;
-  bottom: -25%; right: -15%;
+  width: 105vw; height: 105vw;
+  max-width: 1050px; max-height: 1050px;
+  bottom: -25%; right: -20%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(249,115,22,0.40) 0%, rgba(236,72,153,0.30) 40%, transparent 60%);
-  filter: blur(32px);
+  background: radial-gradient(circle, rgba(249,115,22,0.45) 0%, rgba(236,72,153,0.32) 40%, transparent 60%);
+  filter: blur(36px);
   mix-blend-mode: screen;
-  animation: glowDrift2 35s ease-in-out infinite;
+  animation: glowDrift2 60s ease-in-out infinite;
 }
 
 .glow-3 {
   position: absolute;
-  width: 60vw; height: 60vw;
-  max-width: 600px; max-height: 600px;
-  top: 30%; left: 22%;
+  width: 80vw; height: 80vw;
+  max-width: 800px; max-height: 800px;
+  top: 30%; left: 18%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(168,85,247,0.35) 0%, rgba(236,72,153,0.15) 50%, transparent 60%);
-  filter: blur(28px);
+  background: radial-gradient(circle, rgba(168,85,247,0.40) 0%, rgba(236,72,153,0.18) 50%, transparent 60%);
+  filter: blur(32px);
   mix-blend-mode: screen;
-  animation: glowDrift3 28s ease-in-out infinite;
+  animation: glowDrift3 45s ease-in-out infinite;
 }
 
 /* ─── Aaru floating button animation ────────────────────── */

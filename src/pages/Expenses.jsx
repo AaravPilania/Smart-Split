@@ -14,7 +14,7 @@ import {
   FiEdit2,
 } from "react-icons/fi";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
-import { useTheme, getGradientStyle } from "../utils/theme";
+import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 import { CATEGORIES, detectCategory, getCategoryInfo } from "../utils/categories";
 import { downloadExpensesCSV } from "../utils/export";
 
@@ -321,7 +321,7 @@ export default function Expenses() {
 
   if (loading && expenses.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+      <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
         <Navbar />
         <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-28 space-y-4">
           <div className="flex justify-between items-center mb-2">
@@ -353,7 +353,7 @@ export default function Expenses() {
   const selectedGroup = getSelectedGroup();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
       <Navbar />
 
       <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-28">

@@ -64,12 +64,12 @@ export default function BottomNav() {
         style={{
           background: isDark
             ? "rgba(8,8,18,0.92)"
-            : "rgba(255,255,255,0.92)",
+            : `linear-gradient(180deg, rgba(255,255,255,0.90), rgba(255,255,255,0.95))`,
           backdropFilter: "blur(24px) saturate(180%)",
           WebkitBackdropFilter: "blur(24px) saturate(180%)",
           borderTop: isDark
             ? "1px solid rgba(255,255,255,0.07)"
-            : "1px solid rgba(0,0,0,0.08)",
+            : `1px solid ${theme.gradFrom}18`,
           paddingBottom: "env(safe-area-inset-bottom)",
           transform: "translateZ(0)",
           WebkitTransform: "translateZ(0)",
