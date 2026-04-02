@@ -417,7 +417,7 @@ Open **http://localhost:5173**
 
 <br/>
 
-## 🧮 Debt Simplification Algorithm
+## 🧮 Debt Simplification Algorithm :
 
 ```
 Before                    After
@@ -436,7 +436,7 @@ Net balances are computed per person, creditors and debtors are sorted, then a g
 
 <br/>
 
-## 🏷️ Smart Category Detection
+## 🏷️ Smart Category Detection :
 
 ```
 Input → Regex-first (200+ keywords, instant)
@@ -462,7 +462,7 @@ Input → Regex-first (200+ keywords, instant)
 
 <br/>
 
-## 💳 UPI Settlement Flow
+## 💳 UPI Settlement Flow :
 
 - Aggregates pending settlements across all groups using **Smart Debt Simplification** (toggle between Standard and Smart views)
 - Displays payee UPI ID (from their profile)
@@ -477,7 +477,7 @@ Input → Regex-first (200+ keywords, instant)
 
 <br/>
 
-## 🔴 Real-Time Notifications (SSE)
+## 🔴 Real-Time Notifications (SSE) :
 
 ```
 ┌─────────┐   SSE stream   ┌─────────┐
@@ -505,7 +505,7 @@ Input → Regex-first (200+ keywords, instant)
 
 <br/>
 
-## 📱 Progressive Web App
+## 📱 Progressive Web App :
 
 - **Installable** — Add to Home Screen, runs standalone with window controls overlay
 - **Offline** — Workbox precaches JS, CSS, HTML, fonts, images (max 3 MB per file)
@@ -520,7 +520,7 @@ Input → Regex-first (200+ keywords, instant)
 
 <br/>
 
-## 🎓 Onboarding Spotlight Guide
+## 🎓 Onboarding Spotlight Guide :
 
 First-time users get a **5-step interactive walkthrough** that highlights real UI elements with an animated SVG spotlight mask:
 
@@ -538,7 +538,7 @@ Triggered automatically for guest users and first-time signups via `sessionStora
 
 <br/>
 
-## 🔐 Security
+## 🔐 Security :
 
 | Layer | Implementation |
 |:------|:---------------|
@@ -562,7 +562,7 @@ Triggered automatically for guest users and first-time signups via `sessionStora
 
 <br/>
 
-## 🌐 Deployment
+## 🌐 Deployment :
 
 ```
   ┌──────────────────┐   HTTPS    ┌──────────┐   MongoDB Atlas
@@ -601,7 +601,7 @@ Triggered automatically for guest users and first-time signups via `sessionStora
 
 <br/>
 
-## 🎨 Theming
+## 🎨 Theming :
 
 | Theme | Gradient |
 |:------|:---------|
@@ -618,7 +618,7 @@ Triggered automatically for guest users and first-time signups via `sessionStora
 
 <br/>
 
-## 📷 Advanced Receipt Scanner
+## 📷 Advanced Receipt Scanner :
 
 | Feature | Details |
 |:--------|:--------|
@@ -634,7 +634,7 @@ Triggered automatically for guest users and first-time signups via `sessionStora
 
 <br/>
 
-## 📊 Architecture Overview
+## 📊 Architecture Overview :
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -666,7 +666,7 @@ Triggered automatically for guest users and first-time signups via `sessionStora
 
 <br/>
 
-## 🆕 Latest Updates
+## 🆕 Latest Updates :
 
 ### UI Overhaul — Pink & Amber Theme
 
@@ -699,7 +699,7 @@ Triggered automatically for guest users and first-time signups via `sessionStora
 
 <br/>
 
-## 🤝 Contributing
+## 🤝 Contributing :
 
 1. Fork the repository
 2. `git checkout -b feat/your-feature`
