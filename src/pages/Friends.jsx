@@ -13,7 +13,7 @@ import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 const APP_URL = import.meta.env.VITE_APP_URL || "https://thesmartsplit.pages.dev";
 
 export default function Friends() {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const userId = getUserId();
   const [friends, setFriends] = useState([]);
   const [requests, setRequests] = useState([]);
