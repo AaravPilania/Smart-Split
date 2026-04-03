@@ -1,6 +1,6 @@
 import React from "react";
 
-const PhoneMockup = ({ children, className = "" }) => (
+const PhoneMockup = ({ children, className = "", style: s = {} }) => (
   <div
     className={`relative mx-auto ${className}`}
     style={{
@@ -11,6 +11,7 @@ const PhoneMockup = ({ children, className = "" }) => (
         "0 20px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
       padding: "8px 6px 8px",
       overflow: "hidden",
+      ...s,
     }}
   >
     {/* Status bar */}

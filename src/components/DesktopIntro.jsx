@@ -229,38 +229,35 @@ const DesktopIntro = ({ onGetStarted, onGoogleSignIn }) => {
           </button>
         </nav>
 
-        {/* Hero content */}
-        <div className="flex-1 flex items-center px-12 gap-16 max-w-7xl mx-auto w-full">
+        {/* Hero content — Pathio-style: centered headline above large centered phone */}
+        <div className="flex-1 flex flex-col items-center justify-start pt-4 pb-2 px-8 w-full overflow-hidden">
 
-          {/* Left column — headline + CTA */}
-          <div className="flex-1 flex flex-col items-start max-w-xl">
+          {/* ── Centered text + CTA ── */}
+          <div className="flex flex-col items-center text-center max-w-2xl">
 
             {/* Badge */}
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.4 }}
-              className="mb-6 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
+              className="mb-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
               style={{ background: "rgba(236,72,153,0.12)", border: "1px solid rgba(236,72,153,0.25)", color: "#f472b6" }}
             >
               <FiZap size={11} /> AI-powered bill splitting
             </motion.div>
 
             <motion.h1
-              className="text-[4rem] xl:text-[4.8rem] font-black leading-[1.03] tracking-tight text-white"
+              className="text-[3.6rem] xl:text-[4.6rem] font-black leading-[1.05] tracking-tight text-white"
               initial={{ opacity: 0, y: 24 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.06, ease: "easeOut" }}
             >
-              Stop doing
-              <br />
-              math at
-              <br />
-              <span style={GRADIENT_TEXT}>dinner.</span>
+              Split bills,{" "}
+              <span style={GRADIENT_TEXT}>not friendships.</span>
             </motion.h1>
 
             <motion.p
-              className="mt-5 text-white/40 text-base leading-relaxed max-w-sm"
+              className="mt-4 text-white/40 text-[0.95rem] leading-relaxed max-w-md"
               initial={{ opacity: 0, y: 12 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.4, delay: 0.16, ease: "easeOut" }}
@@ -271,7 +268,7 @@ const DesktopIntro = ({ onGetStarted, onGoogleSignIn }) => {
 
             {/* CTA row */}
             <motion.div
-              className="mt-8 flex items-center gap-3"
+              className="mt-7 flex items-center gap-3 justify-center flex-wrap"
               initial={{ opacity: 0, y: 12 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.4, delay: 0.24, ease: "easeOut" }}
@@ -303,7 +300,7 @@ const DesktopIntro = ({ onGetStarted, onGoogleSignIn }) => {
 
             {/* Social proof */}
             <motion.div
-              className="mt-7 flex items-center gap-3 text-white/30 text-xs"
+              className="mt-5 flex items-center gap-3 text-white/30 text-xs justify-center"
               initial={{ opacity: 0 }}
               animate={inView ? { opacity: 1 } : {}}
               transition={{ duration: 0.4, delay: 0.34 }}
@@ -321,41 +318,52 @@ const DesktopIntro = ({ onGetStarted, onGoogleSignIn }) => {
             </motion.div>
           </div>
 
-          {/* Right column — phone + floating cards */}
+          {/* ── Large centered phone + floating cards ── */}
           <motion.div
-            className="relative flex-shrink-0"
-            style={{ width: 420, height: 520 }}
-            initial={{ opacity: 0, x: 30 }}
-            animate={inView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            className="relative flex-shrink-0 mt-8"
+            style={{ width: "100%", maxWidth: 900, height: 460 }}
+            initial={{ opacity: 0, y: 32 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.7, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
           >
             {/* Glow behind phone */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div style={{ width: 260, height: 260, borderRadius: "50%", background: "radial-gradient(circle, rgba(168,85,247,0.22) 0%, transparent 70%)", filter: "blur(40px)" }} />
+              <div style={{ width: 340, height: 340, borderRadius: "50%", background: "radial-gradient(circle, rgba(168,85,247,0.20) 0%, transparent 70%)", filter: "blur(60px)" }} />
             </div>
 
-            {/* Phone centered */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            {/* Large phone centered — scaled up 1.32× for prominence */}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ zIndex: 2 }}>
               <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                animate={{ y: [0, -12, 0] }}
+                transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut" }}
+                style={{ transformOrigin: "center bottom", scale: 1.32 }}
               >
                 <DashboardMockup />
               </motion.div>
             </div>
 
             {/* Float card: You're owed (top-left) */}
-            <FloatCard style={{ top: 20, left: -10, width: 158 }} delay={0.5} tilt={-4} driftY={6}>
+            <FloatCard style={{ top: 18, left: "4%", width: 168 }} delay={0.5} tilt={-5} driftY={6}>
               <div className="text-[9px] text-white/40 font-medium mb-1">You're owed</div>
-              <div className="text-xl font-black text-white font-mono">₹2,360</div>
-              <div className="flex items-center gap-1 mt-1">
+              <div className="text-[1.3rem] font-black text-white font-mono leading-none">₹2,360</div>
+              <div className="flex items-center gap-1 mt-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
                 <span className="text-[9px] text-green-400 font-semibold">3 pending</span>
               </div>
             </FloatCard>
 
-            {/* Float card: AI scan (top-right) */}
-            <FloatCard style={{ top: 30, right: -20, width: 162 }} delay={0.65} tilt={4} driftY={7}>
+            {/* Float card: Monthly Insight (top-right) */}
+            <FloatCard style={{ top: 10, right: "4%", width: 172 }} delay={0.65} tilt={5} driftY={7}>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <div className="w-4 h-4 rounded flex items-center justify-center text-[9px]" style={{ background: "rgba(168,85,247,0.25)" }}>📊</div>
+                <span className="text-[9px] text-white/50 font-semibold">Monthly Insight</span>
+              </div>
+              <div className="text-[10px] text-white font-bold leading-snug">You're 12% under<br/>last month's spending</div>
+              <div className="mt-1.5 px-2 py-0.5 rounded-full text-[8px] font-bold inline-block" style={{ background: "rgba(34,197,94,0.15)", color: "#4ade80" }}>↓ Saving more ✓</div>
+            </FloatCard>
+
+            {/* Float card: AI Scanned (bottom-left) */}
+            <FloatCard style={{ bottom: 38, left: "5%", width: 165 }} delay={0.8} tilt={-4} driftY={9}>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <div className="w-4 h-4 rounded flex items-center justify-center text-[9px]" style={{ background: "rgba(236,72,153,0.2)" }}>⚡</div>
                 <span className="text-[9px] text-white/50 font-semibold">AI Scanned</span>
@@ -365,19 +373,8 @@ const DesktopIntro = ({ onGetStarted, onGoogleSignIn }) => {
               <div className="mt-1.5 px-2 py-0.5 rounded-full text-[8px] font-bold inline-block" style={{ background: "rgba(34,197,94,0.15)", color: "#4ade80" }}>Auto-split ✓</div>
             </FloatCard>
 
-            {/* Float card: Settled (bottom-left) */}
-            <FloatCard style={{ bottom: 40, left: -20, width: 148 }} delay={0.8} tilt={-3} driftY={9}>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base" style={{ background: "rgba(34,197,94,0.15)" }}>✓</div>
-                <div>
-                  <div className="text-[10px] text-white font-bold">Settled!</div>
-                  <div className="text-[8px] text-white/40">Alex paid ₹420</div>
-                </div>
-              </div>
-            </FloatCard>
-
-            {/* Float card: Group (bottom-right) */}
-            <FloatCard style={{ bottom: 50, right: -15, width: 155 }} delay={0.95} tilt={3} driftY={8}>
+            {/* Float card: Weekend Trip group (bottom-right) */}
+            <FloatCard style={{ bottom: 30, right: "4%", width: 160 }} delay={0.95} tilt={4} driftY={8}>
               <div className="text-[9px] text-white/40 font-medium mb-1">Weekend Trip</div>
               <div className="flex items-center gap-1 mb-1.5">
                 {["#ec4899","#a855f7","#f97316","#06b6d4"].map((c, i) => (
@@ -387,7 +384,7 @@ const DesktopIntro = ({ onGetStarted, onGoogleSignIn }) => {
                   </div>
                 ))}
               </div>
-              <div className="text-[11px] font-black text-white font-mono">₹12,400</div>
+              <div className="text-[12px] font-black text-white font-mono">₹12,400</div>
               <div className="text-[8px] text-white/35">total · 4 members</div>
             </FloatCard>
           </motion.div>

@@ -191,7 +191,7 @@ export default function MobileOnboarding({ onGetStarted, onGoogleSignIn }) {
       <motion.div
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.10}
+        dragElastic={0.08}
         onDragEnd={handleDragEnd}
         style={{ x: dragX, zIndex: 1, flex: 1 }}
         className="relative flex flex-col"
@@ -201,14 +201,14 @@ export default function MobileOnboarding({ onGetStarted, onGoogleSignIn }) {
             key={slide}
             custom={dir}
             variants={{
-              enter: (d) => ({ opacity: 0, x: d * 40 }),
-              center: { opacity: 1, x: 0 },
-              exit: (d) => ({ opacity: 0, x: d * -40 }),
+              enter: (d) => ({ opacity: 0, x: d * 36, scale: 0.97 }),
+              center: { opacity: 1, x: 0, scale: 1 },
+              exit: (d) => ({ opacity: 0, x: d * -36, scale: 0.97 }),
             }}
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.42, ease: [0.32, 0.72, 0, 1] }}
+            transition={{ type: "spring", stiffness: 380, damping: 36, mass: 0.9 }}
             className="absolute inset-0 flex flex-col"
           >
             <SlideContent
@@ -275,9 +275,9 @@ function SlideContent({ slide, slideIndex, theme, onNext, onGetStarted }) {
       {/* Visual */}
       <div className="flex items-center justify-center" style={{ flex: 1.5 }}>
         <motion.div
-          initial={{ scale: 0.88, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.55, ease: [0.32, 0.72, 0, 1] }}
+          initial={{ scale: 0.84, opacity: 0, y: 16 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 320, damping: 26 }}
           style={{ width: "100%", maxWidth: 310 }}
         >
           {slide.visual()}
@@ -288,9 +288,9 @@ function SlideContent({ slide, slideIndex, theme, onNext, onGetStarted }) {
       <div style={{ flex: 1 }}>
         {/* Tag line with colored dash */}
         <motion.div
-          initial={{ opacity: 0, x: -10 }}
+          initial={{ opacity: 0, x: -12 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.40 }}
+          transition={{ type: "spring", stiffness: 380, damping: 28 }}
           className="flex items-center gap-2 mb-3"
         >
           <div className="h-px w-5 rounded-full" style={{ background: theme.accent }} />
@@ -304,9 +304,9 @@ function SlideContent({ slide, slideIndex, theme, onNext, onGetStarted }) {
 
         {/* Headline with gradient accent word */}
         <motion.h1
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.48 }}
+          transition={{ type: "spring", stiffness: 340, damping: 26 }}
           className="font-black leading-[1.07] tracking-tight mb-3"
           style={{ fontSize: "clamp(1.9rem, 8.5vw, 2.6rem)" }}
         >
@@ -315,9 +315,9 @@ function SlideContent({ slide, slideIndex, theme, onNext, onGetStarted }) {
 
         {/* Sub-text */}
         <motion.p
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.44 }}
+          transition={{ type: "spring", stiffness: 360, damping: 28 }}
           className="text-sm leading-relaxed mb-7"
           style={{ color: "rgba(255,255,255,0.40)", maxWidth: 270 }}
         >
@@ -382,7 +382,7 @@ function SliderButton({ onComplete }) {
         onComplete(rect);
       }, 380);
     } else {
-      animate(x, 0, { type: "spring", stiffness: 500, damping: 38 });
+      animate(x, 0, { type: "spring", stiffness: 600, damping: 42 });
     }
   }, [x, MAX_DRAG, COMPLETE_THRESHOLD, onComplete]);
 

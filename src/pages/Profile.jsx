@@ -55,9 +55,9 @@ const PRESET_SUBSCRIPTIONS = [
   { name: "Netflix",       label: "Netflix",  logo: "https://cdn.simpleicons.org/netflix/ffffff",    color: "#e50914", category: "entertainment" },
   { name: "YouTube",       label: "YouTube",  logo: "https://cdn.simpleicons.org/youtube/ffffff",    color: "#ff0000", category: "entertainment" },
   { name: "Spotify",       label: "Spotify",  logo: "https://cdn.simpleicons.org/spotify/ffffff",    color: "#1db954", category: "entertainment" },
-  { name: "Prime Video",   label: "Prime",    logo: "https://cdn.simpleicons.org/primevideo/ffffff", color: "#00a8e0", category: "entertainment" },
-  { name: "Disney+",       label: "Disney+",  logo: "https://cdn.simpleicons.org/disneyplus/ffffff", color: "#113ccf", category: "entertainment" },
-  { name: "ChatGPT Plus",  label: "ChatGPT",  logo: "https://cdn.simpleicons.org/openai/ffffff",     color: "#10a37f", category: "utilities"    },
+  { name: "Prime Video",   label: "Prime",    logo: "/logos/prime.jpg",   color: "#00a8e0", category: "entertainment" },
+  { name: "Disney+ Hotstar", label: "Hotstar", logo: "/logos/hotstar.jpg", color: "#113ccf", category: "entertainment" },
+  { name: "ChatGPT Plus",  label: "ChatGPT",  logo: "/logos/chatgpt.png", color: "#10a37f", category: "utilities"    },
   { name: "Gym / Fitness", label: "Gym",      logo: null, emoji: "💪",                               color: "#f59e0b", category: "health"       },
   { name: "Custom",        label: "Custom",   logo: null, emoji: "✏️",                               color: "#6b7280", category: "subscription" },
 ];

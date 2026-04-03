@@ -242,19 +242,24 @@ img[data-fit="contain"], .img-contain {
 
 /* ─── Intro Onboarding Styles ─────────────────────────────────── */
 
-/* Desktop: smooth scroll container (no snap) */
+/* Desktop: smooth snap-scroll container */
 .intro-scroll {
   overflow-y: auto;
   overflow-x: hidden;
   scroll-behavior: smooth;
+  scroll-snap-type: y mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  height: 100%;
 }
 .intro-scroll::-webkit-scrollbar { display: none; }
 
 .intro-section {
-  min-height: 100vh;
+  min-height: 100dvh;
+  height: 100dvh;
   position: relative;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 /* Subtle film grain overlay for intro sections */
