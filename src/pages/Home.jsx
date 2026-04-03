@@ -633,7 +633,7 @@ const StarLabel = ({ letter, word, color="#ec4899" }) => (
 );
 
 /* ── Pain-point card for Section 2 ── */
-const PainCard = ({ icon, title, desc, accent="#ec4899", delay=0 }) => (
+const PainCard = ({ icon, title, desc, accent="#ec4899", delay=0, gif=null }) => (
   <motion.div
     initial={{opacity:0,y:40}} whileInView={{opacity:1,y:0}}
     viewport={{once:true,margin:"-60px"}} transition={{duration:0.5,delay,ease:[0.16,1,0.3,1]}}
@@ -643,10 +643,15 @@ const PainCard = ({ icon, title, desc, accent="#ec4899", delay=0 }) => (
       border:`1px solid ${accent}22`,boxShadow:`0 0 30px ${accent}0a,inset 0 1px 0 rgba(255,255,255,0.06)`,
       minHeight:220}}
     whileHover={{boxShadow:`0 0 50px ${accent}28,0 12px 40px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.10)`,border:`1px solid ${accent}40`,transition:{duration:0.12}}}>
-    <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
+    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
       style={{background:`${accent}18`,border:`1px solid ${accent}30`}}>{icon}</div>
-    <div className="text-lg font-bold text-white leading-snug">{title}</div>
-    <div className="text-sm text-white/40 leading-relaxed flex-1">{desc}</div>
+    <div className="text-base font-bold text-white leading-snug">{title}</div>
+    <div className="text-xs text-white/40 leading-relaxed">{desc}</div>
+    {gif && (
+      <div className="mt-auto overflow-hidden rounded-2xl">
+        <img src={gif} alt="" className="w-full rounded-2xl" style={{height:180,objectFit:"cover",display:"block"}} />
+      </div>
+    )}
   </motion.div>
 );
 
@@ -1106,13 +1111,16 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
             <div className="flex gap-5 flex-1">
               <PainCard delay={0} accent="#ef4444" icon="💬"
                 title="The endless IOU spiral"
-                desc="'You owe me from last time' + 'wait, didn't I cover the cab?' = 3 hours of WhatsApp archaeology at midnight. Every. Single. Time."/>
+                desc="3 hours of WhatsApp archaeology just to figure out who owes whom. Every single time."
+                gif="/videos/Lizard GIF.gif"/>
               <PainCard delay={0.1} accent="#f97316" icon="🧮"
                 title="Mental math after every meal"
-                desc="The silence after the bill arrives. Someone pulls out a calculator. The 'service charge included?' debate begins. Nobody wins."/>
+                desc="Bill arrives, awkward silence follows. Calculator out, 'service charge included?' debate begins."
+                gif="/videos/loop GIF.gif"/>
               <PainCard delay={0.2} accent="#a855f7" icon="😬"
                 title="The awkward ask"
-                desc="Reminding your best friend they owe you ₹340 for the third time. The friendship survives. Barely. But it shouldn't be this hard."/>
+                desc="Reminding your friend for the third time they owe you ₹340. It shouldn't be this hard."
+                gif="/videos/Breaking Bad GIF.gif"/>
             </div>
           </motion.div>
 
