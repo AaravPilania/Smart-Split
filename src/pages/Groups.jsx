@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import Navbar from "../components/Navbar";
-import BottomNav from "../components/BottomNav";
+import DesktopLayout from "../components/DesktopLayout";
 import { FiUsers, FiPlus, FiX, FiUserPlus, FiLink, FiZap, FiHeart, FiClock, FiTrash2, FiCamera } from "react-icons/fi";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
@@ -230,8 +229,7 @@ export default function Groups() {
 
   if (loading) {
     return (
-      <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
-        <Navbar />
+      <DesktopLayout>
         <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-28 space-y-4">
           <div className="flex justify-between items-center mb-2">
             <div className="space-y-2">
@@ -255,12 +253,12 @@ export default function Groups() {
             </div>
           ))}
         </div>
-      </div>
+      </DesktopLayout>
     );
   }
 
   return (
-    <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
+    <DesktopLayout>
       {/* Hidden file input shared across all group pfp pickers */}
       <input
         ref={pfpInputRef}
@@ -269,25 +267,31 @@ export default function Groups() {
         className="hidden"
         onChange={handlePfpChange}
       />
-      <Navbar />
 
-      <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-28">
+      <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-28 md:pb-6">
         {/* Page Header */}
-        <div className="flex justify-between items-center mb-6 sm:mb-8">
+        <motion.div
+          className="flex justify-between items-center mb-6 sm:mb-8"
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 320, damping: 28 }}
+        >
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">Your Groups</h2>
             <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">Manage your expense groups</p>
           </div>
 
           {/* Create Group Button */}
-          <button
+          <motion.button
             onClick={() => setShowCreateModal(true)}
-            className="text-white px-4 py-2.5 rounded-xl shadow flex items-center gap-2 hover:shadow-md transition text-sm font-semibold"
+            whileHover={{ scale: 1.04, boxShadow: "0 8px 30px rgba(244,114,182,0.4)" }}
+            whileTap={{ scale: 0.96 }}
+            className="text-white px-4 py-2.5 rounded-xl shadow flex items-center gap-2 text-sm font-semibold"
             style={getGradientStyle(theme)}
           >
             <FiPlus /> Create Group
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
 
         {/* Groups List */}
         {fetchError ? (
@@ -321,10 +325,20 @@ export default function Groups() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {groups.map((group) => (
-              <div
+            {groups.map((group, gIdx) => (
+              <motion.div
                 key={group.id}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-5 border border-gray-100 dark:border-gray-800 hover:shadow-md transition flex flex-col"
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-5 border border-gray-100 dark:border-gray-800 flex flex-col"
+                initial={{ opacity: 0, y: 28, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ type: "spring", stiffness: 280, damping: 26, delay: gIdx * 0.07 }}
+                whileHover={{
+                  y: -4,
+                  boxShadow: isDark
+                    ? "0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)"
+                    : "0 12px 36px rgba(0,0,0,0.13)",
+                  transition: { type: "spring", stiffness: 400, damping: 28 },
+                }}
               >
                 <div className="flex justify-between items-start mb-4 gap-3">
                   {/* Avatar with camera overlay */}
@@ -455,7 +469,7 @@ export default function Groups() {
                     </div>
                   )}
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         )}
@@ -717,8 +731,7 @@ export default function Groups() {
         </motion.div>
       )}
       </AnimatePresence>
-      <BottomNav />
-    </div>
+    </DesktopLayout>
   );
 }
 

@@ -1,13 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, animate as fmAnimate, useInView } from "framer-motion";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
-import { FiArrowRight, FiX } from "react-icons/fi";
+import DashboardSidebar from "../components/DashboardSidebar";
+import DashboardRightPanel from "../components/DashboardRightPanel";
+import ExpenseTable from "../components/ExpenseTable";
+import { FiArrowRight, FiX, FiTrendingUp, FiTrendingDown, FiDollarSign, FiUsers } from "react-icons/fi";
 import { API_URL, apiFetch, getUser, getUserId, cachedApiFetch, setCache } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 import { detectCategory, getCategoryInfo } from "../utils/categories";
 import { computeInsights } from "../utils/insights";
+import { staggerContainer, staggerItem, use3DTilt, GRAD_TEXT } from "../utils/desktopAnimations";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 function getGreeting() {
@@ -70,8 +74,19 @@ export default function Dashboard() {
   const [categoryData, setCategoryData] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
   const [insights, setInsights] = useState([]);
+  const [goals, setGoals] = useState([]);
+  const [allExpensesRaw, setAllExpensesRaw] = useState([]);
   const navigate = useNavigate();
   const { theme, isDark } = useTheme();
+  const [isDesktop, setIsDesktop] = useState(
+    typeof window !== "undefined" && window.innerWidth >= 768
+  );
+
+  useEffect(() => {
+    const onResize = () => setIsDesktop(window.innerWidth >= 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   // Auto-retry countdown when server is unreachable
   useEffect(() => {
@@ -102,7 +117,21 @@ export default function Dashboard() {
     if (!userData || !userId) { navigate("/"); return; }
     setUser(userData);
     fetchDashboardData(userId);
+    // Fetch goals for desktop sidebar
+    if (isDesktop) {
+      apiFetch(`${API_URL}/goals`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => { if (d?.goals) setGoals(d.goals.filter((g) => g.active !== false)); })
+        .catch(() => {});
+    }
   }, [navigate]);
+
+  // Desktop: auto-fetch insights data when dashboard loads
+  useEffect(() => {
+    if (isDesktop && !loading && !fetchError && allExpensesRaw.length > 0 && !insightsFetched) {
+      fetchInsightsData();
+    }
+  }, [isDesktop, loading, fetchError, allExpensesRaw, insightsFetched]);
 
   // ── All data fetching — unchanged from original ──────────────────────
   const fetchDashboardData = async (userId) => {
@@ -126,6 +155,7 @@ export default function Dashboard() {
           youOwe: stats.youOwe,
           owedToYou: stats.owedToYou,
         });
+        setAllExpensesRaw(allExpenses);
         setRecentExpenses(allExpenses.slice(0, 2));
         setSettlements(userSettlements.slice(0, 2));
         setFetchError(false);
@@ -197,6 +227,7 @@ export default function Dashboard() {
           new Date(a.createdAt || a.created_at)
       );
 
+      setAllExpensesRaw(allExpenses);
       setRecentExpenses(allExpenses.slice(0, 2));
       setSettlements(
         allSettlements
@@ -273,8 +304,307 @@ export default function Dashboard() {
 
   const firstName = user.name?.split(" ")[0] || "there";
   const glass = glassCard(isDark);
+  const userId = getUserId();
 
-  // ── Render ───────────────────────────────────────────────────────────
+  // ── CountUp component for currency values ────────────────────────────
+  const CurrencyCountUp = ({ amount }) => {
+    const ref = useRef(null);
+    const inView = useInView(ref, { once: false, margin: "-30px" });
+    const count = useMotionValue(0);
+    const display = useTransform(count, (v) =>
+      new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 2 }).format(v)
+    );
+    useEffect(() => {
+      if (!inView) return;
+      count.set(0);
+      const ctrl = fmAnimate(count, amount, { duration: 1.4, delay: 0.1, ease: [0.16, 1, 0.3, 1] });
+      return ctrl.stop;
+    }, [inView, amount]);
+    return <motion.span ref={ref}>{display}</motion.span>;
+  };
+
+  // ── Desktop Stat Card — 3D tilt + CountUp + accent glow ───────────────
+  const StatCard = ({ icon, label, value, rawAmount, sub, color, index = 0 }) => {
+    const { ref, onMouseMove, onMouseLeave, motionStyle } = use3DTilt(7);
+    return (
+      <motion.div
+        ref={ref}
+        onMouseMove={onMouseMove}
+        onMouseLeave={onMouseLeave}
+        className="rounded-2xl p-5 stat-card-desktop cursor-default"
+        style={{
+          ...glass,
+          "--card-accent-shadow": `${color}22`,
+          border: isDark ? `1px solid ${color}18` : `1px solid ${color}20`,
+        }}
+        initial={{ opacity: 0, y: 28, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: "spring", stiffness: 320, damping: 26, delay: index * 0.09 }}
+        {...motionStyle}
+      >
+        {/* Subtle accent glow top-right */}
+        <div className="absolute top-0 right-0 w-20 h-20 rounded-2xl pointer-events-none"
+          style={{ background: `radial-gradient(circle at 80% 20%, ${color}14 0%, transparent 70%)` }} />
+        <div className="flex items-center gap-3 mb-3 relative">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ background: `${color}18`, border: `1px solid ${color}28` }}>
+            {icon}
+          </div>
+          <span className="text-xs font-semibold uppercase tracking-wider"
+            style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)" }}>
+            {label}
+          </span>
+        </div>
+        <p className="text-2xl font-black relative" style={{ color: isDark ? "#fff" : "#111" }}>
+          {rawAmount !== undefined ? <CurrencyCountUp amount={rawAmount} /> : value}
+        </p>
+        {sub && (
+          <p className="text-[11px] mt-1" style={{ color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)" }}>
+            {sub}
+          </p>
+        )}
+      </motion.div>
+    );
+  };
+
+  // ── Desktop Cashflow Chart — spring bars + hover glow + tooltip ───────
+  const CashflowChart = () => {
+    const [hoveredBar, setHoveredBar] = useState(null);
+    if (!monthlyData.some((m) => m.amount > 0)) return null;
+    const max = Math.max(...monthlyData.map((d) => d.amount), 1);
+    return (
+      <div className="rounded-2xl p-5 relative overflow-hidden" style={glass}>
+        {/* Subtle glow behind current-month bar */}
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: `radial-gradient(ellipse at 50% 100%, ${theme.gradFrom}0d 0%, transparent 60%)` }} />
+        <div className="flex items-center justify-between mb-1 relative">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-1"
+              style={{ color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)" }}>
+              Cashflow
+            </p>
+            <p className="text-xl font-black" style={{ color: isDark ? "#fff" : "#111" }}>
+              <CurrencyCountUp amount={stats.totalExpenses} />
+            </p>
+          </div>
+          <span className="text-[11px] font-semibold px-3 py-1 rounded-full"
+            style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)", color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }}>
+            This Year
+          </span>
+        </div>
+        <div className="flex items-end gap-2 mt-6 relative" style={{ height: 160 }}>
+          {monthlyData.map((m, i) => {
+            const pct = Math.max((m.amount / max) * 100, 4);
+            const isHov = hoveredBar === i;
+            return (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1.5 relative"
+                onMouseEnter={() => setHoveredBar(i)}
+                onMouseLeave={() => setHoveredBar(null)}>
+                {/* Hover tooltip */}
+                {isHov && m.amount > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 4, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    className="absolute -top-9 left-1/2 -translate-x-1/2 px-2 py-1 rounded-lg text-[10px] font-bold text-white whitespace-nowrap z-10"
+                    style={{ background: `linear-gradient(135deg,${theme.gradFrom},${theme.gradTo})`, boxShadow: `0 4px 16px ${theme.gradFrom}55` }}>
+                    {formatCurrency(m.amount)}
+                  </motion.div>
+                )}
+                <motion.div
+                  initial={{ scaleY: 0 }}
+                  animate={{ scaleY: 1 }}
+                  transition={{ delay: i * 0.07, type: "spring", stiffness: 260, damping: 18 }}
+                  whileHover={{ scaleY: 1.04 }}
+                  className="w-full rounded-lg min-h-[4px] cursor-pointer"
+                  style={{
+                    height: `${pct}%`,
+                    transformOrigin: "bottom",
+                    background: m.isCurrent || isHov
+                      ? `linear-gradient(to top, ${theme.gradFrom}, ${theme.gradTo})`
+                      : isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
+                    boxShadow: (m.isCurrent || isHov) ? `0 0 18px ${theme.gradFrom}55` : "none",
+                    transition: "background 0.2s ease, box-shadow 0.2s ease",
+                  }}
+                />
+                <span className="text-[10px] font-semibold"
+                  style={{ color: (m.isCurrent || isHov) ? theme.gradFrom : isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)" }}>
+                  {m.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // ── DESKTOP RENDER ───────────────────────────────────────────────────
+  if (isDesktop) {
+    return (
+      <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
+        <div style={{ display: "grid", gridTemplateColumns: "260px 1fr 290px", minHeight: "100vh" }}>
+          {/* Left Sidebar */}
+          <DashboardSidebar goals={goals} />
+
+          {/* Main Content */}
+          <main className="overflow-y-auto py-7 px-8">
+
+            {/* ── Greeting banner ── */}
+            <motion.div
+              className="mb-7 flex items-end justify-between"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 320, damping: 26 }}
+            >
+              <div>
+                <p className="text-[10px] font-bold tracking-[0.2em] uppercase mb-1.5"
+                  style={{ color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)" }}>
+                  {getGreeting()}, {firstName}
+                </p>
+                <h1 className="text-[2.4rem] font-black leading-[1.05] tracking-tight"
+                  style={{ color: isDark ? "#fff" : "#111" }}>
+                  Your Financial{" "}
+                  <span style={GRAD_TEXT}>Atmosphere.</span>
+                </h1>
+              </div>
+              {/* Quick action badge */}
+              <motion.button
+                onClick={() => navigate("/balances")}
+                whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+                className="px-5 py-2.5 rounded-2xl text-white text-sm font-bold flex items-center gap-2 magnetic-cta"
+                style={{ background: `linear-gradient(135deg,${theme.gradFrom},${theme.gradTo})` }}>
+                Settle Up <FiArrowRight size={14} />
+              </motion.button>
+            </motion.div>
+
+            {/* Error state */}
+            {fetchError && (
+              <div className="rounded-2xl p-5 mb-5 text-center" style={glass}>
+                <div className="text-3xl mb-2">⚠️</div>
+                <p className="font-bold text-gray-800 dark:text-white mb-1">Server Unreachable</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                  Your data is safe — the server is warming up. Usually resolves in 30–60 seconds.
+                </p>
+                {retryIn !== null && <p className="text-xs text-gray-400 mb-3">Auto-retrying in <span className="font-semibold">{retryIn}s</span>…</p>}
+                <button onClick={() => { const uid = getUserId(); if (uid) fetchDashboardData(uid); }}
+                  className="px-5 py-2 rounded-xl text-white text-sm font-semibold" style={getGradientStyle(theme)}>
+                  Retry Now
+                </button>
+              </div>
+            )}
+
+            {/* Loading skeleton */}
+            {loading && !fetchError && (
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                {[1, 2, 3].map((i) => <div key={i} className="rounded-2xl animate-pulse h-36" style={glass} />)}
+                <div className="col-span-3 rounded-2xl animate-pulse h-64" style={glass} />
+              </div>
+            )}
+
+            {!loading && !fetchError && (
+              <>
+                {/* ── Stat Cards Row — staggered spring entrance, 3D tilt, CountUp ── */}
+                <motion.div
+                  className="grid grid-cols-3 xl:grid-cols-4 gap-4 mb-6"
+                  variants={staggerContainer}
+                  initial="hidden"
+                  animate="show"
+                >
+                  <StatCard
+                    icon={<FiDollarSign size={20} style={{ color: theme.gradFrom }} />}
+                    label="Total Spend"
+                    value={formatCurrency(stats.totalExpenses)}
+                    rawAmount={stats.totalExpenses}
+                    sub={`across ${groups.length} group${groups.length !== 1 ? "s" : ""}`}
+                    color={theme.gradFrom}
+                    index={0}
+                  />
+                  <StatCard
+                    icon={<FiTrendingDown size={20} style={{ color: "#ef4444" }} />}
+                    label="You Owe"
+                    value={formatCurrency(stats.youOwe)}
+                    rawAmount={stats.youOwe}
+                    sub="debts outstanding"
+                    color="#ef4444"
+                    index={1}
+                  />
+                  <StatCard
+                    icon={<FiTrendingUp size={20} style={{ color: "#10b981" }} />}
+                    label="Owed to You"
+                    value={formatCurrency(stats.owedToYou)}
+                    rawAmount={stats.owedToYou}
+                    sub="to collect"
+                    color="#10b981"
+                    index={2}
+                  />
+                  <div className="hidden xl:block">
+                    <StatCard
+                      icon={<FiUsers size={20} style={{ color: theme.gradTo }} />}
+                      label="Groups"
+                      value={String(groups.length)}
+                      sub={`${recentExpenses.length > 0 ? "active" : "no activity"}`}
+                      color={theme.gradTo}
+                      index={3}
+                    />
+                  </div>
+                </motion.div>
+
+                {/* ── Cashflow Chart — spring bars, hover tooltip, glow ── */}
+                <motion.div
+                  className="mb-6"
+                  initial={{ opacity: 0, y: 24, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 280, damping: 26, delay: 0.3 }}
+                >
+                  <CashflowChart />
+                </motion.div>
+
+                {/* ── Recent Transactions Table ── */}
+                <motion.div
+                  className="rounded-2xl p-5"
+                  style={glass}
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 26, delay: 0.45 }}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-[15px] font-bold" style={{ color: isDark ? "#fff" : "#111" }}>
+                      Recent Transactions
+                    </p>
+                    <button onClick={() => navigate("/expenses")}
+                      className="text-xs font-semibold flex items-center gap-1 transition hover:opacity-80"
+                      style={{ color: theme.gradFrom }}>
+                      View All <FiArrowRight size={11} />
+                    </button>
+                  </div>
+                  <ExpenseTable
+                    expenses={allExpensesRaw.slice(0, 8)}
+                    userId={userId}
+                    isDark={isDark}
+                    theme={theme}
+                    glass={glass}
+                  />
+                </motion.div>
+              </>
+            )}
+          </main>
+
+          {/* Right Panel */}
+          <DashboardRightPanel
+            categoryData={categoryData}
+            settlements={settlements}
+            recentExpenses={allExpensesRaw}
+            userId={userId}
+            theme={theme}
+            isDark={isDark}
+            navigate={navigate}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ── MOBILE RENDER (unchanged) ────────────────────────────────────────
   return (
     <div
       className="min-h-screen"

@@ -3,11 +3,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FiCamera, FiUpload, FiX, FiCheck, FiPlus, FiRefreshCw, FiCreditCard, FiChevronRight, FiUserPlus, FiCopy } from "react-icons/fi";
 import jsQR from "jsqr";
 import Tesseract from "tesseract.js";
-import { apiFetch, getToken } from "../utils/api";
+import { apiFetch, getToken, API_URL } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
 import { CATEGORIES, detectCategory, detectCategoryFromText, getCategoryInfo } from "../utils/categories";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export default function ScanReceipt({ 
   groups, 

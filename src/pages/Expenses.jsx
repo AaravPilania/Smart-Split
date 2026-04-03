@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import Navbar from "../components/Navbar";
-import BottomNav from "../components/BottomNav";
+import DesktopLayout from "../components/DesktopLayout";
 import {
   FiFile,
   FiPlus,
@@ -321,8 +320,7 @@ export default function Expenses() {
 
   if (loading && expenses.length === 0) {
     return (
-      <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
-        <Navbar />
+      <DesktopLayout>
         <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-28 space-y-4">
           <div className="flex justify-between items-center mb-2">
             <div className="space-y-2">
@@ -346,52 +344,56 @@ export default function Expenses() {
             </div>
           ))}
         </div>
-      </div>
+      </DesktopLayout>
     );
   }
 
   const selectedGroup = getSelectedGroup();
 
   return (
-    <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
-      <Navbar />
+    <DesktopLayout>
 
-      <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-28">
+      <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-28 md:pb-6">
         {/* Page Header */}
-        <div className="flex justify-between items-center mb-6 sm:mb-8 gap-3">
+        <motion.div
+          className="flex justify-between items-center mb-6 sm:mb-8 gap-3"
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 320, damping: 28 }}
+        >
           <div className="min-w-0">
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">All Expenses</h2>
             <p className="text-gray-400 dark:text-gray-500 text-sm uppercase tracking-wide mt-0.5">Track and manage your spending</p>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => {
                 const group = groups.find((g) => g.id === selectedGroupId);
                 downloadExpensesCSV(expenses, group?.name || "expenses");
               }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm hover:shadow transition disabled:opacity-40"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition disabled:opacity-40"
               disabled={!expenses.length}
               title="Export as CSV"
             >
               <FiDownload className="text-base" />
               <span className="hidden sm:inline">Export CSV</span>
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.04, boxShadow: "0 8px 28px rgba(244,114,182,0.4)" }}
+              whileTap={{ scale: 0.96 }}
               onClick={() => {
-                if (!selectedGroupId) {
-                  alert("Please select a group first");
-                  return;
-                }
+                if (!selectedGroupId) { alert("Please select a group first"); return; }
                 setShowCreateModal(true);
               }}
-              className="text-white px-4 py-2.5 rounded-xl shadow-md flex items-center gap-2 hover:shadow-lg transition disabled:opacity-50 text-sm font-semibold"
+              className="text-white px-4 py-2.5 rounded-xl shadow-md flex items-center gap-2 disabled:opacity-50 text-sm font-semibold"
               style={getGradientStyle(theme)}
               disabled={!selectedGroupId}
             >
               <FiPlus /> <span className="hidden sm:inline">Add Expense</span><span className="sm:hidden">Add</span>
-            </button>
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Group Filter */}
         <div className="mb-6">
@@ -454,10 +456,18 @@ export default function Expenses() {
           </div>
         ) : (
           <div className="space-y-4">
-            {expenses.map((expense) => (
-              <div
+            {expenses.map((expense, eIdx) => (
+              <motion.div
                 key={expense.id}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-5 border border-gray-100 dark:border-gray-800 hover:shadow-md transition"
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-5 border border-gray-100 dark:border-gray-800"
+                initial={{ opacity: 0, y: 20, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: eIdx * 0.05, type: "spring", stiffness: 280, damping: 26 }}
+                whileHover={{
+                  y: -3,
+                  boxShadow: isDark ? "0 10px 36px rgba(0,0,0,0.45)" : "0 10px 32px rgba(0,0,0,0.12)",
+                  transition: { type: "spring", stiffness: 400, damping: 28 },
+                }}
               >
                 <div className="flex justify-between items-start mb-3 gap-2">
                   <div className="flex-1 min-w-0">
@@ -525,7 +535,7 @@ export default function Expenses() {
                     ))}
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         )}
@@ -909,7 +919,6 @@ export default function Expenses() {
         </motion.div>
       )}
       </AnimatePresence>
-      <BottomNav />
-    </div>
+    </DesktopLayout>
   );
 }

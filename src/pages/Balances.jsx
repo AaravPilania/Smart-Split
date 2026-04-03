@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import Navbar from "../components/Navbar";
-import BottomNav from "../components/BottomNav";
+import DesktopLayout from "../components/DesktopLayout";
 import {
   FiCheck,
   FiBell,
@@ -203,12 +202,16 @@ export default function Balances() {
     .reduce((sum, s) => sum + s.amount, 0);
 
   return (
-    <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
-      <Navbar />
+    <DesktopLayout>
 
-      <div className="max-w-2xl mx-auto py-6 px-4 sm:px-6 pb-28">
+      <div className="max-w-2xl mx-auto py-6 px-4 sm:px-6 pb-28 md:pb-6 md:max-w-5xl">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <motion.div
+          className="flex justify-between items-center mb-6"
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 320, damping: 28 }}
+        >
           <div>
             <div className="flex items-center gap-2.5 mb-1">
               <div
@@ -247,8 +250,7 @@ export default function Balances() {
               <FiRefreshCw size={18} className={loading ? "animate-spin" : ""} />
             </button>
           </div>
-        </div>
-        {viewMode === "simplified" && (
+        </motion.div> && (
           <div className="mb-4 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2"
             style={{ background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(0,0,0,0.06)" }}>
             <FiZap size={13} className={theme.text} />
@@ -259,22 +261,26 @@ export default function Balances() {
         {/* Summary cards */}
         {(totalOwed > 0 || totalOwedToYou > 0) && (
           <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700 shadow-sm">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                You owe in total
-              </p>
-              <p className="text-xl sm:text-2xl font-bold text-red-500">
-                {formatCurrency(totalOwed)}
-              </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700 shadow-sm">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                Owed to you
-              </p>
-              <p className="text-xl sm:text-2xl font-bold text-green-600">
-                {formatCurrency(totalOwedToYou)}
-              </p>
-            </div>
+            <motion.div
+              className="bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700 shadow-sm"
+              initial={{ opacity: 0, y: 20, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 26, delay: 0.1 }}
+              whileHover={{ y: -3, boxShadow: isDark ? "0 8px 28px rgba(0,0,0,0.4), 0 0 0 1px rgba(239,68,68,0.2)" : "0 8px 24px rgba(239,68,68,0.15)", transition: { duration: 0.18 } }}
+            >
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">You owe in total</p>
+              <p className="text-xl sm:text-2xl font-bold text-red-500">{formatCurrency(totalOwed)}</p>
+            </motion.div>
+            <motion.div
+              className="bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700 shadow-sm"
+              initial={{ opacity: 0, y: 20, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 26, delay: 0.18 }}
+              whileHover={{ y: -3, boxShadow: isDark ? "0 8px 28px rgba(0,0,0,0.4), 0 0 0 1px rgba(16,185,129,0.2)" : "0 8px 24px rgba(16,185,129,0.15)", transition: { duration: 0.18 } }}
+            >
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Owed to you</p>
+              <p className="text-xl sm:text-2xl font-bold text-green-600">{formatCurrency(totalOwedToYou)}</p>
+            </motion.div>
           </div>
         )}
 
@@ -312,9 +318,18 @@ export default function Balances() {
                 .reduce((sum, s) => sum + s.amount, 0);
 
               return (
-                <div
+                <motion.div
                   key={group.id}
                   className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden"
+                  initial={{ opacity: 0, y: 24, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 26, delay: 0.1 }}
+                  whileHover={{
+                    boxShadow: isDark
+                      ? `0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px ${groupTotalOwedToYou > 0 ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.15)"}`
+                      : `0 8px 28px rgba(0,0,0,0.1)`,
+                    transition: { duration: 0.2 },
+                  }}
                 >
                   {/* Group header — clickable to expand/collapse */}
                   <button
@@ -478,7 +493,7 @@ export default function Balances() {
                     </div>
                     );
                   })()}
-                </div>
+              </motion.div>
               );
             })}
           </div>
@@ -619,7 +634,6 @@ export default function Balances() {
       )}
       </AnimatePresence>
 
-      <BottomNav />
-    </div>
+    </DesktopLayout>
   );
 }

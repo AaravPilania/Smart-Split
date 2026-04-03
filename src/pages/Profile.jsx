@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import Navbar from "../components/Navbar";
-import BottomNav from "../components/BottomNav";
+import DesktopLayout from "../components/DesktopLayout";
 import {
   FiUser, FiMail, FiEdit2, FiCheck, FiX,
   FiCopy, FiChevronRight,
@@ -391,8 +390,7 @@ export default function Profile() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
-        <Navbar />
+      <DesktopLayout>
         <div className="max-w-lg mx-auto px-4 pt-4 pb-28 space-y-4">
           {/* Hero card skeleton */}
           <div className="rounded-3xl p-6 animate-pulse flex flex-col items-center gap-3"
@@ -417,8 +415,7 @@ export default function Profile() {
             </div>
           ))}
         </div>
-        <BottomNav />
-      </div>
+      </DesktopLayout>
     );
   }
 
@@ -453,7 +450,7 @@ export default function Profile() {
   // ── EDIT PROFILE PAGE ──────────────────────────────────────────────
   if (editing) {
     return (
-      <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
+      <DesktopLayout>
         {/* Sticky header */}
         <div className="sticky top-0 z-40 flex items-center justify-between px-4 h-14"
           style={{
@@ -583,27 +580,24 @@ export default function Profile() {
           </form>
         </div>
 
-        <BottomNav />
         {toast && (
           <div className={`fixed bottom-24 left-4 right-4 max-w-sm mx-auto z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl text-white text-sm font-bold pointer-events-none ${toast.type === "error" ? "bg-red-500" : "bg-green-500"}`}>
             {toast.type === "error" ? <FiX size={15} /> : <FiCheck size={15} />}
             {toast.msg}
           </div>
         )}
-      </div>
+      </DesktopLayout>
     );
   }
 
   // ── MAIN PROFILE VIEW ──────────────────────────────────────────────
   return (
     <motion.div
-      className="min-h-screen"
-      style={getPageBgStyle(theme, isDark)}
       animate={{ opacity: loggingOut ? 0 : 1, scale: loggingOut ? 0.97 : 1 }}
       transition={{ duration: 0.35, ease: "easeInOut" }}
     >
-      <Navbar />
-      <div className="max-w-lg mx-auto px-4 pt-4 pb-28">
+    <DesktopLayout>
+      <div className="max-w-lg mx-auto px-4 pt-4 pb-28 md:pb-6 md:max-w-3xl">
 
         {/* ── HERO CARD ─────────────────────────────────────── */}
         <div className="rounded-3xl overflow-hidden mb-6 relative" style={ss}>
@@ -1221,8 +1215,6 @@ export default function Profile() {
 
       </div>
 
-      <BottomNav />
-
       {/* ── Logout confirmation modal ─────────────────────── */}
       <AnimatePresence>
         {showLogoutConfirm && (
@@ -1293,6 +1285,7 @@ export default function Profile() {
           {toast.msg}
         </div>
       )}
+    </DesktopLayout>
     </motion.div>
   );
 }

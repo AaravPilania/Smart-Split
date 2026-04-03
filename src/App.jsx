@@ -22,11 +22,11 @@ function PublicRoute({ element }) {
   return getToken() ? <Navigate to="/dashboard" replace /> : element;
 }
 
-// Smooth page transition — cross-fade with no layout shift
-const PAGE_ENTER = { opacity: 1 };
-const PAGE_EXIT  = { opacity: 0 };
-const PAGE_INIT  = { opacity: 0 };
-const PAGE_TRAN  = { duration: 0.12, ease: "easeOut" };
+// Smooth page transition — cross-fade + subtle lift
+const PAGE_ENTER = { opacity: 1, y: 0, scale: 1 };
+const PAGE_EXIT  = { opacity: 0, y: -8, scale: 0.99 };
+const PAGE_INIT  = { opacity: 0, y: 8, scale: 0.99 };
+const PAGE_TRAN  = { duration: 0.22, ease: [0.16, 1, 0.3, 1] };
 
 function PageTransition({ children }) {
   const location = useLocation();

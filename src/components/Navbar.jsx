@@ -213,10 +213,13 @@ export default function Navbar() {
     );
   }
 
+  const sidebarPages = ["/dashboard", "/groups", "/expenses", "/balances", "/friends", "/profile"];
+  const isSidebarPage = sidebarPages.includes(location.pathname);
+
   return (
     <>
       <header
-        className="w-full sticky top-0 z-40 transition-colors duration-200"
+        className={`w-full sticky top-0 z-40 transition-colors duration-200${isSidebarPage ? " md:hidden" : ""}`}
         style={{
           background: isDark
             ? "rgba(15,15,25,0.72)"

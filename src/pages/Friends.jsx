@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Navbar from "../components/Navbar";
-import BottomNav from "../components/BottomNav";
+import DesktopLayout from "../components/DesktopLayout";
 import {
   FiUserPlus, FiUserCheck, FiUserX, FiSearch, FiUsers,
   FiCheck, FiX, FiTrash2, FiMail, FiGrid,
@@ -143,26 +142,31 @@ export default function Friends() {
   ];
 
   return (
-    <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
-      <Navbar />
-      <BottomNav />
+    <DesktopLayout>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 pb-28">
+      <div className="max-w-2xl mx-auto px-4 py-6 pb-28 md:pb-6 md:max-w-4xl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <motion.div
+          className="flex items-center justify-between mb-6"
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 320, damping: 28 }}
+        >
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Friends</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Add friends and split expenses together</p>
           </div>
-          <button
+          <motion.button
             onClick={() => setShowMyQR((v) => !v)}
-            className="h-10 w-10 rounded-xl flex items-center justify-center text-white shadow-md hover:shadow-lg transition"
+            whileHover={{ scale: 1.08, boxShadow: "0 8px 24px rgba(244,114,182,0.4)" }}
+            whileTap={{ scale: 0.94 }}
+            className="h-10 w-10 rounded-xl flex items-center justify-center text-white shadow-md"
             style={getGradientStyle(theme)}
             title="My QR Code"
           >
             <FiGrid size={18} />
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
 
         {/* My QR panel */}
         <AnimatePresence>
@@ -244,8 +248,15 @@ export default function Friends() {
                     <p className="text-sm mt-1">Search by email or share your QR to connect</p>
                   </div>
                 ) : (
-                  friends.map((f) => (
-                    <div key={f.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-3">
+                  friends.map((f, fIdx) => (
+                    <motion.div
+                      key={f.id}
+                      className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-3"
+                      initial={{ opacity: 0, x: -16 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: fIdx * 0.06, type: "spring", stiffness: 300, damping: 26 }}
+                      whileHover={{ y: -2, boxShadow: isDark ? "0 8px 28px rgba(0,0,0,0.4)" : "0 8px 24px rgba(0,0,0,0.1)", transition: { duration: 0.18 } }}
+                    >
                       <div className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0" style={getGradientStyle(theme)}>
                         {f.name?.[0]?.toUpperCase() || "?"}
                       </div>
@@ -260,7 +271,7 @@ export default function Friends() {
                       >
                         <FiTrash2 size={14} />
                       </button>
-                    </div>
+                    </motion.div>
                   ))
                 )}
               </div>
@@ -275,8 +286,14 @@ export default function Friends() {
                     <p className="font-medium">No pending requests</p>
                   </div>
                 ) : (
-                  requests.map((r) => (
-                    <div key={r._id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-3">
+                  requests.map((r, rIdx) => (
+                    <motion.div
+                      key={r._id}
+                      className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-3"
+                      initial={{ opacity: 0, x: -16 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: rIdx * 0.07, type: "spring", stiffness: 300, damping: 26 }}
+                    >
                       <div className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0" style={getGradientStyle(theme)}>
                         {r.requester?.name?.[0]?.toUpperCase() || "?"}
                       </div>
@@ -303,7 +320,7 @@ export default function Friends() {
                           <FiX size={14} />
                         </button>
                       </div>
-                    </div>
+                    </motion.div>
                   ))
                 )}
               </div>
@@ -385,6 +402,6 @@ export default function Friends() {
           </>
         )}
       </div>
-    </div>
+    </DesktopLayout>
   );
 }

@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Desktop dashboard sidebar/panel scroll ──────────────────── */
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(128,128,128,0.2) transparent;
+}
+.sidebar-scroll::-webkit-scrollbar { width: 4px; }
+.sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.2); border-radius: 4px; }
+.sidebar-scroll::-webkit-scrollbar-thumb:hover { background: rgba(128,128,128,0.35); }
+
 /* Safe area insets for PWA standalone mode (notch / home bar) */
 html, body {
   overflow-x: hidden;
@@ -424,4 +434,192 @@ img[data-fit="contain"], .img-contain {
   0%   { transform: scale(0.8); opacity: 0; }
   50%  { transform: scale(1.05); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DESKTOP LOGGED-IN EXPERIENCE  — rich animation layer
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Cursor glow that follows mouse on desktop layout ── */
+.desktop-cursor-glow {
+  --gx: 50%;
+  --gy: 50%;
+  background-image: radial-gradient(
+    600px circle at var(--gx) var(--gy),
+    rgba(168, 85, 247, 0.04) 0%,
+    transparent 60%
+  );
+  transition: background-image 0s; /* instant follow, spring handled in JS */
+}
+
+/* ── Desktop ambient overlay dots (inside the 3-column grid) ── */
+.desktop-ambient-dots {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.045) 1px, transparent 1px);
+  background-size: 28px 28px;
+  z-index: 0;
+}
+
+/* ── Desktop ambient glow blobs (very subtle — for logged-in pages) ── */
+.desktop-glow-a {
+  position: fixed;
+  pointer-events: none;
+  z-index: 0;
+  width: 70vw; height: 70vw;
+  max-width: 800px; max-height: 800px;
+  top: -20%; left: -10%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(236,72,153,0.055) 0%, rgba(168,85,247,0.025) 45%, transparent 65%);
+  filter: blur(50px);
+  will-change: transform;
+  animation: glowDrift1 55s ease-in-out infinite;
+}
+.desktop-glow-b {
+  position: fixed;
+  pointer-events: none;
+  z-index: 0;
+  width: 60vw; height: 60vw;
+  max-width: 700px; max-height: 700px;
+  bottom: -15%; right: -10%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(249,115,22,0.045) 0%, rgba(236,72,153,0.02) 45%, transparent 65%);
+  filter: blur(50px);
+  will-change: transform;
+  animation: glowDrift2 65s ease-in-out infinite;
+}
+
+/* ── Stat card hover glow (color injected via --card-accent CSS var) ── */
+@keyframes cardGlowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--card-accent-shadow, rgba(236,72,153,0)); }
+  50%       { box-shadow: 0 0 28px 4px var(--card-accent-shadow, rgba(236,72,153,0.12)); }
+}
+
+.stat-card-desktop {
+  transform-style: preserve-3d;
+  transition: box-shadow 0.28s ease, border-color 0.28s ease;
+  will-change: transform;
+}
+.stat-card-desktop:hover {
+  animation: cardGlowPulse 2.2s ease-in-out infinite;
+}
+
+/* ── Goal progress bar animated fill ── */
+@keyframes goalBarFill {
+  from { width: 0%; }
+}
+.goal-bar-fill {
+  animation: goalBarFill 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Nav active pill slide ── */
+.nav-active-pill {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Notification bell shake ── */
+@keyframes bellShake {
+  0%,100% { transform: rotate(0deg); }
+  15%     { transform: rotate(-14deg); }
+  30%     { transform: rotate(12deg); }
+  45%     { transform: rotate(-10deg); }
+  60%     { transform: rotate(7deg); }
+  75%     { transform: rotate(-4deg); }
+}
+.bell-shake {
+  animation: bellShake 0.55s ease-in-out;
+}
+
+/* ── Row entrance stagger ── */
+@keyframes rowSlideIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.table-row-enter {
+  animation: rowSlideIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Shimmer sweep on stat card value ── */
+@keyframes shimmerSweep {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.value-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%);
+  background-size: 200% auto;
+  animation: shimmerSweep 1.6s linear;
+  border-radius: 4px;
+}
+
+/* ── Chart bar bounce ── */
+@keyframes barBounceIn {
+  0%   { transform: scaleY(0); transform-origin: bottom; }
+  70%  { transform: scaleY(1.06); }
+  100% { transform: scaleY(1); transform-origin: bottom; }
+}
+.chart-bar-enter {
+  transform-origin: bottom;
+  animation: barBounceIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Page section fade-up (replace basic Framer opacity) ── */
+@keyframes sectionReveal {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.section-reveal {
+  animation: sectionReveal 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Card grid stagger for page lists (groups, expenses, etc.) ── */
+.card-grid-item {
+  animation: fadeSlideUp 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.card-grid-item:nth-child(1)  { animation-delay: 0ms; }
+.card-grid-item:nth-child(2)  { animation-delay: 55ms; }
+.card-grid-item:nth-child(3)  { animation-delay: 110ms; }
+.card-grid-item:nth-child(4)  { animation-delay: 165ms; }
+.card-grid-item:nth-child(5)  { animation-delay: 220ms; }
+.card-grid-item:nth-child(6)  { animation-delay: 275ms; }
+.card-grid-item:nth-child(7)  { animation-delay: 330ms; }
+.card-grid-item:nth-child(8)  { animation-delay: 385ms; }
+.card-grid-item:nth-child(9)  { animation-delay: 440ms; }
+.card-grid-item:nth-child(10) { animation-delay: 495ms; }
+
+/* ── Hover lift + accent glow on feature / list cards ── */
+.list-card-hover {
+  transition: transform 0.22s cubic-bezier(0.4,0,0.2,1),
+              box-shadow  0.22s cubic-bezier(0.4,0,0.2,1),
+              border-color 0.22s ease;
+}
+.list-card-hover:hover {
+  transform: translateY(-4px) scale(1.012);
+}
+
+/* ── Magnetic button glow on the pink CTA ── */
+@keyframes magneticGlow {
+  0%,100% { box-shadow: 0 4px 24px rgba(236,72,153,0.40); }
+  50%      { box-shadow: 0 6px 40px rgba(236,72,153,0.65); }
+}
+.magnetic-cta:hover {
+  animation: magneticGlow 1.8s ease-in-out infinite;
+}
+
+/* ── Balance card pulsing border ── */
+@keyframes balanceBorderPulse {
+  0%,100% { border-color: var(--balance-color, rgba(236,72,153,0.2)); }
+  50%      { border-color: var(--balance-color-bright, rgba(236,72,153,0.5)); }
+}
+.balance-card-pulse {
+  animation: balanceBorderPulse 2.5s ease-in-out infinite;
+}
+
+/* ── Desktop page fade-in (slightly richer than the simple opacity tween in App.jsx) ── */
+@keyframes pageEntrance {
+  0%   { opacity: 0; transform: translateY(8px) scale(0.995); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.page-enter-desktop {
+  animation: pageEntrance 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
