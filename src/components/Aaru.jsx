@@ -287,19 +287,24 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
     };
   }, [open]);
 
-  // Keyboard spacing — shift sheet up when virtual keyboard opens
-  const [kbOffset, setKbOffset] = useState(0);
+  // Keyboard spacing — shift sheet up when virtual keyboard opens.
+  // Uses a CSS variable instead of setState to avoid React re-renders mid-animation.
   useEffect(() => {
-    if (!open) { setKbOffset(0); return; }
+    const root = document.documentElement;
+    if (!open) { root.style.setProperty('--aaru-kb-offset', '0px'); return; }
     const vv = window.visualViewport;
     if (!vv) return;
     const onResize = () => {
       const offset = window.innerHeight - vv.height;
-      setKbOffset(offset > 50 ? offset : 0);
+      root.style.setProperty('--aaru-kb-offset', `${offset > 50 ? offset : 0}px`);
     };
     vv.addEventListener("resize", onResize);
     vv.addEventListener("scroll", onResize);
-    return () => { vv.removeEventListener("resize", onResize); vv.removeEventListener("scroll", onResize); };
+    return () => {
+      vv.removeEventListener("resize", onResize);
+      vv.removeEventListener("scroll", onResize);
+      root.style.setProperty('--aaru-kb-offset', '0px');
+    };
   }, [open]);
 
   // Scroll to bottom on new messages
@@ -447,8 +452,8 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
             className="relative flex flex-col rounded-t-3xl z-10 overflow-hidden"
             style={{
               height: "78vh",
-              maxHeight: kbOffset > 0 ? `calc(100vh - ${kbOffset}px)` : undefined,
-              transform: kbOffset > 0 ? `translateY(-${kbOffset}px)` : undefined,
+              maxHeight: "calc(100vh - var(--aaru-kb-offset, 0px))",
+              transform: "translateY(calc(-1 * var(--aaru-kb-offset, 0px)))",
               transition: "transform 0.15s ease, max-height 0.15s ease",
               background: isDark ? "rgba(11,11,20,0.98)" : "#ffffff",
               backdropFilter: "blur(32px)",

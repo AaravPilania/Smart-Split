@@ -52,24 +52,14 @@ const avatarOptions = [
 ];
 
 const PRESET_SUBSCRIPTIONS = [
-  { name: "Spotify",             emoji: "🎵", color: "#1db954", category: "entertainment" },
-  { name: "YouTube Premium",     emoji: "▶️", color: "#ff0000", category: "entertainment" },
-  { name: "Netflix",             emoji: "🎬", color: "#e50914", category: "entertainment" },
-  { name: "Amazon Prime Video",  emoji: "📦", color: "#00a8e0", category: "entertainment" },
-  { name: "Disney+",             emoji: "✨", color: "#113ccf", category: "entertainment" },
-  { name: "Apple Music",         emoji: "🎶", color: "#fa243c", category: "entertainment" },
-  { name: "Apple TV+",           emoji: "🍎", color: "#555555", category: "entertainment" },
-  { name: "HBO Max",             emoji: "📺", color: "#6b2fff", category: "entertainment" },
-  { name: "Hulu",                emoji: "🟢", color: "#1ce783", category: "entertainment" },
-  { name: "Microsoft 365",       emoji: "💼", color: "#d83b01", category: "utilities" },
-  { name: "Google One",          emoji: "☁️", color: "#4285f4", category: "utilities" },
-  { name: "iCloud+",             emoji: "🌥️", color: "#3478f6", category: "utilities" },
-  { name: "ChatGPT Plus",        emoji: "🤖", color: "#10a37f", category: "utilities" },
-  { name: "Notion",              emoji: "📝", color: "#000000", category: "utilities" },
-  { name: "LinkedIn Premium",    emoji: "💼", color: "#0077b5", category: "other" },
-  { name: "Adobe Creative Cloud",emoji: "🎨", color: "#ff0000", category: "other" },
-  { name: "Gym / Fitness",       emoji: "💪", color: "#f59e0b", category: "health" },
-  { name: "Custom",              emoji: "✏️", color: "#6b7280", category: "subscription" },
+  { name: "Netflix",       label: "Netflix",  logo: "https://cdn.simpleicons.org/netflix/ffffff",    color: "#e50914", category: "entertainment" },
+  { name: "YouTube",       label: "YouTube",  logo: "https://cdn.simpleicons.org/youtube/ffffff",    color: "#ff0000", category: "entertainment" },
+  { name: "Spotify",       label: "Spotify",  logo: "https://cdn.simpleicons.org/spotify/ffffff",    color: "#1db954", category: "entertainment" },
+  { name: "Prime Video",   label: "Prime",    logo: "https://cdn.simpleicons.org/primevideo/ffffff", color: "#00a8e0", category: "entertainment" },
+  { name: "Disney+",       label: "Disney+",  logo: "https://cdn.simpleicons.org/disneyplus/ffffff", color: "#113ccf", category: "entertainment" },
+  { name: "ChatGPT Plus",  label: "ChatGPT",  logo: "https://cdn.simpleicons.org/openai/ffffff",     color: "#10a37f", category: "utilities"    },
+  { name: "Gym / Fitness", label: "Gym",      logo: null, emoji: "💪",                               color: "#f59e0b", category: "health"       },
+  { name: "Custom",        label: "Custom",   logo: null, emoji: "✏️",                               color: "#6b7280", category: "subscription" },
 ];
 
 export default function Profile() {
@@ -1032,18 +1022,23 @@ export default function Profile() {
                             type="button"
                             onClick={() => {
                               if (preset.name === "Custom") {
-                                setSubForm({ name: "", amount: "", billingCycle: "monthly", nextBillingDate: "", color: "#6b7280", icon: "✏️" });
+                                setSubForm({ name: "", amount: "", billingCycle: "monthly", nextBillingDate: "", color: "#6b7280", icon: "" });
                               } else {
-                                setSubForm({ name: preset.name, amount: "", billingCycle: "monthly", nextBillingDate: "", color: preset.color, icon: preset.emoji });
+                                setSubForm({ name: preset.name, amount: "", billingCycle: "monthly", nextBillingDate: "", color: preset.color, icon: preset.logo || preset.emoji || "" });
                               }
                               setSubStep("form");
                             }}
                             className="flex flex-col items-center gap-1.5 p-3 rounded-xl active:scale-95 transition"
                             style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)" }}
                           >
-                            <span className="text-xl">{preset.emoji}</span>
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                              style={{ background: preset.color }}>
+                              {preset.logo
+                                ? <img src={preset.logo} className="w-6 h-6 object-contain" alt={preset.label} />
+                                : <span className="text-xl">{preset.emoji}</span>}
+                            </div>
                             <span className="text-[10px] font-semibold text-center leading-tight" style={{ color: textClr }}>
-                              {preset.name === "Adobe Creative Cloud" ? "Adobe CC" : preset.name === "Amazon Prime Video" ? "Prime Video" : preset.name === "LinkedIn Premium" ? "LinkedIn" : preset.name}
+                              {preset.label}
                             </span>
                           </button>
                         ))}
@@ -1078,7 +1073,11 @@ export default function Profile() {
                         style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", color: subClr }}>
                         <FiArrowLeft size={13} />
                       </button>
-                      <span className="text-xl">{subForm.icon || "💳"}</span>
+                      {subForm.icon?.startsWith('http')
+                        ? <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: subForm.color }}>
+                            <img src={subForm.icon} className="w-5 h-5 object-contain" alt={subForm.name} />
+                          </div>
+                        : <span className="text-xl">{subForm.icon || "💳"}</span>}
                       <span className="text-sm font-bold" style={{ color: textClr }}>{subForm.name || "Custom"}</span>
                     </div>
                     <input type="text" placeholder="Name" required
@@ -1099,15 +1098,9 @@ export default function Profile() {
                         <option value="yearly">Yearly</option>
                       </select>
                     </div>
-                    <div className="flex gap-2 items-center">
-                      <input type="text" placeholder="Emoji icon" maxLength={2}
-                        value={subForm.icon} onChange={e => setSubForm({ ...subForm, icon: e.target.value })}
-                        className={`w-14 px-2 py-2.5 rounded-xl text-sm text-center font-semibold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
-                        style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }} />
-                      <p className="text-[11px] font-semibold flex-1 truncate" style={{ color: subClr }}>
-                        {subForm.nextBillingDate ? new Date(subForm.nextBillingDate + "T00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Pick date below ↓"}
-                      </p>
-                    </div>
+                    <p className="text-[11px] font-semibold" style={{ color: subClr }}>
+                      {subForm.nextBillingDate ? new Date(subForm.nextBillingDate + "T00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Pick date below ↓"}
+                    </p>
                     <BillingCalendar
                       selectedDate={subForm.nextBillingDate}
                       onSelectDate={(d) => {
@@ -1187,8 +1180,10 @@ export default function Profile() {
                     <div key={sub._id} className="rounded-2xl overflow-hidden" style={{ ...ss, opacity: sub.active ? 1 : 0.5 }}>
                       <div className="flex items-center gap-3 p-4">
                         <div className="h-11 w-11 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-                          style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)" }}>
-                          {sub.icon || "💳"}
+                          style={{ background: sub.icon?.startsWith('http') ? (sub.color || '#444') : (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)") }}>
+                          {sub.icon?.startsWith('http')
+                            ? <img src={sub.icon} className="w-6 h-6 object-contain" alt={sub.name} />
+                            : (sub.icon || "💳")}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">

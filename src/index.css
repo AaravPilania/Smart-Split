@@ -24,9 +24,11 @@ body {
   color-scheme: dark;
 }
 
-/* Smooth global transitions for buttons and interactive elements */
+/* Smooth global transitions — only GPU-safe properties, never layout properties */
 button, a, input, select, textarea {
-  transition: all 0.2s ease;
+  transition: color 0.2s ease, background-color 0.2s ease,
+              border-color 0.2s ease, opacity 0.2s ease,
+              transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* Global image rendering — prevents aspect-ratio distortion */
@@ -156,6 +158,8 @@ img[data-fit="contain"], .img-contain {
   background: radial-gradient(circle, rgba(236,72,153,0.45) 0%, rgba(168,85,247,0.22) 40%, transparent 60%);
   filter: blur(36px);
   mix-blend-mode: screen;
+  will-change: transform;
+  transform: translateZ(0);
   animation: glowDrift1 50s ease-in-out infinite;
 }
 
@@ -168,6 +172,8 @@ img[data-fit="contain"], .img-contain {
   background: radial-gradient(circle, rgba(249,115,22,0.45) 0%, rgba(236,72,153,0.32) 40%, transparent 60%);
   filter: blur(36px);
   mix-blend-mode: screen;
+  will-change: transform;
+  transform: translateZ(0);
   animation: glowDrift2 60s ease-in-out infinite;
 }
 
@@ -180,6 +186,8 @@ img[data-fit="contain"], .img-contain {
   background: radial-gradient(circle, rgba(168,85,247,0.40) 0%, rgba(236,72,153,0.18) 50%, transparent 60%);
   filter: blur(32px);
   mix-blend-mode: screen;
+  will-change: transform;
+  transform: translateZ(0);
   animation: glowDrift3 45s ease-in-out infinite;
 }
 
