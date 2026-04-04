@@ -77,9 +77,9 @@ export default function NotFound() {
         className="my-14"
       >
         <img
-          src="https://media.giphy.com/media/l0HlBO7eyXzSZkJri/giphy.gif"
-          alt="money down the toilet"
-          className="w-48 h-48 md:w-56 md:h-56 object-cover rounded-3xl"
+          src="/videos/toilet%20breaking%20GIF.gif"
+          alt="toilet breaking"
+          className="w-72 h-72 md:w-96 md:h-96 object-cover rounded-3xl"
           style={{
             boxShadow: `0 24px 70px ${theme.gradFrom}35, 0 4px 20px rgba(0,0,0,0.25)`,
           }}
