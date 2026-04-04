@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import DesktopLayout from "../components/DesktopLayout";
+import DesktopPageHeader from "../components/DesktopPageHeader";
 import {
   FiCheck,
   FiBell,
@@ -204,57 +205,42 @@ export default function Balances() {
   return (
     <DesktopLayout>
 
-      <div className="max-w-2xl mx-auto py-6 px-4 sm:px-6 pb-28 md:pb-6 md:max-w-5xl">
-        {/* Header */}
-        <motion.div
-          className="flex justify-between items-center mb-6"
-          initial={{ opacity: 0, y: -16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 320, damping: 28 }}
-        >
-          <div>
-            <div className="flex items-center gap-2.5 mb-1">
-              <div
-                className="h-9 w-9 rounded-xl flex items-center justify-center text-white shadow-md"
-                style={getGradientStyle(theme)}
-              >
-                <FiBarChart2 size={18} />
+      <div className="max-w-2xl mx-auto py-8 px-6 pb-28 md:pb-8 md:max-w-5xl">
+        <DesktopPageHeader
+          label="Finance"
+          title="Split"
+          gradWord="Balances"
+          subtitle="Who owes whom across all your groups"
+          actions={
+            <div className="flex items-center gap-2">
+              <div className="flex rounded-2xl overflow-hidden text-xs font-bold" style={{ border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.09)", background: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)" }}>
+                <button
+                  onClick={() => setViewMode("standard")}
+                  className="px-3.5 py-2 transition-all"
+                  style={viewMode === "standard" ? { background: `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})`, color: "#fff" } : { color: isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)" }}
+                >Standard</button>
+                <button
+                  onClick={() => setViewMode("simplified")}
+                  className="px-3.5 py-2 flex items-center gap-1 transition-all"
+                  style={viewMode === "simplified" ? { background: `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})`, color: "#fff" } : { color: isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)" }}
+                ><FiZap size={10} /> Smart</button>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">
-                Balances
-              </h2>
-            </div>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              Who owes whom across all your groups
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* View mode toggle */}
-            <div className="flex rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 text-xs font-semibold">
               <button
-                onClick={() => setViewMode("standard")}
-                className={`px-3 py-1.5 transition-all ${viewMode === "standard" ? "text-white" : "text-gray-500 dark:text-gray-400"}`}
-                style={viewMode === "standard" ? getGradientStyle(theme) : {}}
-              >Standard</button>
-              <button
-                onClick={() => setViewMode("simplified")}
-                className={`px-3 py-1.5 flex items-center gap-1 transition-all ${viewMode === "simplified" ? "text-white" : "text-gray-500 dark:text-gray-400"}`}
-                style={viewMode === "simplified" ? getGradientStyle(theme) : {}}
-              ><FiZap size={11} /> Smart</button>
+                onClick={fetchAllBalances}
+                className="h-9 w-9 rounded-xl flex items-center justify-center transition hover:scale-110"
+                style={{ background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)", color: isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.5)" }}
+                title="Refresh"
+              >
+                <FiRefreshCw size={15} className={loading ? "animate-spin" : ""} />
+              </button>
             </div>
-            <button
-              onClick={fetchAllBalances}
-              className="p-2.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-              title="Refresh"
-            >
-              <FiRefreshCw size={18} className={loading ? "animate-spin" : ""} />
-            </button>
-          </div>
-        </motion.div> && (
+          }
+        />
+        {viewMode === "simplified" && (
           <div className="mb-4 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2"
             style={{ background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(0,0,0,0.06)" }}>
             <FiZap size={13} className={theme.text} />
-            <span className="text-gray-600 dark:text-gray-300"><strong>Smart mode</strong> — minimises the number of transactions using debt simplification (A→B→C becomes A→C).</span>
+            <span style={{ color: isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.58)" }}><strong>Smart mode</strong> — minimises transactions using debt simplification.</span>
           </div>
         )}
 
@@ -262,24 +248,26 @@ export default function Balances() {
         {(totalOwed > 0 || totalOwedToYou > 0) && (
           <div className="grid grid-cols-2 gap-4 mb-6">
             <motion.div
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700 shadow-sm"
+              className="rounded-2xl p-5 relative overflow-hidden"
+              style={isDark ? { background: "linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(239,68,68,0.05) 100%)", border: "1px solid rgba(239,68,68,0.2)", backdropFilter: "blur(20px)" } : { background: "rgba(255,241,241,0.9)", border: "1px solid rgba(239,68,68,0.15)" }}
               initial={{ opacity: 0, y: 20, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ type: "spring", stiffness: 300, damping: 26, delay: 0.1 }}
-              whileHover={{ y: -3, boxShadow: isDark ? "0 8px 28px rgba(0,0,0,0.4), 0 0 0 1px rgba(239,68,68,0.2)" : "0 8px 24px rgba(239,68,68,0.15)", transition: { duration: 0.18 } }}
             >
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">You owe in total</p>
-              <p className="text-xl sm:text-2xl font-bold text-red-500">{formatCurrency(totalOwed)}</p>
+              <div className="absolute top-0 right-0 w-16 h-16 pointer-events-none" style={{ background: "radial-gradient(circle at 100% 0%, rgba(239,68,68,0.2) 0%, transparent 70%)" }} />
+              <p className="text-[10px] font-black uppercase tracking-[0.15em] mb-2" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.38)" }}>You owe total</p>
+              <p className="text-2xl font-black" style={{ color: "#ef4444" }}>{formatCurrency(totalOwed)}</p>
             </motion.div>
             <motion.div
-              className="bg-white dark:bg-gray-800 rounded-xl p-4 border dark:border-gray-700 shadow-sm"
+              className="rounded-2xl p-5 relative overflow-hidden"
+              style={isDark ? { background: "linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 100%)", border: "1px solid rgba(16,185,129,0.2)", backdropFilter: "blur(20px)" } : { background: "rgba(240,253,249,0.9)", border: "1px solid rgba(16,185,129,0.15)" }}
               initial={{ opacity: 0, y: 20, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ type: "spring", stiffness: 300, damping: 26, delay: 0.18 }}
-              whileHover={{ y: -3, boxShadow: isDark ? "0 8px 28px rgba(0,0,0,0.4), 0 0 0 1px rgba(16,185,129,0.2)" : "0 8px 24px rgba(16,185,129,0.15)", transition: { duration: 0.18 } }}
             >
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Owed to you</p>
-              <p className="text-xl sm:text-2xl font-bold text-green-600">{formatCurrency(totalOwedToYou)}</p>
+              <div className="absolute top-0 right-0 w-16 h-16 pointer-events-none" style={{ background: "radial-gradient(circle at 100% 0%, rgba(16,185,129,0.2) 0%, transparent 70%)" }} />
+              <p className="text-[10px] font-black uppercase tracking-[0.15em] mb-2" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.38)" }}>Owed to you</p>
+              <p className="text-2xl font-black" style={{ color: "#10b981" }}>{formatCurrency(totalOwedToYou)}</p>
             </motion.div>
           </div>
         )}
@@ -289,19 +277,20 @@ export default function Balances() {
             <div
               className={`animate-spin rounded-full h-10 w-10 border-b-2 ${theme.spinner} mx-auto`}
             ></div>
-            <p className="mt-4 text-gray-400 dark:text-gray-500 text-sm">
+            <p className="mt-4 text-sm" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)" }}>
               Loading balances...
             </p>
           </div>
         ) : groupBalances.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 p-16 text-center shadow-sm">
+          <div
+            className="rounded-2xl p-16 text-center"
+            style={isDark
+              ? { background: "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(20px)" }
+              : { background: "rgba(255,255,255,0.92)", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 2px 16px rgba(0,0,0,0.05)" }}
+          >
             <p className="text-5xl mb-4">🎉</p>
-            <p className="font-bold text-gray-800 dark:text-white text-xl mb-1">
-              All settled up!
-            </p>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              No outstanding balances across any of your groups
-            </p>
+            <p className="text-xl font-black mb-1" style={{ color: isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.85)" }}>All settled up!</p>
+            <p className="text-sm" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.45)" }}>No outstanding balances across any of your groups</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -320,20 +309,20 @@ export default function Balances() {
               return (
                 <motion.div
                   key={group.id}
-                  className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden"
+                  className="rounded-2xl overflow-hidden premium-list-card"
+                  style={isDark
+                    ? { background: "linear-gradient(135deg, rgba(255,255,255,0.065) 0%, rgba(255,255,255,0.02) 100%)", border: "1px solid rgba(255,255,255,0.09)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }
+                    : { background: "rgba(255,255,255,0.9)", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}
                   initial={{ opacity: 0, y: 24, scale: 0.97 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ type: "spring", stiffness: 260, damping: 26, delay: 0.1 }}
-                  whileHover={{
-                    boxShadow: isDark
-                      ? `0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px ${groupTotalOwedToYou > 0 ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.15)"}`
-                      : `0 8px 28px rgba(0,0,0,0.1)`,
-                    transition: { duration: 0.2 },
-                  }}
                 >
                   {/* Group header — clickable to expand/collapse */}
                   <button
-                    className="w-full flex justify-between items-center p-4 sm:p-5 hover:bg-gray-50 dark:hover:bg-gray-700 transition text-left"
+                    className="w-full flex justify-between items-center p-4 sm:p-5 transition text-left"
+                    style={{ "--hover-bg": isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)" }}
+                    onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                     onClick={() =>
                       setExpandedGroups((prev) => ({
                         ...prev,
@@ -343,28 +332,28 @@ export default function Balances() {
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div
-                        className="h-10 w-10 rounded-full flex-shrink-0 flex items-center justify-center text-white text-sm font-bold shadow-sm"
+                        className="h-10 w-10 rounded-full flex-shrink-0 flex items-center justify-center text-white text-sm font-bold"
                         style={getGradientStyle(theme)}
                       >
                         {group.name[0]?.toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-bold text-gray-800 dark:text-white truncate">
+                        <p className="font-black truncate text-[15px]" style={{ color: isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.85)" }}>
                           {group.name}
                         </p>
                         <div className="flex items-center gap-3 mt-0.5">
                           {groupTotalOwed > 0 && (
-                            <span className="text-xs text-red-500 font-semibold">
+                            <span className="text-xs font-bold" style={{ color: "#ef4444" }}>
                               You owe {formatCurrency(groupTotalOwed)}
                             </span>
                           )}
                           {groupTotalOwedToYou > 0 && (
-                            <span className="text-xs text-green-600 font-semibold">
+                            <span className="text-xs font-bold" style={{ color: "#10b981" }}>
                               Gets back {formatCurrency(groupTotalOwedToYou)}
                             </span>
                           )}
                           {groupTotalOwed === 0 && groupTotalOwedToYou === 0 && (
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs" style={{ color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.4)" }}>
                               {settlements.length} balance{settlements.length !== 1 ? "s" : ""}
                             </span>
                           )}
@@ -418,6 +407,7 @@ export default function Balances() {
                           <div
                             key={idx}
                             className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3"
+                            style={{ borderTop: idx > 0 ? `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"}` : undefined }}
                           >
                             {/* Person info */}
                             <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -432,14 +422,13 @@ export default function Balances() {
                                 {s.from.name[0]?.toUpperCase()}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-gray-800 dark:text-white">
-                                  <span className={isFromMe ? theme.text : ""}>
-                                    {isFromMe ? "You" : s.from.name}
-                                  </span>
-                                  <span className="text-gray-400 dark:text-gray-500 font-normal"> owe{isFromMe ? "" : "s"} </span>
-                                  <span className={isToMe ? "text-green-600" : ""}>{isToMe ? "you" : s.to.name}</span>
+                                <p className="text-sm font-semibold" style={{ color: isDark ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.8)" }}>
+                                  <span className={isFromMe ? theme.text : ""}
+                                  >{isFromMe ? "You" : s.from.name}</span>
+                                  <span style={{ color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.38)" }} className="font-normal"> owe{isFromMe ? "" : "s"} </span>
+                                  <span style={{ color: isToMe ? "#10b981" : isDark ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.75)" }}>{isToMe ? "you" : s.to.name}</span>
                                 </p>
-                                <p className={`text-lg font-bold mt-0.5 ${isFromMe ? "text-red-500" : isToMe ? "text-green-600" : "text-gray-700 dark:text-gray-200"}`}>
+                                <p className={`text-lg font-black mt-0.5`} style={{ color: isFromMe ? "#ef4444" : isToMe ? "#10b981" : isDark ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.75)" }}>
                                   {formatCurrency(s.amount)}
                                 </p>
                               </div>
@@ -450,7 +439,8 @@ export default function Balances() {
                               {isFromMe && (
                                 <button
                                   onClick={() => openUpiModal(s, group)}
-                                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition"
+                                  style={isDark ? { background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.1)" } : { background: "rgba(0,0,0,0.05)", color: "rgba(0,0,0,0.6)", border: "1px solid rgba(0,0,0,0.08)" }}
                                 >
                                   <FiSmartphone size={13} /> Pay UPI
                                 </button>
@@ -472,7 +462,8 @@ export default function Balances() {
                               {isToMe && (
                                 <button
                                   onClick={() => handleRemind(s, group.id, group.name)}
-                                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+                                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition"
+                                  style={isDark ? { background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.1)" } : { background: "rgba(0,0,0,0.05)", color: "rgba(0,0,0,0.6)", border: "1px solid rgba(0,0,0,0.08)" }}
                                 >
                                   {reminderSent === reminderKey ? (<><FiCheck className="text-green-500" size={13} /> Sent!</>) : (<><FiBell size={13} /> Remind</>)}
                                 </button>

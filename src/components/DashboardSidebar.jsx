@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  FiHome, FiUsers, FiBarChart2, FiHeart, FiUser, FiLogOut,
-  FiSun, FiMoon, FiBell, FiX, FiCamera, FiTarget,
+  FiHome, FiUsers, FiBarChart2, FiHeart,
+  FiSun, FiMoon, FiBell, FiX, FiCamera, FiLogOut,
 } from "react-icons/fi";
 import { useTheme, getGradientStyle, toggleDarkMode } from "../utils/theme";
 import { API_URL, apiFetch, clearAuth, getUserId, getUser, getToken } from "../utils/api";
@@ -74,10 +74,17 @@ export default function DashboardSidebar({ goals = [], onGoalsNeeded }) {
     setShowScanModal(true);
   };
 
+  // Allow the right panel to trigger scan via custom event
+  useEffect(() => {
+    const handler = () => handleScanClick();
+    window.addEventListener("open-scan-receipt", handler);
+    return () => window.removeEventListener("open-scan-receipt", handler);
+  }, []);
+
   const navLinks = [
     { to: "/dashboard", icon: <FiHome size={18} />, label: "Dashboard" },
     { to: "/groups", icon: <FiUsers size={18} />, label: "Groups" },
-    { to: "/expenses", icon: <span className="text-base font-bold leading-none">₹</span>, label: "Expenses" },
+    { to: "/expenses", icon: <span className="text-xl font-extrabold leading-none">₹</span>, label: "Expenses" },
     { to: "/balances", icon: <FiBarChart2 size={18} />, label: "Balances" },
     { to: "/friends", icon: <FiHeart size={18} />, label: "Friends" },
   ];
@@ -86,142 +93,137 @@ export default function DashboardSidebar({ goals = [], onGoalsNeeded }) {
     ? { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }
     : { background: "rgba(255,255,255,0.7)", border: "1px solid rgba(0,0,0,0.06)" };
 
+  const pillStyle = {
+    background: isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.92)",
+    backdropFilter: "blur(24px)",
+    WebkitBackdropFilter: "blur(24px)",
+    border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.07)",
+    boxShadow: isDark ? "0 8px 40px rgba(0,0,0,0.4)" : "0 4px 24px rgba(0,0,0,0.08)",
+  };
+
+  // SIDEBAR: logo pops in first → both pills emerge from it
   return (
     <>
-      <aside className="h-screen sticky top-0 flex flex-col py-6 px-5 overflow-y-auto sidebar-scroll"
-        style={{
-          borderRight: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.06)",
-        }}>
+      <aside
+        className="sticky top-0 flex flex-col items-center sidebar-scroll"
+        style={{ width: 52, height: "100vh", margin: "0 8px", paddingTop: 120, paddingBottom: 32 }}
+      >
+        {/* ── Both pills — top anchored, bottom anchored ── */}
+        <div className="flex flex-col items-center gap-8 flex-1 justify-between w-full">
 
-        {/* Logo */}
-        <Link to="/dashboard" className="flex items-center gap-2.5 mb-8 hover:opacity-80 transition">
-          <img src="/icon.png" alt="Smart Split" className="h-9 w-9 rounded-xl shadow-md flex-shrink-0" />
-          <span className="text-lg font-bold text-gray-800 dark:text-white tracking-tight">Smart Split</span>
-        </Link>
-
-        {/* Nav links */}
-        <nav className="space-y-1 mb-6">
-          {navLinks.map((l) => {
-            const active = location.pathname === l.to;
-            return (
-              <Link key={l.to} to={l.to}
-                className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-[14px] relative overflow-hidden"
-                style={{
-                  color: active ? "#fff" : isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.55)",
-                }}>
-                {/* Sliding gradient pill driven by layoutId */}
-                {active && (
-                  <motion.span
-                    layoutId="sidebar-active-pill"
-                    className="absolute inset-0 rounded-xl"
-                    style={getGradientStyle(theme)}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ type: "spring", stiffness: 380, damping: 34 }}
-                  />
-                )}
-                <motion.span
-                  className="relative z-10 flex items-center gap-3"
-                  whileHover={!active ? { x: 3, transition: { type: "spring", stiffness: 400 } } : {}}
+        {/* ── TOP PILL: Nav + Camera — scaleY from top ── */}
+        <motion.div
+          className="flex flex-col items-center w-full rounded-[20px] py-2"
+          style={{ ...pillStyle, transformOrigin: "top center" }}
+          initial={{ opacity: 0, scaleY: 0.04 }}
+          animate={{ opacity: 1, scaleY: 1 }}
+          transition={{ type: "spring", stiffness: 260, damping: 28, delay: 0.38 }}
+        >
+          {/* Main navigation — staggered pill-nav entry */}
+          <nav className="flex flex-col items-center gap-0.5 w-full px-2 mb-2 mt-1">
+            {navLinks.map((l, idx) => {
+              const active = location.pathname === l.to;
+              return (
+                <motion.div
+                  key={l.to}
+                  className="w-full"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.52 + idx * 0.06, type: "spring", stiffness: 340, damping: 28 }}
                 >
-                  {l.icon}
-                  {l.label}
-                </motion.span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Quick actions */}
-        <div className="mb-6">
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-3"
-            style={{ color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)" }}>
-            Quick Actions
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={handleScanClick}
-              className="flex flex-col items-center gap-1.5 py-3 rounded-xl text-xs font-semibold transition hover:scale-[1.02] active:scale-[0.98]"
-              style={glass}>
-              <FiCamera size={18} style={{ color: theme.gradFrom }} />
-              <span style={{ color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.6)" }}>Scan</span>
-            </button>
-            <button onClick={() => navigate("/balances")}
-              className="flex flex-col items-center gap-1.5 py-3 rounded-xl text-xs font-semibold transition hover:scale-[1.02] active:scale-[0.98]"
-              style={glass}>
-              <FiBarChart2 size={18} style={{ color: theme.gradTo }} />
-              <span style={{ color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.6)" }}>Settle</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Goals / Saving Plans */}
-        {goals.length > 0 && (
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em]"
-                style={{ color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)" }}>
-                Saving Goals
-              </p>
-            </div>
-            <div className="space-y-3">
-              {goals.slice(0, 3).map((goal) => {
-                const pct = goal.targetAmount > 0 ? Math.min(100, Math.round((goal.savedAmount / goal.targetAmount) * 100)) : 0;
-                return (
-                  <div key={goal.id || goal._id} className="rounded-xl p-3" style={glass}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <FiTarget size={14} style={{ color: theme.gradFrom }} />
-                      <p className="text-xs font-bold truncate" style={{ color: isDark ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.75)" }}>
-                        {goal.title}
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] mb-1.5">
-                      <span style={{ color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }}>
-                        ₹{(goal.savedAmount || 0).toLocaleString("en-IN")}
-                      </span>
-                      <span className="font-semibold" style={{ color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)" }}>
-                        {pct}%
-                      </span>
-                    </div>
-                    <div className="h-1.5 rounded-full overflow-hidden"
-                      style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }}>
-                      <motion.div
-                        className="h-full rounded-full"
-                        initial={{ width: "0%" }}
-                        animate={{ width: `${pct}%` }}
-                        transition={{ type: "spring", stiffness: 160, damping: 22, delay: 0.3 }}
-                        style={{ background: `linear-gradient(to right, ${theme.gradFrom}, ${theme.gradTo})` }}
+                  <Link
+                    to={l.to}
+                    title={l.label}
+                    className="w-full flex flex-col items-center gap-0.5 py-2.5 rounded-xl relative overflow-hidden"
+                    style={{ color: active ? "#fff" : isDark ? "rgba(255,255,255,0.42)" : "rgba(0,0,0,0.42)" }}
+                  >
+                    {active && (
+                      <motion.span
+                        layoutId="sidebar-active-pill"
+                        className="absolute inset-0 rounded-xl"
+                        style={{
+                          background: `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})`,
+                          boxShadow: `0 4px 18px ${theme.gradFrom}44`,
+                        }}
+                        transition={{ type: "spring", stiffness: 380, damping: 34 }}
                       />
-                    </div>
-                    <p className="text-[10px] mt-1.5"
-                      style={{ color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)" }}>
-                      Target: ₹{(goal.targetAmount || 0).toLocaleString("en-IN")}
-                    </p>
-                  </div>
-                );
-              })}
+                    )}
+                    <span className="relative z-10">{l.icon}</span>
+                  </Link>
+                </motion.div>
+              );
+            })}
+          </nav>
+
+          {/* Camera tool */}
+          <motion.div
+            className="w-full px-2 pb-1"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.52 + 5 * 0.06, type: "spring", stiffness: 340, damping: 28 }}
+          >
+            <button
+              onClick={handleScanClick}
+              title="Scan Receipt"
+              className="w-full flex flex-col items-center gap-0.5 py-2.5 rounded-xl relative overflow-hidden group/tool"
+              style={glass}
+            >
+              <div className="absolute inset-0 opacity-0 group-hover/tool:opacity-100 transition-opacity rounded-xl"
+                style={{ background: `radial-gradient(circle at 50% 0%, ${theme.gradFrom}30 0%, transparent 70%)` }} />
+              <FiCamera size={16} className="relative z-10" style={{ color: theme.gradFrom }} />
+            </button>
+          </motion.div>
+        </motion.div>
+
+        {/* ── BOTTOM PILL: Theme + Notifs + Profile + Logout — scaleY from bottom ── */}
+        <motion.div
+          className="flex flex-col items-center w-full rounded-[20px] py-2 gap-1.5"
+          style={{ ...pillStyle, transformOrigin: "bottom center" }}
+          initial={{ opacity: 0, scaleY: 0.04 }}
+          animate={{ opacity: 1, scaleY: 1 }}
+          transition={{ type: "spring", stiffness: 260, damping: 28, delay: 0.46 }}
+        >
+          {/* Goals mini indicator */}
+          {goals.length > 0 && (
+            <div className="w-full px-3 mb-0.5">
+              <div className="h-1.5 rounded-full overflow-hidden mb-0.5" style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }}>
+                <motion.div
+                  className="h-full rounded-full"
+                  initial={{ width: "0%" }}
+                  animate={{ width: `${Math.min(100, goals.reduce((a, g) => a + (g.targetAmount > 0 ? (g.savedAmount / g.targetAmount) * 100 : 0), 0) / goals.length)}%` }}
+                  transition={{ type: "spring", stiffness: 160, damping: 22, delay: 0.5 }}
+                  style={{ background: `linear-gradient(to right, ${theme.gradFrom}, ${theme.gradTo})` }}
+                />
+              </div>
+              <p className="text-[8px] text-center font-bold" style={{ color: isDark ? "rgba(255,255,255,0.22)" : "rgba(0,0,0,0.22)" }}>Goals</p>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Utility bar */}
-        <div className="flex items-center gap-1.5 mb-4">
-          <button onClick={toggleDarkMode}
-            className="h-9 w-9 rounded-xl flex items-center justify-center text-gray-500 dark:text-yellow-400 hover:bg-gray-100 dark:hover:bg-white/5 transition"
-            title={isDark ? "Light Mode" : "Dark Mode"}>
-            {isDark ? <FiSun size={17} /> : <FiMoon size={17} />}
+          {/* Theme toggle */}
+          <button
+            onClick={toggleDarkMode}
+            title={isDark ? "Light Mode" : "Dark Mode"}
+            className="h-8 w-8 rounded-lg flex items-center justify-center transition-all hover:scale-110"
+            style={{ background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)", color: isDark ? "#fbbf24" : "#6366f1" }}
+          >
+            {isDark ? <FiSun size={14} /> : <FiMoon size={14} />}
           </button>
+
+          {/* Notifications */}
           <div className="relative">
             <button
               onClick={() => { setShowNotifications((p) => !p); if (unreadCount > 0) markAllRead(); }}
-              className="relative h-9 w-9 rounded-xl flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition">
+              className="relative h-8 w-8 rounded-lg flex items-center justify-center transition-all hover:scale-110"
+              style={{
+                background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)",
+                color: isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.48)",
+              }}
+            >
               <motion.div
                 animate={unreadCount > 0 ? { rotate: [0, -12, 12, -8, 8, -4, 4, 0] } : { rotate: 0 }}
                 transition={{ duration: 0.6, delay: 1.5, repeat: Infinity, repeatDelay: 8 }}
               >
-                <FiBell size={17} />
+                <FiBell size={14} />
               </motion.div>
               <AnimatePresence>
                 {unreadCount > 0 && (
@@ -230,79 +232,104 @@ export default function DashboardSidebar({ goals = [], onGoalsNeeded }) {
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0, opacity: 0 }}
                     transition={{ type: "spring", stiffness: 500, damping: 22 }}
-                    className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
-                    style={getGradientStyle(theme)}>
+                    className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full text-[8px] font-bold text-white flex items-center justify-center"
+                    style={{ background: `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})` }}
+                  >
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </motion.span>
                 )}
               </AnimatePresence>
             </button>
+
             {showNotifications && (
-              <div className="absolute left-0 bottom-full mb-2 w-72 rounded-2xl shadow-2xl z-50 overflow-hidden"
+              <div
+                className="absolute left-full ml-3 bottom-0 w-64 rounded-2xl shadow-2xl z-50 overflow-hidden"
                 style={{
-                  background: isDark ? "rgba(12,12,22,0.95)" : "rgba(255,255,255,0.95)",
-                  backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
-                  border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.07)",
-                }}>
-                <div className="px-4 py-3 border-b flex justify-between items-center"
-                  style={{ borderColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)" }}>
-                  <span className="font-semibold text-gray-800 dark:text-white text-sm">Reminders</span>
-                  <button onClick={() => setShowNotifications(false)}
-                    className="h-5 w-5 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
-                    style={{ background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)" }}>
+                  background: isDark ? "rgba(8,10,22,0.97)" : "rgba(255,255,255,0.97)",
+                  backdropFilter: "blur(28px)",
+                  WebkitBackdropFilter: "blur(28px)",
+                  border: isDark ? "1px solid rgba(255,255,255,0.09)" : "1px solid rgba(0,0,0,0.08)",
+                  boxShadow: isDark ? "0 20px 60px rgba(0,0,0,0.65)" : "0 20px 60px rgba(0,0,0,0.12)",
+                  maxHeight: "calc(100vh - 180px)",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <div
+                  className="px-4 py-3 flex items-center justify-between"
+                  style={{ borderBottom: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(0,0,0,0.06)" }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-[13px]" style={{ color: isDark ? "#fff" : "#111" }}>Reminders</span>
+                    {unreadCount > 0 && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                        style={{ background: `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})` }}>
+                        {unreadCount}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setShowNotifications(false)}
+                    className="h-6 w-6 rounded-full flex items-center justify-center transition hover:scale-110"
+                    style={{ background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)", color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)" }}
+                  >
                     <FiX size={10} />
                   </button>
                 </div>
-                <div className="max-h-56 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto sidebar-scroll">
                   {notifications.length === 0 ? (
-                    <div className="px-4 py-6 text-center">
-                      <FiBell size={22} className="mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-                      <p className="text-gray-400 dark:text-gray-500 text-xs">No reminders yet</p>
+                    <div className="px-4 py-8 text-center">
+                      <div className="w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center"
+                        style={{ background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)" }}>
+                        <FiBell size={18} style={{ color: isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.2)" }} />
+                      </div>
+                      <p className="text-xs" style={{ color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)" }}>No reminders yet</p>
                     </div>
                   ) : notifications.map((n) => (
-                    <div key={n.id || n._id}
-                      className={`px-4 py-2.5 text-xs ${n.read ? "opacity-50" : "bg-blue-50/40 dark:bg-blue-900/10"}`}
-                      style={{ borderBottom: isDark ? "1px solid rgba(255,255,255,0.04)" : "1px solid rgba(0,0,0,0.04)" }}>
-                      <p className="text-gray-700 dark:text-gray-200 leading-snug">{n.message}</p>
-                      <p className="text-gray-400 dark:text-gray-500 text-[10px] mt-0.5">
-                        From {n.from?.name || "Someone"}
-                      </p>
+                    <div key={n.id || n._id} className="px-4 py-3"
+                      style={{
+                        borderBottom: isDark ? "1px solid rgba(255,255,255,0.04)" : "1px solid rgba(0,0,0,0.04)",
+                        background: n.read ? "transparent" : isDark ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.015)",
+                      }}>
+                      <p className="text-[12px] leading-snug" style={{ color: isDark ? "rgba(255,255,255,0.75)" : "rgba(0,0,0,0.7)" }}>{n.message}</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.35)" }}>From {n.from?.name || "Someone"}</p>
                     </div>
                   ))}
                 </div>
               </div>
             )}
           </div>
-        </div>
 
-        {/* User card */}
-        <div className="rounded-xl p-3 flex items-center gap-3" style={glass}>
-          {avatar ? (
-            <img src={avatar} alt="avatar" className="h-9 w-9 rounded-xl object-cover flex-shrink-0"
-              style={{ border: `2px solid ${theme.gradFrom}44` }} />
-          ) : (
-            <div className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-              style={getGradientStyle(theme)}>
-              {user?.name?.[0]?.toUpperCase() || "?"}
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-bold truncate" style={{ color: isDark ? "#fff" : "#111" }}>
-              {user?.name || "User"}
-            </p>
-            <p className="text-[11px] truncate" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)" }}>
-              {user?.email || ""}
-            </p>
-          </div>
-          <button onClick={handleLogout}
-            className="h-8 w-8 rounded-lg flex items-center justify-center text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition flex-shrink-0"
-            title="Logout">
-            <FiLogOut size={15} />
+          {/* Profile — navigates to /profile page */}
+          <button
+            onClick={() => navigate("/profile")}
+            title="Profile"
+            className="transition-transform hover:scale-105 active:scale-95"
+          >
+            {avatar ? (
+              <img src={avatar} alt="avatar" className="h-8 w-8 rounded-xl object-cover" style={{ border: `2px solid ${theme.gradFrom}55` }} />
+            ) : (
+              <div className="h-8 w-8 rounded-xl flex items-center justify-center text-white font-bold text-sm"
+                style={{ background: `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})` }}>
+                {user?.name?.[0]?.toUpperCase() || "?"}
+              </div>
+            )}
           </button>
-        </div>
+
+          {/* Logout */}
+          <button
+            onClick={handleLogout}
+            title="Logout"
+            className="h-8 w-8 rounded-lg flex items-center justify-center transition-all hover:scale-110 mb-1"
+            style={{ background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)", color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.38)" }}
+          >
+            <FiLogOut size={14} />
+          </button>
+        </motion.div>
+
+        </div>{/* end centered pills wrapper */}
       </aside>
 
-      {/* Scan Receipt Modal */}
       {showScanModal && (
         <ScanReceipt groups={groups} onClose={() => setShowScanModal(false)} />
       )}

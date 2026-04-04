@@ -22,22 +22,22 @@ function PublicRoute({ element }) {
   return getToken() ? <Navigate to="/dashboard" replace /> : element;
 }
 
-// Smooth page transition — cross-fade + subtle lift
-const PAGE_ENTER = { opacity: 1, y: 0, scale: 1 };
-const PAGE_EXIT  = { opacity: 0, y: -8, scale: 0.99 };
-const PAGE_INIT  = { opacity: 0, y: 8, scale: 0.99 };
-const PAGE_TRAN  = { duration: 0.22, ease: [0.16, 1, 0.3, 1] };
+// Smooth page transition — fast fade-out, spring fade-in + subtle lift
+const PAGE_ENTER_ANIMATE = { opacity: 1, y: 0, scale: 1 };
+const PAGE_EXIT          = { opacity: 0, scale: 0.995 };
+const PAGE_INIT          = { opacity: 0, y: 10, scale: 0.995 };
+const PAGE_ENTER_TRAN    = { duration: 0.26, ease: [0.16, 1, 0.3, 1] };
+const PAGE_EXIT_TRAN     = { duration: 0.1, ease: "easeIn" };
 
 function PageTransition({ children }) {
   const location = useLocation();
   return (
-    <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence initial={false}>
       <motion.div
         key={location.pathname}
         initial={PAGE_INIT}
-        animate={PAGE_ENTER}
-        exit={PAGE_EXIT}
-        transition={PAGE_TRAN}
+        animate={{ ...PAGE_ENTER_ANIMATE, transition: PAGE_ENTER_TRAN }}
+        exit={{ ...PAGE_EXIT, transition: PAGE_EXIT_TRAN }}
         style={{ minHeight: "100dvh" }}
       >
         {children}

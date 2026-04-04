@@ -18,6 +18,7 @@ html, body {
   max-width: 100vw;
 }
 body {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
@@ -622,4 +623,80 @@ img[data-fit="contain"], .img-contain {
 }
 .page-enter-desktop {
   animation: pageEntrance 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PREMIUM DESKTOP INNER PAGES — rich glass & card styles
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Desktop inner page glass card (consistent with dashboard) ── */
+.desktop-glass-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.065) 0%, rgba(255,255,255,0.02) 100%);
+  border: 1px solid rgba(255,255,255,0.09);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 4px 32px rgba(0,0,0,0.32);
+}
+
+/* Light-mode version */
+html:not(.dark) .desktop-glass-card {
+  background: rgba(255,255,255,0.88);
+  border: 1px solid rgba(0,0,0,0.07);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* ── Gradient-glow CTA button consistent with hero ── */
+.desktop-cta-btn {
+  position: relative;
+  overflow: hidden;
+}
+.desktop-cta-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ── Group / list card premium hover ── */
+.premium-list-card {
+  transition:
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.2s ease;
+}
+.dark .premium-list-card:hover {
+  transform: translateY(-3px) scale(1.008);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+}
+html:not(.dark) .premium-list-card:hover {
+  transform: translateY(-3px) scale(1.008);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+}
+
+/* ── Tabs styled to match premium desktop ── */
+.desktop-tab-bar {
+  border-radius: 1rem;
+  padding: 4px;
+  gap: 4px;
+}
+.dark .desktop-tab-bar {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+}
+html:not(.dark) .desktop-tab-bar {
+  background: rgba(0,0,0,0.04);
+  border: 1px solid rgba(0,0,0,0.07);
+}
+
+/* ── Balance/settlement card pulse border ── */
+@keyframes settlePulse {
+  0%,100% { box-shadow: 0 0 0 0 var(--settle-color, rgba(236,72,153,0)); }
+  50%      { box-shadow: 0 0 0 4px var(--settle-color, rgba(236,72,153,0.12)); }
+}
+.settle-card-hover:hover {
+  animation: settlePulse 1.8s ease-in-out infinite;
 }

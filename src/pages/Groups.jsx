@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import DesktopLayout from "../components/DesktopLayout";
+import DesktopPageHeader from "../components/DesktopPageHeader";
 import { FiUsers, FiPlus, FiX, FiUserPlus, FiLink, FiZap, FiHeart, FiClock, FiTrash2, FiCamera } from "react-icons/fi";
 import { API_URL, apiFetch, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
@@ -268,30 +269,24 @@ export default function Groups() {
         onChange={handlePfpChange}
       />
 
-      <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-28 md:pb-6">
-        {/* Page Header */}
-        <motion.div
-          className="flex justify-between items-center mb-6 sm:mb-8"
-          initial={{ opacity: 0, y: -16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 320, damping: 28 }}
-        >
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">Your Groups</h2>
-            <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">Manage your expense groups</p>
-          </div>
-
-          {/* Create Group Button */}
-          <motion.button
-            onClick={() => setShowCreateModal(true)}
-            whileHover={{ scale: 1.04, boxShadow: "0 8px 30px rgba(244,114,182,0.4)" }}
-            whileTap={{ scale: 0.96 }}
-            className="text-white px-4 py-2.5 rounded-xl shadow flex items-center gap-2 text-sm font-semibold"
-            style={getGradientStyle(theme)}
-          >
-            <FiPlus /> Create Group
-          </motion.button>
-        </motion.div>
+      <div className="max-w-6xl mx-auto py-8 px-6 pb-28 md:pb-8">
+        <DesktopPageHeader
+          label="Manage"
+          title="Your"
+          gradWord="Groups"
+          subtitle={`${groups.length} active group${groups.length !== 1 ? "s" : ""} · Split expenses effortlessly`}
+          actions={
+            <motion.button
+              onClick={() => setShowCreateModal(true)}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              className="text-white px-5 py-2.5 rounded-2xl shadow-lg flex items-center gap-2 text-sm font-bold magnetic-cta"
+              style={{ background: `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})`, boxShadow: `0 4px 20px ${theme.gradFrom}44` }}
+            >
+              <FiPlus size={15} /> Create Group
+            </motion.button>
+          }
+        />
 
         {/* Groups List */}
         {fetchError ? (
@@ -312,34 +307,36 @@ export default function Groups() {
             </div>
           </div>
         ) : groups.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm p-10 sm:p-14 flex flex-col items-center justify-center">
-            <div className="text-gray-400 text-5xl mb-3">
+          <div
+            className="rounded-2xl p-10 sm:p-14 flex flex-col items-center justify-center"
+            style={isDark
+              ? { background: "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(20px)" }
+              : { background: "rgba(255,255,255,0.92)", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 2px 16px rgba(0,0,0,0.05)" }}
+          >
+            <div className="text-4xl mb-3" style={{ color: isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.25)" }}>
               <FiUsers />
             </div>
-            <h3 className="text-gray-700 dark:text-white font-semibold text-lg mb-1">
-              No groups yet
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              Create your first group to start splitting expenses
-            </p>
+            <h3 className="font-black text-lg mb-1" style={{ color: isDark ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.8)" }}>No groups yet</h3>
+            <p className="text-sm" style={{ color: isDark ? "rgba(255,255,255,0.38)" : "rgba(0,0,0,0.42)" }}>Create your first group to start splitting expenses</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {groups.map((group, gIdx) => (
               <motion.div
                 key={group.id}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-5 border border-gray-100 dark:border-gray-800 flex flex-col"
-                initial={{ opacity: 0, y: 28, scale: 0.96 }}
+                className="rounded-2xl p-5 flex flex-col premium-list-card card-grid-item relative overflow-hidden"
+                style={isDark
+                  ? { background: "linear-gradient(135deg, rgba(255,255,255,0.065) 0%, rgba(255,255,255,0.025) 100%)", border: "1px solid rgba(255,255,255,0.09)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }
+                  : { background: "rgba(255,255,255,0.9)", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}
+                initial={{ opacity: 0, y: 24, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ type: "spring", stiffness: 280, damping: 26, delay: gIdx * 0.07 }}
-                whileHover={{
-                  y: -4,
-                  boxShadow: isDark
-                    ? "0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)"
-                    : "0 12px 36px rgba(0,0,0,0.13)",
-                  transition: { type: "spring", stiffness: 400, damping: 28 },
-                }}
               >
+                {/* Subtle top-right glow */}
+                <div
+                  className="absolute top-0 right-0 w-24 h-24 pointer-events-none rounded-2xl"
+                  style={{ background: `radial-gradient(circle at 100% 0%, ${theme.gradFrom}16 0%, transparent 60%)` }}
+                />
                 <div className="flex justify-between items-start mb-4 gap-3">
                   {/* Avatar with camera overlay */}
                   <div className="relative flex-shrink-0 self-start">
@@ -375,16 +372,16 @@ export default function Groups() {
                     className="flex-1 min-w-0 cursor-pointer"
                     onClick={() => navigate(`/expenses?group=${group.id}`)}
                   >
-                    <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-1 hover:opacity-75 transition-opacity truncate">
+                    <h3 className="text-[17px] font-black leading-tight mb-1 hover:opacity-75 transition-opacity truncate" style={{ color: isDark ? "#fff" : "#111" }}>
                       {group.name}
                     </h3>
                     {group.description && group.description !== "No description" ? (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 truncate">{group.description}</p>
+                      <p className="text-[12px] mb-1.5 truncate" style={{ color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)" }}>{group.description}</p>
                     ) : (
-                      <p className="text-sm text-gray-400 dark:text-gray-600 italic mb-2">No description</p>
+                      <p className="text-[12px] italic mb-1.5" style={{ color: isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.25)" }}>No description</p>
                     )}
-                    <p className="text-xs text-gray-400 dark:text-gray-500">
-                      Created by {group.createdBy?.name || "Unknown"}
+                    <p className="text-[11px]" style={{ color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)" }}>
+                      By {group.createdBy?.name || "Unknown"}
                     </p>
                   </div>
 
@@ -479,9 +476,9 @@ export default function Groups() {
       <AnimatePresence>
       {simplifyGroupId && (
         <motion.div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-          <motion.div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6" initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.97 }} transition={{ type: "spring", stiffness: 340, damping: 28 }}>
+          <motion.div className="rounded-xl shadow-xl max-w-md w-full p-6" style={{ background: isDark ? "rgba(10,12,24,0.97)" : "#fff", border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}`, backdropFilter: "blur(28px)" }} initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.97 }} transition={{ type: "spring", stiffness: 340, damping: 28 }}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+              <h3 className="text-xl font-bold flex items-center gap-2" style={{ color: isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.85)" }}>
                 <FiZap className={theme.text} /> Simplified Debts
               </h3>
               <button onClick={() => setSimplifyGroupId(null)} className="text-gray-400 hover:text-gray-600">
@@ -518,7 +515,7 @@ export default function Groups() {
       <AnimatePresence>
       {activityGroupId && (
         <motion.div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-          <motion.div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6 flex flex-col max-h-[80vh]" initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.97 }} transition={{ type: "spring", stiffness: 340, damping: 28 }}>
+          <motion.div className="rounded-xl shadow-xl max-w-md w-full p-6 flex flex-col max-h-[80vh]" style={{ background: isDark ? "rgba(10,12,24,0.97)" : "#fff", border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}`, backdropFilter: "blur(28px)" }} initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.97 }} transition={{ type: "spring", stiffness: 340, damping: 28 }}>
             <div className="flex justify-between items-center mb-4 flex-shrink-0">
               <h3 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
                 <FiClock className={theme.text} /> Activity Log
@@ -561,9 +558,9 @@ export default function Groups() {
       <AnimatePresence>
       {showCreateModal && (
         <motion.div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-          <motion.div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6" initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.97 }} transition={{ type: "spring", stiffness: 340, damping: 28 }}>
+          <motion.div className="rounded-xl shadow-xl max-w-md w-full p-6" style={{ background: isDark ? "rgba(10,12,24,0.97)" : "#fff", border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}`, backdropFilter: "blur(28px)" }} initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.97 }} transition={{ type: "spring", stiffness: 340, damping: 28 }}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-800 dark:text-white">Create Group</h3>
+              <h3 className="text-xl font-bold" style={{ color: isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.85)" }}>Create Group</h3>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -633,9 +630,9 @@ export default function Groups() {
       <AnimatePresence>
       {showAddMemberModal && (
         <motion.div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-          <motion.div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6" initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.97 }} transition={{ type: "spring", stiffness: 340, damping: 28 }}>
+          <motion.div className="rounded-xl shadow-xl max-w-md w-full p-6" style={{ background: isDark ? "rgba(10,12,24,0.97)" : "#fff", border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}`, backdropFilter: "blur(28px)" }} initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.97 }} transition={{ type: "spring", stiffness: 340, damping: 28 }}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-800 dark:text-white">Add Member</h3>
+              <h3 className="text-xl font-bold" style={{ color: isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.85)" }}>Add Member</h3>
               <button
                 onClick={() => setShowAddMemberModal(null)}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"

@@ -905,35 +905,29 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* Card swap callback — unlock scroll after full cycle */
+  /* Card swap callback — unlock scroll after full cycle + auto-advance to result */
   const handleCardSwap = (count) => {
     if (!slide3UnlockedRef.current && count >= FEATURE_CARDS.length) {
       slide3UnlockedRef.current = true;
       setSlide3Unlocked(true);
-      pendingSwapRef.current = false;
       /* Re-enable scroll */
       if (scrollRef.current) {
         scrollRef.current.style.overflowY = 'auto';
         scrollRef.current.style.scrollSnapType = 'y mandatory';
         slide3LockedRef.current = false;
       }
-    } else if (pendingSwapRef.current) {
-      /* User scrolled during animation — auto-trigger next swap */
-      pendingSwapRef.current = false;
+      /* Auto-advance to the result section */
       setTimeout(() => {
-        if (!slide3UnlockedRef.current && cardSwapRef.current && !cardSwapRef.current.isAnimating()) {
-          cardSwapRef.current.swapNext();
-        }
-      }, 50);
+        sectionRefs[3].current?.scrollIntoView({ behavior: 'smooth' });
+      }, 700);
     }
   };
 
-  /* Scroll-driven card swaps: lock on section 3, each wheel triggers a swap */
+  /* Lock on section 3 when it comes into view */
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
 
-    /* Lock when section 3 comes into view — delay to let scroll-snap settle */
     const lockObs = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !slide3UnlockedRef.current) {
@@ -949,32 +943,22 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
       { root: container, threshold: 0.85 }
     );
     if (sectionRefs[2].current) lockObs.observe(sectionRefs[2].current);
-
-    /* Intercept wheel events while locked on section 3 */
-    const onWheel = (e) => {
-      if (!slide3LockedRef.current || slide3UnlockedRef.current) return;
-      if (activeSectionRef.current !== 2) return;
-      /* Only intercept downward scroll */
-      if (e.deltaY > 0) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (cardSwapRef.current) {
-          if (!cardSwapRef.current.isAnimating()) {
-            cardSwapRef.current.swapNext();
-          } else {
-            pendingSwapRef.current = true;
-          }
-        }
-      }
-    };
-
-    container.addEventListener('wheel', onWheel, { passive: false });
-    return () => {
-      lockObs.disconnect();
-      container.removeEventListener('wheel', onWheel);
-    };
+    return () => lockObs.disconnect();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* Auto-play card swaps while locked on section 3 */
+  useEffect(() => {
+    if (slide3Unlocked) return;
+    if (activeSection !== 2) return;
+    const timer = setInterval(() => {
+      if (!slide3UnlockedRef.current && cardSwapRef.current && !cardSwapRef.current.isAnimating()) {
+        cardSwapRef.current.swapNext();
+      }
+    }, 1500);
+    return () => clearInterval(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSection, slide3Unlocked]);
 
   return (
     <div className="h-full w-full relative">
@@ -1178,21 +1162,6 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
                 ))}
               </div>
 
-              {/* Scroll hint — appears only after all cards cycle */}
-              <AnimatePresence>
-                {slide3Unlocked && (
-                  <motion.div className="mt-10 flex items-center gap-2 cursor-pointer w-fit"
-                    initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0}}
-                    transition={{type:"spring",stiffness:320,damping:26}}
-                    onClick={()=>sectionRefs[3].current?.scrollIntoView({behavior:"smooth"})}>
-                    <span className="text-xs uppercase tracking-widest font-bold" style={{color:"rgba(255,255,255,0.45)"}}>Next</span>
-                    <motion.svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                      animate={{y:[0,4,0]}} transition={{duration:1.1,repeat:Infinity,ease:"easeInOut"}}>
-                      <polyline points="6 9 12 15 18 9"/>
-                    </motion.svg>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
 
             {/* ── Right: CardSwap ── */}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import DesktopLayout from "../components/DesktopLayout";
+import DesktopPageHeader from "../components/DesktopPageHeader";
 import {
   FiUserPlus, FiUserCheck, FiUserX, FiSearch, FiUsers,
   FiCheck, FiX, FiTrash2, FiMail, FiGrid,
@@ -144,35 +145,34 @@ export default function Friends() {
   return (
     <DesktopLayout>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 pb-28 md:pb-6 md:max-w-4xl">
-        {/* Header */}
-        <motion.div
-          className="flex items-center justify-between mb-6"
-          initial={{ opacity: 0, y: -16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 320, damping: 28 }}
-        >
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Friends</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Add friends and split expenses together</p>
-          </div>
-          <motion.button
-            onClick={() => setShowMyQR((v) => !v)}
-            whileHover={{ scale: 1.08, boxShadow: "0 8px 24px rgba(244,114,182,0.4)" }}
-            whileTap={{ scale: 0.94 }}
-            className="h-10 w-10 rounded-xl flex items-center justify-center text-white shadow-md"
-            style={getGradientStyle(theme)}
-            title="My QR Code"
-          >
-            <FiGrid size={18} />
-          </motion.button>
-        </motion.div>
+      <div className="max-w-2xl mx-auto px-6 py-8 pb-28 md:pb-8 md:max-w-4xl">
+        <DesktopPageHeader
+          label="Connect"
+          title="Your"
+          gradWord="Friends"
+          subtitle={`${friends.length} friend${friends.length !== 1 ? "s" : ""} · Split and share with ease`}
+          actions={
+            <motion.button
+              onClick={() => setShowMyQR((v) => !v)}
+              whileHover={{ scale: 1.06 }}
+              whileTap={{ scale: 0.94 }}
+              className="h-10 w-10 rounded-2xl flex items-center justify-center text-white shadow-lg"
+              style={{ background: `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})`, boxShadow: `0 4px 20px ${theme.gradFrom}44` }}
+              title="My QR Code"
+            >
+              <FiGrid size={16} />
+            </motion.button>
+          }
+        />
 
         {/* My QR panel */}
         <AnimatePresence>
           {showMyQR && userId && (
             <motion.div
-              className="mb-5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm"
+              className="mb-5 rounded-2xl p-5"
+              style={isDark
+                ? { background: "linear-gradient(135deg, rgba(255,255,255,0.065) 0%, rgba(255,255,255,0.02) 100%)", border: "1px solid rgba(255,255,255,0.09)", backdropFilter: "blur(20px)" }
+                : { background: "rgba(255,255,255,0.92)", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -201,21 +201,25 @@ export default function Friends() {
         </AnimatePresence>
 
         {/* Tabs */}
-        <div className="flex bg-gray-100 dark:bg-gray-800 rounded-2xl p-1 mb-5 gap-1">
+        <div
+          className="flex rounded-2xl p-1 mb-5 gap-1"
+          style={isDark
+            ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
+            : { background: "rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.06)" }}
+        >
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-semibold transition-all ${
-                activeTab === t.id
-                  ? "bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-              }`}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-bold transition-all`}
+              style={activeTab === t.id
+                ? { background: isDark ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.95)", color: isDark ? "rgba(255,255,255,0.95)" : "rgba(0,0,0,0.85)", boxShadow: isDark ? "0 2px 8px rgba(0,0,0,0.3)" : "0 2px 8px rgba(0,0,0,0.1)" }
+                : { color: isDark ? "rgba(255,255,255,0.38)" : "rgba(0,0,0,0.4)" }}
             >
               {t.icon}
               {t.label}
               {t.count > 0 && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={getGradientStyle(theme)}>
+                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full text-white" style={getGradientStyle(theme)}>
                   {t.count}
                 </span>
               )}
@@ -386,12 +390,17 @@ export default function Friends() {
                   </div>
                 )}
 
-                <div className="mt-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 text-center">
-                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Or share your QR code</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">Anyone who scans it can send you a friend request</p>
+                <div
+                  className="mt-6 rounded-2xl p-5 text-center"
+                  style={isDark
+                    ? { background: "linear-gradient(135deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.02) 100%)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(20px)" }
+                    : { background: "rgba(255,255,255,0.92)", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}
+                >
+                  <p className="text-sm font-black mb-1" style={{ color: isDark ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.8)" }}>Or share your QR code</p>
+                  <p className="text-xs mb-3" style={{ color: isDark ? "rgba(255,255,255,0.38)" : "rgba(0,0,0,0.42)" }}>Anyone who scans it can send you a friend request</p>
                   <button
                     onClick={() => setShowMyQR((v) => !v)}
-                    className="px-4 py-2 rounded-xl text-white font-semibold text-sm shadow"
+                    className="px-4 py-2 rounded-xl text-white font-bold text-sm"
                     style={getGradientStyle(theme)}
                   >
                     {showMyQR ? "Hide" : "Show"} My QR

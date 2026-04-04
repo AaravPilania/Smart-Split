@@ -36,8 +36,8 @@ export default function DesktopLayout({ children, hideBottomNav = false }) {
       <div
         ref={glowRef}
         onMouseMove={onMouseMove}
-        className="min-h-screen desktop-cursor-glow relative"
-        style={getPageBgStyle(theme, isDark)}
+        className="desktop-cursor-glow relative"
+        style={{ ...getPageBgStyle(theme, isDark), height: "100vh", overflow: "hidden" }}
       >
         {/* Ambient background layer — very subtle, never distracts from content */}
         <div className="desktop-ambient-dots" aria-hidden />
@@ -45,7 +45,7 @@ export default function DesktopLayout({ children, hideBottomNav = false }) {
         <div className="desktop-glow-b"        aria-hidden />
 
         {/* 3-column grid sits on top (z-index: 1) */}
-        <div className="relative z-[1]" style={{ display: "grid", gridTemplateColumns: "260px 1fr", minHeight: "100vh" }}>
+        <div className="relative z-[1]" style={{ display: "grid", gridTemplateColumns: "68px 1fr", height: "100vh" }}>
           <DashboardSidebar goals={[]} />
           <main className="overflow-y-auto page-enter-desktop">{children}</main>
         </div>
@@ -56,6 +56,7 @@ export default function DesktopLayout({ children, hideBottomNav = false }) {
   return (
     <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
       <Navbar />
+      <div className="h-16" />
       {children}
       {!hideBottomNav && <BottomNav />}
     </div>

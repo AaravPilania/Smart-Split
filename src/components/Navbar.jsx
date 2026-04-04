@@ -219,7 +219,7 @@ export default function Navbar() {
   return (
     <>
       <header
-        className={`w-full sticky top-0 z-40 transition-colors duration-200${isSidebarPage ? " md:hidden" : ""}`}
+        className={`w-full fixed top-0 z-40 transition-colors duration-200${isSidebarPage ? " md:hidden" : ""}`}
         style={{
           background: isDark
             ? "rgba(15,15,25,0.72)"

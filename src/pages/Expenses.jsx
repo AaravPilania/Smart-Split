@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import DesktopLayout from "../components/DesktopLayout";
+import DesktopPageHeader from "../components/DesktopPageHeader";
 import {
   FiFile,
   FiPlus,
@@ -353,47 +355,44 @@ export default function Expenses() {
   return (
     <DesktopLayout>
 
-      <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-28 md:pb-6">
-        {/* Page Header */}
-        <motion.div
-          className="flex justify-between items-center mb-6 sm:mb-8 gap-3"
-          initial={{ opacity: 0, y: -16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 320, damping: 28 }}
-        >
-          <div className="min-w-0">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">All Expenses</h2>
-            <p className="text-gray-400 dark:text-gray-500 text-sm uppercase tracking-wide mt-0.5">Track and manage your spending</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <motion.button
-              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              onClick={() => {
-                const group = groups.find((g) => g.id === selectedGroupId);
-                downloadExpensesCSV(expenses, group?.name || "expenses");
-              }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition disabled:opacity-40"
-              disabled={!expenses.length}
-              title="Export as CSV"
-            >
-              <FiDownload className="text-base" />
-              <span className="hidden sm:inline">Export CSV</span>
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.04, boxShadow: "0 8px 28px rgba(244,114,182,0.4)" }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => {
-                if (!selectedGroupId) { alert("Please select a group first"); return; }
-                setShowCreateModal(true);
-              }}
-              className="text-white px-4 py-2.5 rounded-xl shadow-md flex items-center gap-2 disabled:opacity-50 text-sm font-semibold"
-              style={getGradientStyle(theme)}
-              disabled={!selectedGroupId}
-            >
-              <FiPlus /> <span className="hidden sm:inline">Add Expense</span><span className="sm:hidden">Add</span>
-            </motion.button>
-          </div>
-        </motion.div>
+      <div className="max-w-6xl mx-auto py-8 px-6 pb-28 md:pb-8">
+        <DesktopPageHeader
+          label="Track"
+          title="All"
+          gradWord="Expenses"
+          subtitle="Manage and monitor your shared spending"
+          actions={
+            <>
+              <motion.button
+                whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                onClick={() => {
+                  const group = groups.find((g) => g.id === selectedGroupId);
+                  downloadExpensesCSV(expenses, group?.name || "expenses");
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-semibold transition disabled:opacity-40"
+                style={{ background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)", color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.6)", border: isDark ? "1px solid rgba(255,255,255,0.09)" : "1px solid rgba(0,0,0,0.08)" }}
+                disabled={!expenses.length}
+                title="Export as CSV"
+              >
+                <FiDownload size={14} />
+                <span>Export CSV</span>
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={() => {
+                  if (!selectedGroupId) { alert("Please select a group first"); return; }
+                  setShowCreateModal(true);
+                }}
+                className="text-white px-5 py-2.5 rounded-2xl shadow-lg flex items-center gap-2 disabled:opacity-50 text-sm font-bold magnetic-cta"
+                style={{ background: `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})`, boxShadow: `0 4px 20px ${theme.gradFrom}44` }}
+                disabled={!selectedGroupId}
+              >
+                <FiPlus size={15} /> Add Expense
+              </motion.button>
+            </>
+          }
+        />
 
         {/* Group Filter */}
         <div className="mb-6">
@@ -542,10 +541,11 @@ export default function Expenses() {
       </div>
 
       {/* Create Expense Modal */}
+      {createPortal(
       <AnimatePresence>
       {showCreateModal && selectedGroup && (
-        <motion.div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-          <motion.div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full p-6 my-8" initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.97 }} transition={{ type: "spring", stiffness: 340, damping: 28 }}>
+        <motion.div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+          <motion.div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full p-6 overflow-y-auto max-h-[90vh]" initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.97 }} transition={{ type: "spring", stiffness: 340, damping: 28 }}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold text-gray-800 dark:text-white">
                 Add Expense - {selectedGroup.name}
@@ -844,10 +844,12 @@ export default function Expenses() {
         </motion.div>
       )}
       </AnimatePresence>
+      , document.body)}
       {/* Edit Expense Modal */}
+      {createPortal(
       <AnimatePresence>
       {editingExpense && (
-        <motion.div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+        <motion.div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
           <motion.div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6" initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.97 }} transition={{ type: "spring", stiffness: 340, damping: 28 }}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-gray-800 dark:text-white">Edit Expense</h3>
@@ -919,6 +921,7 @@ export default function Expenses() {
         </motion.div>
       )}
       </AnimatePresence>
+      , document.body)}
     </DesktopLayout>
   );
 }
