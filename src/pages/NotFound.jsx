@@ -100,10 +100,10 @@ export default function NotFound() {
         className="relative bg-white flex flex-col items-center overflow-y-auto"
         style={{
           zIndex: 10,
-          width: "min(400px, 90vw)",
+          width: "min(460px, 88vw)",
           maxHeight: "92vh",
           borderRadius: "28px",
-          padding: "2.5rem 2rem 2rem",
+          padding: "2.8rem 2.4rem 2.4rem",
           boxShadow: "0 40px 100px rgba(0,0,0,0.75)",
         }}
       >
@@ -111,14 +111,33 @@ export default function NotFound() {
           ... 404 error ...
         </p>
 
-        <h1 className="text-3xl font-black text-gray-900 text-center leading-tight mb-4">
+        <h1 className="text-3xl font-black text-gray-900 text-center leading-tight mb-5">
           Sorry, page not
           <br />
           found
         </h1>
 
-        <p className="text-xs text-gray-400 text-center mb-5 leading-snug">
-          Go to other sections to learn more about Smart Split
+        {/* Toilet GIF */}
+        <div className="w-full rounded-2xl overflow-hidden mb-5">
+          <img
+            src="/videos/toilet%20breaking%20GIF.gif"
+            alt="toilet breaking"
+            className="w-full object-cover"
+            style={{ maxHeight: "260px" }}
+          />
+        </div>
+
+        {/* Return to homepage button */}
+        <Link
+          to="/"
+          className="w-full flex items-center justify-center py-3 rounded-2xl font-semibold text-white mb-5 transition-opacity hover:opacity-90"
+          style={{ background: CORAL, fontSize: "15px" }}
+        >
+          Return to homepage
+        </Link>
+
+        <p className="text-xs text-gray-400 text-center mb-4 leading-snug">
+          Or go to other sections:
         </p>
 
         <div className="w-full flex flex-col gap-2">
