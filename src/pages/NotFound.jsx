@@ -39,13 +39,14 @@ export default function NotFound() {
         initial={{ opacity: 0, x: -80 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        className="absolute font-black text-white pointer-events-none select-none"
+        className="absolute font-black text-white pointer-events-none select-none text-center"
         style={{
-          fontSize: "88vh",
-          lineHeight: 0.85,
-          left: "-6vw",
-          top: "50%",
-          transform: "translateY(-50%)",
+          fontSize: "clamp(300px, 50vw, 700px)",
+          lineHeight: 1,
+          width: "50vw",
+          left: 0,
+          bottom: 0,
+          overflow: "hidden",
         }}
       >
         4
@@ -56,13 +57,14 @@ export default function NotFound() {
         initial={{ opacity: 0, x: 80 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        className="absolute font-black text-white pointer-events-none select-none"
+        className="absolute font-black text-white pointer-events-none select-none text-center"
         style={{
-          fontSize: "88vh",
-          lineHeight: 0.85,
-          right: "-6vw",
-          top: "50%",
-          transform: "translateY(-50%)",
+          fontSize: "clamp(300px, 50vw, 700px)",
+          lineHeight: 1,
+          width: "50vw",
+          right: 0,
+          bottom: 0,
+          overflow: "hidden",
         }}
       >
         4
