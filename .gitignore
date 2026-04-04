@@ -16,6 +16,11 @@ node_modules
 dist
 build
 
+# Backup / generated files
+*.bak
+*.backup
+*.local
+
 # Capacitor native build artifacts (keep source, ignore generated build dirs)
 android/.gradle/
 android/build/
@@ -24,6 +29,7 @@ android/local.properties
 ios/App/Pods/
 ios/App/build/
 ios/.DS_Store
+
 # Logs
 logs
 *.log
@@ -33,10 +39,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
 dist-ssr
-*.local
 
 # Editor directories and files
 .vscode/*
@@ -48,3 +51,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Markdown docs — only keep root README.md and backend/README.md
+*.md
+!README.md
+!backend/README.md

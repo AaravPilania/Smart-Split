@@ -9,6 +9,7 @@ import Profile from "./pages/Profile";
 import Balances from "./pages/Balances";
 import Friends from "./pages/Friends";
 import AddFriend from "./pages/AddFriend";
+import NotFound from "./pages/NotFound";
 import { getToken, setToken, clearAuth, silentRefresh, wakeUpServer, getUserId, API_URL, apiFetch } from "./utils/api";
 import Aaru from "./components/Aaru";
 
@@ -179,6 +180,8 @@ function App() {
           <Route path="/friends" element={<ProtectedRoute element={<Friends />} />} />
           {/* Public — anyone with the link/QR can land here */}
           <Route path="/add-friend/:userId" element={<AddFriend />} />
+          {/* 404 catch-all */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </PageTransition>
     </BrowserRouter>
