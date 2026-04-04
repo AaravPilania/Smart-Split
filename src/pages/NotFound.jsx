@@ -39,76 +39,46 @@ export default function NotFound() {
   useTheme();
 
   return (
-    <div className="w-screen h-screen bg-black overflow-hidden relative flex items-center justify-center">
+    /* 3-column grid: each column = 1/3 of viewport width */
+    <div
+      className="w-screen h-screen bg-black overflow-hidden"
+      style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", alignItems: "center" }}
+    >
+      {/* ── COL 1: LEFT "4" + top arrow ── */}
+      <div className="relative flex items-center justify-center h-full overflow-hidden">
+        {/* TOP-LEFT ARROW */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.45, delay: 0.2 }}
+          className="absolute"
+          style={{ top: "10%", left: "10%" }}
+        >
+          <ArrowBtn rotate={0} size={58} id="tl" />
+        </motion.div>
 
-      {/* ── LEFT "4" — same height as card, centered, bleeds left edge ── */}
-      <motion.span
-        initial={{ opacity: 0, x: -60 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        className="absolute font-black text-white pointer-events-none select-none"
-        style={{
-          fontSize: "clamp(340px, 92vh, 900px)",
-          lineHeight: 1,
-          top: "50%",
-          transform: "translateY(-50%)",
-          left: "-1%",
-          zIndex: 0,
-        }}
-      >
-        4
-      </motion.span>
+        <motion.span
+          initial={{ opacity: 0, x: -60 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="font-black text-white pointer-events-none select-none"
+          style={{ fontSize: "100%", lineHeight: 1, width: "100%", textAlign: "center",
+            /* fill the column height: font-size = column width since "4" is roughly square */
+            fontSize: "33vw",
+          }}
+        >
+          4
+        </motion.span>
+      </div>
 
-      {/* ── TOP-LEFT ARROW ── */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.5 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.45, delay: 0.2 }}
-        className="absolute"
-        style={{ top: "12%", left: "4%", zIndex: 2 }}
-      >
-        <ArrowBtn rotate={0} size={58} id="tl" />
-      </motion.div>
-
-      {/* ── RIGHT "4" — same height as card, centered, bleeds right edge ── */}
-      <motion.span
-        initial={{ opacity: 0, x: 60 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        className="absolute font-black text-white pointer-events-none select-none"
-        style={{
-          fontSize: "clamp(340px, 92vh, 900px)",
-          lineHeight: 1,
-          top: "50%",
-          transform: "translateY(-50%)",
-          right: "-1%",
-          zIndex: 0,
-        }}
-      >
-        4
-      </motion.span>
-
-      {/* ── BOTTOM-RIGHT ARROWS ── */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.5 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.45, delay: 0.25 }}
-        className="absolute flex gap-2"
-        style={{ bottom: "5%", right: "3%", zIndex: 2 }}
-      >
-        <ArrowBtn rotate={90}  size={54} id="br1" />
-        <ArrowBtn rotate={180} size={54} id="br2" />
-      </motion.div>
-
-      {/* ── CENTRE CARD ── */}
+      {/* ── COL 2: CENTRE CARD ── */}
+      <div className="flex items-center justify-center h-full py-4">
       <motion.div
         initial={{ opacity: 0, y: 28, scale: 0.93 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
-        className="relative bg-white flex flex-col items-center overflow-y-auto"
+        className="bg-white flex flex-col items-center overflow-y-auto w-full"
         style={{
-          zIndex: 10,
-          width: "clamp(280px, 32vw, 400px)",
           maxHeight: "92vh",
           borderRadius: "28px",
           padding: "1.5rem 1.4rem 1.4rem",
@@ -196,6 +166,32 @@ export default function NotFound() {
           ))}
         </div>
       </motion.div>
+      </div>
+
+      {/* ── COL 3: RIGHT "4" + bottom arrows ── */}
+      <div className="relative flex items-center justify-center h-full overflow-hidden">
+        <motion.span
+          initial={{ opacity: 0, x: 60 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="font-black text-white pointer-events-none select-none"
+          style={{ lineHeight: 1, width: "100%", textAlign: "center", fontSize: "33vw" }}
+        >
+          4
+        </motion.span>
+
+        {/* BOTTOM-RIGHT ARROWS */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.45, delay: 0.25 }}
+          className="absolute flex gap-2"
+          style={{ bottom: "8%", right: "8%" }}
+        >
+          <ArrowBtn rotate={90}  size={54} id="br1" />
+          <ArrowBtn rotate={180} size={54} id="br2" />
+        </motion.div>
+      </div>
     </div>
   );
 }
