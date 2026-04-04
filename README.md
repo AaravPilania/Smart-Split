@@ -454,7 +454,8 @@ Input → Regex-first (200+ keywords, instant)
 | 🛍️ Shopping | Amazon, Flipkart, Myntra, Croma |
 | 💊 Health | Apollo, gym, pharmacy, 1mg, salon |
 | 💡 Utilities | Airtel, Jio, electricity, EMI, insurance |
-| 💼 Other | Everything else |
+| ❤️ Love & Dates | Date, valentine, anniversary, bouquet, chocolate, dinner date |
+| 💸 Other | Everything else |
 
 <br/>
 
@@ -668,7 +669,32 @@ Triggered automatically for guest users and first-time signups via `sessionStora
 
 ## 🆕 Latest Updates :
 
-### UI Overhaul — Pink & Amber Theme
+### Desktop Experience Overhaul
+
+| Change | Details |
+|:-------|:--------|
+| **Full Desktop Layout** | 3-column CSS grid (`68px sidebar · 1fr main · 290px right panel`), locked to `100vh` with only the main column scrolling |
+| **Sticky Sidebar** | Left sidebar never scrolls — outer wrapper is `height:100vh; overflow:hidden` so the sidebar is always visible |
+| **Fixed Navbar** | Navbar changed from `sticky` to `position:fixed` — stays pinned when scrolling any page; all pages compensate with a `h-16` spacer |
+| **Smooth Line Chart** | Monthly cashflow replaced the bar chart entirely — ResizeObserver-driven SVG cubic-bezier curve with gradient fill, glow filter, animated terminal dot, and hover tooltips |
+| **Theme-Colored Graph** | All chart colors dynamically use `theme.gradFrom` / `theme.gradTo` — no hardcoded blue |
+| **3D Stat Cards** | Desktop stat cards have mouse-tracked 3D tilt, radial accent glow, and Framer Motion spring entry |
+| **Currency Count-Up** | `CurrencyCountUp` is defined at module scope (outside `Dashboard`) so it never remounts on re-renders — animation plays exactly **once** on page load via `useInView({ once: true })` |
+| **Desktop Insights Modal** | Tapping the Insights card opens a full bottom-sheet with category breakdown donut + AI insights — same experience as mobile |
+| **Right Panel** | `DashboardRightPanel` shows Quick Send, UPI/QR, and Recent Transactions with correct category emoji mapping including the new Love & Dates category |
+| **Notifications Panel** | Bottom-anchored, `w-64`, `max-h` constrained, inner `overflow-y-auto` scroll — aligned symmetrically with the sidebar bottom |
+
+### Mobile Polish
+
+| Change | Details |
+|:-------|:--------|
+| **Spending Insights Icon** | Replaced broken `✨` emoji with `<FiZap>` React icon, themed with gradient color |
+| **Modal Centering** | Expense modals use `createPortal(…, document.body)` — they escape the Framer Motion transform tree and always center on the true viewport |
+| **Category Fix** | `DashboardRightPanel` CAT_EMOJI keys aligned exactly with `categories.js` keys; `getCategoryInfo` fallback added |
+| **Love & Dates Category** | New `love` category with ❤️ icon, rose badge, and date/romance/anniversary/valentine keyword detection |
+| **Rupee Icon** | Sidebar Expenses tab rupee symbol bumped from `text-base` to `text-xl font-extrabold` |
+
+### UI Overhaul — Pink & Amber Theme (prior)
 
 | Change | Details |
 |:-------|:--------|
@@ -687,11 +713,11 @@ Triggered automatically for guest users and first-time signups via `sessionStora
 
 | Element | Animation |
 |:--------|:----------|
+| **Page Transitions** | Framer Motion `AnimatePresence` — fast 0.1s fade-out exit, 0.26s spring fade-in + lift on entry; no `mode="wait"` to prevent double-flash |
 | **Sign Out** | Page fades + scales down before navigating; confirmation modal slides up with spring physics |
 | **QR Code (Friends)** | Height-animated reveal with spring transition instead of abrupt toggle |
-| **All Modals** | 11 modals across Groups, Expenses, Balances, and ScanReceipt wrapped in `AnimatePresence` — backdrop fades, card slides up with spring |
+| **All Modals** | Modals across Groups, Expenses, Balances, and ScanReceipt wrapped in `AnimatePresence` with portal rendering — backdrop fades, card slides up with spring |
 | **Camera/QR Overlays** | Fade in/out transitions for fullscreen camera and QR scanner views |
-| **Page Transitions** | `AnimatePresence mode="wait"` with 0.22s fade-in, 0.14s fade-out on all routes |
 
 <br/>
 
