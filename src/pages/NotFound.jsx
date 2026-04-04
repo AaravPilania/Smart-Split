@@ -2,30 +2,24 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTheme } from "../utils/theme";
 
-/* Pink → orange gradient constants (matches project theme) */
 const G_FROM = "#ec4899";
 const G_TO   = "#f97316";
 
-/* Arrow icon — rotated variants */
-function Arrow({ rotate = 0, size = 72 }) {
+/* Gradient arrow rounded-square */
+function ArrowBtn({ rotate = 0, size = 60, id }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 72 72"
-      fill="none"
-      style={{ transform: `rotate(${rotate}deg)` }}
-    >
-      <rect width="72" height="72" rx="18" fill={`url(#ag${rotate})`} />
+    <svg width={size} height={size} viewBox="0 0 60 60" fill="none">
+      <rect width="60" height="60" rx="14" fill={`url(#g${id})`} />
       <path
-        d="M22 50 L50 22M50 22H30M50 22V42"
+        d="M18 42 L42 18M42 18H26M42 18V34"
         stroke="white"
-        strokeWidth="5"
+        strokeWidth="4.5"
         strokeLinecap="round"
         strokeLinejoin="round"
+        style={{ transform: `rotate(${rotate}deg)`, transformOrigin: "center" }}
       />
       <defs>
-        <linearGradient id={`ag${rotate}`} x1="0" y1="0" x2="72" y2="72" gradientUnits="userSpaceOnUse">
+        <linearGradient id={`g${id}`} x1="0" y1="0" x2="60" y2="60" gradientUnits="userSpaceOnUse">
           <stop stopColor={G_FROM} />
           <stop offset="1" stopColor={G_TO} />
         </linearGradient>
@@ -34,85 +28,96 @@ function Arrow({ rotate = 0, size = 72 }) {
   );
 }
 
-/* Navigation pills inside the card */
 const NAV_LINKS = [
-  { to: "/dashboard", label: "Dashboard",   desc: "Your splits at a glance" },
-  { to: "/expenses",  label: "Expenses",    desc: "Manage all your expenses" },
-  { to: "/friends",   label: "Friends",     desc: "See who owes what" },
+  { to: "/dashboard", label: "Dashboard", desc: "Your splits at a glance" },
+  { to: "/expenses",  label: "Expenses",  desc: "Manage all your expenses" },
+  { to: "/friends",   label: "Friends",   desc: "See who owes what" },
 ];
 
 export default function NotFound() {
-  useTheme(); // keep theme context alive
+  useTheme();
 
   return (
-    <div className="min-h-screen w-full bg-black flex items-center justify-center overflow-hidden relative select-none">
-
-      {/* ── LEFT  "4" ── */}
-      <motion.div
-        initial={{ opacity: 0, x: -60 }}
+    <div
+      className="w-screen h-screen bg-black overflow-hidden relative flex items-center justify-center"
+      style={{ fontFamily: "inherit" }}
+    >
+      {/* ═══ LEFT "4" — bottom-left, massive, partially cut off ═══ */}
+      <motion.span
+        initial={{ opacity: 0, x: -80 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        className="absolute left-0 top-1/2 -translate-y-1/2 flex flex-col items-start"
-        style={{ paddingLeft: "clamp(0px, 2vw, 48px)" }}
-      >
-        {/* top-left arrow */}
-        <div className="mb-4 ml-1">
-          <Arrow rotate={0} size={56} />
-        </div>
-        <span
-          className="font-black leading-none"
-          style={{
-            fontSize: "clamp(140px, 22vw, 320px)",
-            color: "white",
-            letterSpacing: "-0.04em",
-          }}
-        >
-          4
-        </span>
-      </motion.div>
-
-      {/* ── RIGHT "4" ── */}
-      <motion.div
-        initial={{ opacity: 0, x: 60 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col items-end"
-        style={{ paddingRight: "clamp(0px, 2vw, 48px)" }}
-      >
-        <span
-          className="font-black leading-none"
-          style={{
-            fontSize: "clamp(140px, 22vw, 320px)",
-            color: "white",
-            letterSpacing: "-0.04em",
-          }}
-        >
-          4
-        </span>
-        {/* bottom-right arrows */}
-        <div className="mt-4 flex gap-3 mr-1">
-          <Arrow rotate={90} size={48} />
-          <Arrow rotate={180} size={48} />
-        </div>
-      </motion.div>
-
-      {/* ── CENTRE CARD ── */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.88, y: 24 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-        className="relative z-10 bg-white rounded-3xl shadow-2xl flex flex-col items-center overflow-hidden"
+        transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
+        className="absolute font-black text-white leading-none pointer-events-none"
         style={{
-          width: "clamp(300px, 90vw, 420px)",
-          padding: "2rem 1.75rem 1.75rem",
-          boxShadow: `0 32px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06)`,
+          fontSize: "clamp(220px, 34vw, 480px)",
+          bottom: "-4%",
+          left: "-1%",
+          lineHeight: 0.85,
+          userSelect: "none",
         }}
       >
-        {/* Header text */}
+        4
+      </motion.span>
+
+      {/* ═══ TOP-LEFT ARROW — independently positioned ═══ */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.6 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, delay: 0.15 }}
+        className="absolute"
+        style={{ top: "32%", left: "3%" }}
+      >
+        <ArrowBtn rotate={0} size={58} id="tl" />
+      </motion.div>
+
+      {/* ═══ RIGHT "4" — bottom-right, massive, partially cut off ═══ */}
+      <motion.span
+        initial={{ opacity: 0, x: 80 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
+        className="absolute font-black text-white leading-none pointer-events-none"
+        style={{
+          fontSize: "clamp(220px, 34vw, 480px)",
+          bottom: "-4%",
+          right: "-1%",
+          lineHeight: 0.85,
+          userSelect: "none",
+        }}
+      >
+        4
+      </motion.span>
+
+      {/* ═══ BOTTOM-RIGHT ARROWS — independently positioned ═══ */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.6 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="absolute flex gap-2"
+        style={{ bottom: "3%", right: "2.5%" }}
+      >
+        <ArrowBtn rotate={45} size={54} id="br1" />
+        <ArrowBtn rotate={135} size={54} id="br2" />
+      </motion.div>
+
+      {/* ═══ CENTRE CARD ═══ */}
+      <motion.div
+        initial={{ opacity: 0, y: 32, scale: 0.93 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+        className="relative z-10 bg-white flex flex-col items-center overflow-y-auto"
+        style={{
+          width: "clamp(280px, 34vw, 400px)",
+          maxHeight: "92vh",
+          borderRadius: "28px",
+          padding: "1.6rem 1.5rem 1.5rem",
+          boxShadow: "0 40px 100px rgba(0,0,0,0.7)",
+        }}
+      >
+        {/* "... 404 error ..." */}
         <p
-          className="text-2xl font-black text-center leading-tight mb-1"
+          className="text-xl font-black text-center mb-1"
           style={{
-            background: `linear-gradient(135deg, ${G_FROM}, ${G_TO})`,
+            background: `linear-gradient(90deg, ${G_FROM}, ${G_TO})`,
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
@@ -120,12 +125,14 @@ export default function NotFound() {
         >
           ... 404 error ...
         </p>
-        <p className="text-[1.45rem] font-extrabold text-gray-900 text-center leading-snug mb-4">
+
+        {/* "Sorry, page not found" */}
+        <p className="text-[1.35rem] font-extrabold text-gray-900 text-center leading-[1.25] mb-4">
           Sorry, page not<br />found
         </p>
 
-        {/* Toilet GIF */}
-        <div className="w-full rounded-2xl overflow-hidden mb-5" style={{ aspectRatio: "1/1" }}>
+        {/* GIF */}
+        <div className="w-full rounded-2xl overflow-hidden mb-4" style={{ aspectRatio: "1/1" }}>
           <img
             src="/videos/toilet%20breaking%20GIF.gif"
             alt="toilet breaking"
@@ -134,56 +141,60 @@ export default function NotFound() {
         </div>
 
         {/* Subtitle */}
-        <p className="text-xs text-gray-400 text-center mb-4">
+        <p className="text-[11px] text-gray-400 text-center mb-3 leading-snug">
           Go to other sections to learn more about Smart Split
         </p>
 
-        {/* Nav pills */}
-        <div className="w-full flex flex-col gap-2">
+        {/* Nav rows */}
+        <div className="w-full flex flex-col gap-[6px]">
           {NAV_LINKS.map(({ to, label, desc }, i) => (
             <motion.div
               key={to}
-              initial={{ opacity: 0, x: -12 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.28 + i * 0.07, duration: 0.4 }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 + i * 0.07 }}
             >
               <Link
                 to={to}
-                className="flex items-center justify-between w-full px-4 py-3 rounded-2xl border border-gray-100 bg-gray-50 hover:bg-gray-100 transition-colors group"
+                className="flex items-center justify-between w-full px-4 py-[10px] rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-100"
               >
                 <div>
                   <p
-                    className="text-sm font-semibold"
-                    style={{
-                      background: i === 0 ? `linear-gradient(135deg, ${G_FROM}, ${G_TO})` : undefined,
-                      WebkitBackgroundClip: i === 0 ? "text" : undefined,
-                      WebkitTextFillColor: i === 0 ? "transparent" : undefined,
-                      backgroundClip: i === 0 ? "text" : undefined,
-                      color: i === 0 ? undefined : "#111827",
-                    }}
+                    className="text-[13px] font-semibold leading-tight"
+                    style={
+                      i === 0
+                        ? {
+                            background: `linear-gradient(90deg, ${G_FROM}, ${G_TO})`,
+                            WebkitBackgroundClip: "text",
+                            WebkitTextFillColor: "transparent",
+                            backgroundClip: "text",
+                          }
+                        : { color: "#111827" }
+                    }
                   >
                     {label}
                   </p>
-                  <p className="text-xs text-gray-400">{desc}</p>
+                  <p className="text-[11px] text-gray-400">{desc}</p>
                 </div>
-                <span
-                  className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white text-sm font-bold"
+
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
                   style={{
                     background: i === 0
                       ? `linear-gradient(135deg, ${G_FROM}, ${G_TO})`
                       : "#e5e7eb",
                   }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                     <path
-                      d="M3 13 L13 3M13 3H7M13 3V9"
+                      d="M2.5 11.5 L11.5 2.5M11.5 2.5H5.5M11.5 2.5V8.5"
                       stroke={i === 0 ? "white" : "#9ca3af"}
-                      strokeWidth="2"
+                      strokeWidth="1.8"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
                   </svg>
-                </span>
+                </div>
               </Link>
             </motion.div>
           ))}
