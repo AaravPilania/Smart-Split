@@ -1,44 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useTheme } from "../utils/theme";
 
-const G_FROM = "#ec4899";
-const G_TO = "#f97316";
-
-function ArrowBtn({ rotate = 0, size = 58, id }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 60 60" fill="none">
-      <rect width="60" height="60" rx="14" fill={`url(#g${id})`} />
-      <g
-        style={{
-          transform: `rotate(${rotate}deg)`,
-          transformOrigin: "30px 30px",
-        }}
-      >
-        <path
-          d="M18 42 L42 18M42 18H26M42 18V34"
-          stroke="white"
-          strokeWidth="4.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </g>
-      <defs>
-        <linearGradient
-          id={`g${id}`}
-          x1="0"
-          y1="0"
-          x2="60"
-          y2="60"
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop stopColor={G_FROM} />
-          <stop offset="1" stopColor={G_TO} />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-}
+const CORAL = "#F4705F";
 
 const NAV_LINKS = [
   { to: "/dashboard", label: "Dashboard", desc: "Your splits at a glance" },
@@ -46,12 +9,32 @@ const NAV_LINKS = [
   { to: "/friends", label: "Friends", desc: "See who owes what" },
 ];
 
-export default function NotFound() {
-  useTheme();
-
+/* Right-angle bent arrow decoration (↙ shape) — rotate 180° for ↗ variant */
+function BentArrow({ size = 80 }) {
   return (
-    <div className="w-screen h-screen bg-black overflow-hidden relative">
-      {/* ═══ LEFT "4" — fills viewport height, bleeds off left edge ═══ */}
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
+      <path
+        d="M70 10 L70 65 L20 65"
+        stroke={CORAL}
+        strokeWidth="16"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M35 50 L20 65 L35 80"
+        stroke={CORAL}
+        strokeWidth="16"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export default function NotFound() {
+  return (
+    <div className="w-screen h-screen bg-black overflow-hidden relative flex items-center justify-center">
+      {/* LEFT "4" */}
       <motion.span
         initial={{ opacity: 0, x: -80 }}
         animate={{ opacity: 1, x: 0 }}
@@ -59,7 +42,7 @@ export default function NotFound() {
         className="absolute font-black text-white pointer-events-none select-none"
         style={{
           fontSize: "88vh",
-          lineHeight: 0.95,
+          lineHeight: 0.85,
           left: "-6vw",
           top: "50%",
           transform: "translateY(-50%)",
@@ -68,7 +51,7 @@ export default function NotFound() {
         4
       </motion.span>
 
-      {/* ═══ RIGHT "4" — fills viewport height, bleeds off right edge ═══ */}
+      {/* RIGHT "4" */}
       <motion.span
         initial={{ opacity: 0, x: 80 }}
         animate={{ opacity: 1, x: 0 }}
@@ -76,7 +59,7 @@ export default function NotFound() {
         className="absolute font-black text-white pointer-events-none select-none"
         style={{
           fontSize: "88vh",
-          lineHeight: 0.95,
+          lineHeight: 0.85,
           right: "-6vw",
           top: "50%",
           transform: "translateY(-50%)",
@@ -85,81 +68,58 @@ export default function NotFound() {
         4
       </motion.span>
 
-      {/* ═══ TOP-LEFT ARROW ═══ */}
+      {/* TOP-LEFT BENT ARROW */}
       <motion.div
         initial={{ opacity: 0, scale: 0.5 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.45, delay: 0.2 }}
         className="absolute z-20"
-        style={{ top: "6%", left: "10%" }}
+        style={{ top: "8%", left: "16%" }}
       >
-        <ArrowBtn rotate={90} size={58} id="tl" />
+        <BentArrow size={70} />
       </motion.div>
 
-      {/* ═══ BOTTOM-RIGHT ARROWS ═══ */}
+      {/* BOTTOM-RIGHT BENT ARROW (flipped 180°) */}
       <motion.div
         initial={{ opacity: 0, scale: 0.5 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.45, delay: 0.25 }}
-        className="absolute z-20 flex gap-2"
-        style={{ bottom: "5%", right: "4%" }}
+        className="absolute z-20"
+        style={{ bottom: "4%", right: "8%", transform: "rotate(180deg)" }}
       >
-        <ArrowBtn rotate={90} size={58} id="br1" />
-        <ArrowBtn rotate={180} size={58} id="br2" />
+        <BentArrow size={100} />
       </motion.div>
 
-      {/* ═══ CENTRE CARD — same visual height as the "4"s ═══ */}
+      {/* CENTRE CARD */}
       <motion.div
         initial={{ opacity: 0, y: 28, scale: 0.93 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
-        className="absolute bg-white flex flex-col items-center overflow-y-auto"
+        className="relative bg-white flex flex-col items-center overflow-y-auto"
         style={{
           zIndex: 10,
-          width: "min(380px, 28vw)",
+          width: "min(400px, 90vw)",
           maxHeight: "92vh",
           borderRadius: "28px",
-          padding: "1.5rem 1.4rem 1.4rem",
+          padding: "2.5rem 2rem 2rem",
           boxShadow: "0 40px 100px rgba(0,0,0,0.75)",
-          left: "50%",
-          top: "50%",
-          transform: "translate(-50%, -50%)",
         }}
       >
-        <p
-          className="text-xl font-black text-center mb-1"
-          style={{
-            background: `linear-gradient(90deg, ${G_FROM}, ${G_TO})`,
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}
-        >
+        <p className="text-lg font-medium text-gray-800 text-center mb-1 tracking-wide">
           ... 404 error ...
         </p>
 
-        <p className="text-[1.3rem] font-extrabold text-gray-900 text-center leading-snug mb-4">
+        <h1 className="text-3xl font-black text-gray-900 text-center leading-tight mb-4">
           Sorry, page not
           <br />
           found
-        </p>
+        </h1>
 
-        <div
-          className="w-full rounded-2xl overflow-hidden mb-4"
-          style={{ aspectRatio: "1/1" }}
-        >
-          <img
-            src="/videos/toilet%20breaking%20GIF.gif"
-            alt="toilet breaking"
-            className="w-full h-full object-cover"
-          />
-        </div>
-
-        <p className="text-[11px] text-gray-400 text-center mb-3 leading-snug">
+        <p className="text-xs text-gray-400 text-center mb-5 leading-snug">
           Go to other sections to learn more about Smart Split
         </p>
 
-        <div className="w-full flex flex-col gap-[6px]">
+        <div className="w-full flex flex-col gap-2">
           {NAV_LINKS.map(({ to, label, desc }, i) => (
             <motion.div
               key={to}
@@ -169,34 +129,20 @@ export default function NotFound() {
             >
               <Link
                 to={to}
-                className="flex items-center justify-between w-full px-4 py-[10px] rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-100"
+                className="flex items-center justify-between w-full px-4 py-3 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors"
               >
                 <div>
                   <p
-                    className="text-[13px] font-semibold leading-tight"
-                    style={
-                      i === 0
-                        ? {
-                            background: `linear-gradient(90deg, ${G_FROM}, ${G_TO})`,
-                            WebkitBackgroundClip: "text",
-                            WebkitTextFillColor: "transparent",
-                            backgroundClip: "text",
-                          }
-                        : { color: "#111827" }
-                    }
+                    className="text-sm font-semibold leading-tight"
+                    style={{ color: i === 0 ? CORAL : "#111827" }}
                   >
                     {label}
                   </p>
-                  <p className="text-[11px] text-gray-400">{desc}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
                 </div>
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                  style={{
-                    background:
-                      i === 0
-                        ? `linear-gradient(135deg, ${G_FROM}, ${G_TO})`
-                        : "#e5e7eb",
-                  }}
+                  style={{ background: i === 0 ? CORAL : "#e5e7eb" }}
                 >
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                     <path
