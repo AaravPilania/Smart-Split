@@ -161,8 +161,16 @@ function App() {
 
   usePWAAutoUpdate();
 
-  // Don't render routes until we know whether the session is valid
-  if (!authReady) return null;
+  // Show a simple splash while silent-refresh is in-flight (avoids white flash → dashboard jump)
+  if (!authReady) return (
+    <div style={{
+      position: "fixed", inset: 0,
+      background: "#0c0e1a",
+      display: "flex", alignItems: "center", justifyContent: "center",
+    }}>
+      <img src="/icon.png" alt="Smart Split" style={{ width: 64, height: 64, borderRadius: 20, opacity: 0.9 }} />
+    </div>
+  );
 
   return (
     <BrowserRouter>

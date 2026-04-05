@@ -912,16 +912,12 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
     if (!slide3UnlockedRef.current && count >= FEATURE_CARDS.length) {
       slide3UnlockedRef.current = true;
       setSlide3Unlocked(true);
-      /* Re-enable scroll */
+      /* Re-enable scroll and let the user scroll naturally to slide 4 */
       if (scrollRef.current) {
         scrollRef.current.style.overflowY = 'auto';
         scrollRef.current.style.scrollSnapType = 'y mandatory';
         slide3LockedRef.current = false;
       }
-      /* Auto-advance to the result section */
-      setTimeout(() => {
-        sectionRefs[3].current?.scrollIntoView({ behavior: 'smooth' });
-      }, 700);
     }
   };
 
