@@ -65,31 +65,27 @@ export default function Balances() {
       const groupsData = await groupsRes.json();
       const groups = groupsData.groups || [];
 
-      const results = [];
-      const simplifiedMap = {};
+      // Fetch settlements + balances for all groups in parallel (instead of sequential)
+      const grouped = await Promise.all(
+        groups.map(async (group) => {
+          const [settleRes, balRes] = await Promise.all([
+            apiFetch(`${API_URL}/expenses/group/${group.id}/settlements`),
+            apiFetch(`${API_URL}/expenses/group/${group.id}/balances`),
+          ]);
+          const settlements = settleRes.ok ? ((await settleRes.json()).settlements || []) : [];
+          const simplified = balRes.ok ? simplifyDebts((await balRes.json()).balances || []) : [];
+          return { group, settlements, simplified };
+        })
+      );
 
-      for (const group of groups) {
-        // Fetch standard settlements
-        const settleRes = await apiFetch(`${API_URL}/expenses/group/${group.id}/settlements`);
-        if (settleRes.ok) {
-          const settleData = await settleRes.json();
-          const settlements = settleData.settlements || [];
-          if (settlements.length > 0) {
-            results.push({ group, settlements });
-          }
-        }
-        // Also fetch raw balances for debt simplification
-        const balRes = await apiFetch(`${API_URL}/expenses/group/${group.id}/balances`);
-        if (balRes.ok) {
-          const balData = await balRes.json();
-          simplifiedMap[group.id] = simplifyDebts(balData.balances || []);
-        }
-      }
+      const results = grouped.filter(r => r.settlements.length > 0);
+      const simplifiedMap = {};
+      const initialExpanded = {};
+      grouped.forEach(({ group, simplified }) => { simplifiedMap[group.id] = simplified; });
+      results.forEach(({ group }) => { initialExpanded[group.id] = true; });
+
       setGroupBalances(results);
       setSimplifiedByGroup(simplifiedMap);
-      // Expand all groups with balances by default
-      const initialExpanded = {};
-      results.forEach(({ group }) => { initialExpanded[group.id] = true; });
       setExpandedGroups(initialExpanded);
     } catch (e) {
       console.error(e);
@@ -273,13 +269,45 @@ export default function Balances() {
         )}
 
         {loading ? (
-          <div className="text-center py-20">
-            <div
-              className={`animate-spin rounded-full h-10 w-10 border-b-2 ${theme.spinner} mx-auto`}
-            ></div>
-            <p className="mt-4 text-sm" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)" }}>
-              Loading balances...
-            </p>
+          <div className="space-y-4">
+            {/* Summary cards skeleton */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {[0,1].map(i => (
+                <div key={i} className="rounded-2xl p-5 animate-pulse"
+                  style={isDark ? {background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.07)"} : {background:"rgba(0,0,0,0.03)",border:"1px solid rgba(0,0,0,0.06)"}}>
+                  <div className="h-2.5 w-20 rounded-full mb-3" style={{background: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)'}}/>
+                  <div className="h-8 w-28 rounded-lg" style={{background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'}}/>
+                </div>
+              ))}
+            </div>
+            {/* Group card skeletons */}
+            {[0,1,2].map(i => (
+              <div key={i} className="rounded-2xl overflow-hidden animate-pulse"
+                style={isDark ? {background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.07)"} : {background:"rgba(255,255,255,0.9)",border:"1px solid rgba(0,0,0,0.06)"}}>
+                {/* Group header skeleton */}
+                <div className="p-4 sm:p-5 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full flex-shrink-0" style={{background: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)'}}/>
+                  <div className="flex-1">
+                    <div className="h-4 w-32 rounded mb-2" style={{background: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)'}}/>
+                    <div className="h-3 w-24 rounded" style={{background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'}}/>
+                  </div>
+                  <div className="h-8 w-20 rounded-xl" style={{background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}}/>
+                </div>
+                {/* Settlement row skeleton */}
+                <div className="border-t p-4 sm:p-5 flex items-center gap-3"
+                  style={{borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}}>
+                  <div className="h-11 w-11 rounded-full flex-shrink-0" style={{background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'}}/>
+                  <div className="flex-1">
+                    <div className="h-3.5 w-44 rounded mb-2" style={{background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'}}/>
+                    <div className="h-5 w-20 rounded" style={{background: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'}}/>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="h-8 w-20 rounded-xl" style={{background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}}/>
+                    <div className="h-8 w-20 rounded-xl" style={{background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}}/>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : groupBalances.length === 0 ? (
           <div

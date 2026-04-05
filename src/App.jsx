@@ -18,10 +18,28 @@ function ProtectedRoute({ element }) {
   return getToken() ? element : <Navigate to="/" replace />;
 }
 
+// Full-screen loader shown while silentRefresh is in-flight for returning "keep me logged in" users
+function AuthLoadingScreen() {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center" style={{ background: '#0c0e1a' }}>
+      <div className="flex flex-col items-center gap-5">
+        <img src="/icon.png" alt="Smart Split" className="h-14 w-14 rounded-2xl shadow-xl" style={{ boxShadow: '0 8px 32px rgba(236,72,153,0.30)' }} />
+        <div className="w-6 h-6 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(236,72,153,0.3)', borderTopColor: '#ec4899' }} />
+      </div>
+    </div>
+  );
+}
+
 // Redirects to /dashboard if already logged in — but only AFTER auth state is resolved.
-// Passing authReady=false means silentRefresh is still in-flight; show landing page as-is.
+// When authReady=false and user has localStorage session, show a loading screen to prevent
+// the black-flash of the home page before redirect.
 function PublicRoute({ element, authReady = true }) {
-  if (!authReady) return element;
+  if (!authReady) {
+    // If localStorage shows a previous "keep me logged in" session, show loading screen
+    // instead of the home page to avoid a jarring flash before the redirect.
+    if (localStorage.getItem('userId')) return <AuthLoadingScreen />;
+    return element;
+  }
   return getToken() ? <Navigate to="/dashboard" replace /> : element;
 }
 

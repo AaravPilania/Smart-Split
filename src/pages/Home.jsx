@@ -886,6 +886,7 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
   const slide4GlitchFiredRef = useRef(false);
   const activeSectionRef = useRef(0);
   const cardSwapRef = useRef(null);
+  const autoSwapIntervalRef = useRef(null);
   const pendingSwapRef = useRef(false);
   const scrollRef = useRef(null);
   const sectionRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
@@ -907,23 +908,48 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* Card swap callback — unlock scroll after full cycle + auto-advance to result */
+  /* Card swap callback — unlock scroll after full cycle + start auto-play */
   const handleCardSwap = (count) => {
     if (!slide3UnlockedRef.current && count >= FEATURE_CARDS.length) {
       slide3UnlockedRef.current = true;
       setSlide3Unlocked(true);
-      /* Re-enable scroll and let the user scroll naturally to slide 4 */
+      /* Re-enable scroll: first restore position, then defer snap re-enable
+         to prevent accumulated scroll momentum from snapping to slide 4 */
       if (scrollRef.current) {
-        // Anchor scroll to section 3 BEFORE restoring snap-type — prevents browser
-        // from auto-snapping to slide 4 when scroll-snap-type is re-applied.
         const s3top = sectionRefs[2].current?.offsetTop ?? 0;
         scrollRef.current.scrollTo({ top: s3top, behavior: 'instant' });
         scrollRef.current.style.overflowY = 'auto';
-        scrollRef.current.style.scrollSnapType = 'y mandatory';
+        scrollRef.current.style.scrollSnapType = 'none'; // no snap yet
         slide3LockedRef.current = false;
+        // Re-enable snap only after a short delay so momentum can't carry to slide 4
+        setTimeout(() => {
+          if (scrollRef.current) {
+            scrollRef.current.style.scrollSnapType = 'y mandatory';
+          }
+        }, 350);
       }
+      /* Start auto-animation after a short pause so it feels deliberate */
+      setTimeout(() => {
+        if (!autoSwapIntervalRef.current) {
+          autoSwapIntervalRef.current = setInterval(() => {
+            if (cardSwapRef.current && !cardSwapRef.current.isAnimating()) {
+              cardSwapRef.current.swapNext();
+            }
+          }, 2500);
+        }
+      }, 900);
     }
   };
+
+  /* Clean up auto-swap interval on unmount */
+  useEffect(() => {
+    return () => {
+      if (autoSwapIntervalRef.current) {
+        clearInterval(autoSwapIntervalRef.current);
+        autoSwapIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   /* Lock on section 3 when it comes into view */
   useEffect(() => {
@@ -1637,10 +1663,10 @@ export default function Home() {
       setAuthData(data.token, data.user, data.user.id, true);
       if (data.user.pfp) localStorage.setItem("selectedAvatar", data.user.pfp);
       sessionStorage.setItem("smartsplit_intro_seen","1");
-      setPhase("blob_out");
+      setPhase("fade_out");
       setTimeout(()=>{
         navigate(searchParams.get("redirect")||"/dashboard",{replace:true});
-      },3800);
+      },450);
     } catch { /* fall through — user can still use normal login */ }
   };
   const googleSignIn = useGoogleLogin({
@@ -1664,9 +1690,9 @@ export default function Home() {
     setPhase("login");
   };
 
-  // Auth success → blob_out → white phase → dashboard
+  // Auth success → smooth fade out → dashboard
   const handleAuthSuccess=()=>{
-    setPhase("blob_out");
+    setPhase("fade_out");
     setTimeout(()=>{
       if(isGuestRef.current){
         navigate("/dashboard",{replace:true});
@@ -1674,7 +1700,7 @@ export default function Home() {
       } else {
         navigate(searchParams.get("redirect")||"/dashboard",{replace:true});
       }
-    },3800);
+    },450);
   };
 
   // Guest login from the login page — goes straight to dashboard (no loop)
@@ -1719,9 +1745,11 @@ export default function Home() {
         )}
 
         {phase==="blob_in" && (
-          <motion.div key="blob_in" className="fixed inset-0 z-50" initial={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:0.2 }}>
-            <BlobTransition origin={blobOrigin} variant="in"/>
-          </motion.div>
+          <motion.div key="blob_in" className="fixed inset-0 z-50"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            style={{ background: '#0c0e1a' }}
+          />
         )}
 
         {phase==="login" && (
@@ -1736,10 +1764,12 @@ export default function Home() {
           </motion.div>
         )}
 
-        {phase==="blob_out" && (
-          <motion.div key="blob_out" className="fixed inset-0 z-50" initial={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:0.3 }}>
-            <BlobTransition variant="out"/>
-          </motion.div>
+        {phase==="fade_out" && (
+          <motion.div key="fade_out" className="fixed inset-0 z-50"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            style={{ background: '#0c0e1a' }}
+          />
         )}
       </AnimatePresence>
     </div>
