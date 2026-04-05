@@ -914,6 +914,10 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
       setSlide3Unlocked(true);
       /* Re-enable scroll and let the user scroll naturally to slide 4 */
       if (scrollRef.current) {
+        // Anchor scroll to section 3 BEFORE restoring snap-type — prevents browser
+        // from auto-snapping to slide 4 when scroll-snap-type is re-applied.
+        const s3top = sectionRefs[2].current?.offsetTop ?? 0;
+        scrollRef.current.scrollTo({ top: s3top, behavior: 'instant' });
         scrollRef.current.style.overflowY = 'auto';
         scrollRef.current.style.scrollSnapType = 'y mandatory';
         slide3LockedRef.current = false;

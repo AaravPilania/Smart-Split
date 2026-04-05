@@ -18,8 +18,10 @@ function ProtectedRoute({ element }) {
   return getToken() ? element : <Navigate to="/" replace />;
 }
 
-// Redirects to /dashboard if already logged in
-function PublicRoute({ element }) {
+// Redirects to /dashboard if already logged in — but only AFTER auth state is resolved.
+// Passing authReady=false means silentRefresh is still in-flight; show landing page as-is.
+function PublicRoute({ element, authReady = true }) {
+  if (!authReady) return element;
   return getToken() ? <Navigate to="/dashboard" replace /> : element;
 }
 
@@ -161,17 +163,6 @@ function App() {
 
   usePWAAutoUpdate();
 
-  // Show a simple splash while silent-refresh is in-flight (avoids white flash → dashboard jump)
-  if (!authReady) return (
-    <div style={{
-      position: "fixed", inset: 0,
-      background: "#0c0e1a",
-      display: "flex", alignItems: "center", justifyContent: "center",
-    }}>
-      <img src="/icon.png" alt="Smart Split" style={{ width: 64, height: 64, borderRadius: 20, opacity: 0.9 }} />
-    </div>
-  );
-
   return (
     <BrowserRouter>
       <OfflineBanner />
@@ -179,7 +170,7 @@ function App() {
       <BackButtonGuard />
       <PageTransition>
         <Routes>
-          <Route path="/" element={<PublicRoute element={<Home />} />} />
+          <Route path="/" element={<PublicRoute authReady={authReady} element={<Home />} />} />
           <Route path="/dashboard" element={<ProtectedRoute element={<Dashboard />} />} />
           <Route path="/groups" element={<ProtectedRoute element={<Groups />} />} />
           <Route path="/expenses" element={<ProtectedRoute element={<Expenses />} />} />
