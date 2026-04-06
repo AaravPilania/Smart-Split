@@ -791,6 +791,25 @@ export default function Profile() {
               style={{ ...ss, border: isDark ? "1px solid rgba(239,68,68,0.18)" : "1px solid rgba(239,68,68,0.15)" }}>
               <SettingsRow first danger icon={<FiLogOut size={13} />} label="Sign Out" onClick={() => setShowLogoutConfirm(true)} right={null} />
             </div>
+
+            {/* ── Feedback ──────────────────────────────────── */}
+            <a
+              href="mailto:puutinnn@proton.me?subject=Smart Split Feedback"
+              className="flex items-center gap-3 px-4 py-3.5 rounded-2xl w-full text-left transition active:opacity-60"
+              style={ss}
+            >
+              <span className="flex-shrink-0 w-[30px] h-[30px] rounded-xl flex items-center justify-center text-white text-sm" style={getGradientStyle(theme)}>
+                <FiMail size={13} />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-semibold" style={{ color: textClr }}>Send Feedback</p>
+                <p className="text-xs mt-0.5" style={{ color: subClr }}>Suggestions, bugs, or just a hi 👋</p>
+              </div>
+              <FiChevronRight size={15} style={{ color: chevClr, flexShrink: 0 }} />
+            </a>
+            <p className="text-center text-[11px] mt-3 mb-1" style={{ color: subClr }}>
+              Smart Split · Made with ♥ for friends
+            </p>
           </>
         )}
 

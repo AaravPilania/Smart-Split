@@ -9,16 +9,23 @@ const Payment = require('../models/Payment');
 // ── OTP store: email → { otp, expiresAt, sentAt, attempts } ───────────────
 const otpStore = new Map();
 
+const SENDER_EMAIL = 'puutinnn@proton.me';
+
 // Lazy transporter — only created when first needed
 let _transporter = null;
 const getTransporter = () => {
   if (!_transporter) {
     _transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.protonmail.ch',
+      port: 587,
+      secure: false, // STARTTLS
       auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD,
+        user: SENDER_EMAIL,
+        pass: process.env.PROTON_APP_PASSWORD,
       },
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 10000,
     });
   }
   return _transporter;
@@ -114,6 +121,10 @@ exports.googleAuth = async (req, res) => {
 // POST /auth/send-otp — send 6-digit code to email before signup
 exports.sendOtp = async (req, res) => {
   try {
+    if (!process.env.PROTON_APP_PASSWORD) {
+      return res.status(503).json({ message: 'Email service is not configured. Please contact support.' });
+    }
+
     const { email } = req.body;
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ message: 'A valid email address is required.' });
@@ -135,7 +146,8 @@ exports.sendOtp = async (req, res) => {
     otpStore.set(email, { otp, expiresAt: Date.now() + 10 * 60_000, sentAt: Date.now(), attempts: 0 });
 
     await getTransporter().sendMail({
-      from: `"Smart Split" <${process.env.GMAIL_USER}>`,
+      from: `"Smart Split" <${SENDER_EMAIL}>`,
+      replyTo: SENDER_EMAIL,
       to: email,
       subject: `${otp} is your Smart Split verification code`,
       html: `<div style="font-family:Arial,sans-serif;max-width:420px;margin:0 auto;padding:24px;">
@@ -150,6 +162,7 @@ exports.sendOtp = async (req, res) => {
     res.json({ message: 'Verification code sent to your email.' });
   } catch (error) {
     console.error('sendOtp error:', error.message);
+    _transporter = null; // reset so next attempt tries fresh
     res.status(500).json({ message: 'Failed to send verification code. Please try again.' });
   }
 };
