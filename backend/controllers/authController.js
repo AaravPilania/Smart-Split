@@ -1,9 +1,28 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 const User = require('../models/User');
 const Group = require('../models/Group');
 const Expense = require('../models/Expense');
 const Payment = require('../models/Payment');
+
+// ── OTP store: email → { otp, expiresAt, sentAt, attempts } ───────────────
+const otpStore = new Map();
+
+// Lazy transporter — only created when first needed
+let _transporter = null;
+const getTransporter = () => {
+  if (!_transporter) {
+    _transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD,
+      },
+    });
+  }
+  return _transporter;
+};
 
 const REFRESH_COOKIE_NAME = 'refreshToken';
 const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -92,10 +111,75 @@ exports.googleAuth = async (req, res) => {
   }
 };
 
+// POST /auth/send-otp — send 6-digit code to email before signup
+exports.sendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: 'A valid email address is required.' });
+    }
+
+    const existing = await User.findByEmail(email);
+    if (existing) {
+      return res.status(400).json({ message: 'This email is already registered. Please log in instead.' });
+    }
+
+    // 60-second cooldown between sends
+    const prev = otpStore.get(email);
+    if (prev && Date.now() < prev.sentAt + 60_000) {
+      const wait = Math.ceil((prev.sentAt + 60_000 - Date.now()) / 1000);
+      return res.status(429).json({ message: `Please wait ${wait}s before requesting another code.` });
+    }
+
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    otpStore.set(email, { otp, expiresAt: Date.now() + 10 * 60_000, sentAt: Date.now(), attempts: 0 });
+
+    await getTransporter().sendMail({
+      from: `"Smart Split" <${process.env.GMAIL_USER}>`,
+      to: email,
+      subject: `${otp} is your Smart Split verification code`,
+      html: `<div style="font-family:Arial,sans-serif;max-width:420px;margin:0 auto;padding:24px;">
+  <img src="https://smartsplit.in/icon.png" alt="Smart Split" width="48" style="border-radius:12px;margin-bottom:16px;"/>
+  <h2 style="margin:0 0 8px;color:#111;font-size:20px;">Verify your email</h2>
+  <p style="color:#555;font-size:14px;margin:0 0 20px;">Use the code below to complete your Smart Split sign-up. It expires in <strong>10 minutes</strong>.</p>
+  <div style="font-size:40px;font-weight:900;letter-spacing:10px;color:#ec4899;padding:20px 0;text-align:center;">${otp}</div>
+  <p style="color:#888;font-size:12px;margin-top:24px;">If you didn&apos;t request this, you can safely ignore this email.</p>
+</div>`,
+    });
+
+    res.json({ message: 'Verification code sent to your email.' });
+  } catch (error) {
+    console.error('sendOtp error:', error.message);
+    res.status(500).json({ message: 'Failed to send verification code. Please try again.' });
+  }
+};
+
 // Signup
 exports.signup = async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, otp } = req.body;
+
+    // Verify OTP before creating account
+    if (!otp) {
+      return res.status(400).json({ message: 'Verification code is required.' });
+    }
+    const stored = otpStore.get(email);
+    if (!stored) {
+      return res.status(400).json({ message: 'No code found for this email. Please request a new one.' });
+    }
+    if (Date.now() > stored.expiresAt) {
+      otpStore.delete(email);
+      return res.status(400).json({ message: 'Verification code has expired. Please request a new one.' });
+    }
+    stored.attempts += 1;
+    if (stored.attempts > 5) {
+      otpStore.delete(email);
+      return res.status(429).json({ message: 'Too many failed attempts. Please request a new code.' });
+    }
+    if (stored.otp !== String(otp)) {
+      return res.status(400).json({ message: 'Incorrect verification code. Please try again.' });
+    }
+    otpStore.delete(email); // consume — single use
 
     const existingUser = await User.findByEmail(email);
     if (existingUser) {

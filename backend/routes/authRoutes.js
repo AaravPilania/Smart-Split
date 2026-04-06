@@ -3,9 +3,10 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const { signupSchema, loginSchema } = require('../validators/authSchema');
-const { signup, login, googleAuth, getProfile, updateProfile, getDashboardSummary, refreshToken, logout } = require('../controllers/authController');
+const { signup, login, googleAuth, getProfile, updateProfile, getDashboardSummary, refreshToken, logout, sendOtp } = require('../controllers/authController');
 
 // Public routes
+router.post('/send-otp', sendOtp);
 router.post('/signup', validate(signupSchema), signup);
 router.post('/login', validate(loginSchema), login);
 router.post('/google', googleAuth);

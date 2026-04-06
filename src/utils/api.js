@@ -220,10 +220,16 @@ export const authAPI = {
       body: JSON.stringify({ email, password }),
     }),
 
-  signup: (email, password, name) =>
+  sendOtp: (email) =>
+    apiCall('/auth/send-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+
+  signup: (email, password, name, otp) =>
     apiCall('/auth/signup', {
       method: 'POST',
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ email, password, name, otp }),
     }),
 
   googleAuth: (access_token) =>

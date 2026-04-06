@@ -192,6 +192,10 @@ function MobileLogin({ onSuccess, onGuest }) {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [otpStep, setOtpStep] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [resendTimer, setResendTimer] = useState(0);
+  const resendIntervalRef = React.useRef(null);
 
   const handleGoogleSuccess = async (tokenResponse) => {
     setGoogleLoading(true); setError("");
@@ -213,13 +217,31 @@ function MobileLogin({ onSuccess, onGuest }) {
   const handleSubmit = async (e) => {
     e.preventDefault(); setError(""); setLoading(true);
     try {
-      if (!isLogin && !name.trim()) throw new Error("Name is required");
-      const data = isLogin
-        ? await authAPI.login(email, password)
-        : await authAPI.signup(email, password, name);
-      setAuthData(data.token, data.user, data.user.id, rememberMe);
-      if (data.user.pfp) localStorage.setItem("selectedAvatar", data.user.pfp);
-      onSuccess();
+      if (isLogin) {
+        // ── Login ──────────────────────────────────────────────────
+        const data = await authAPI.login(email, password);
+        setAuthData(data.token, data.user, data.user.id, rememberMe);
+        if (data.user.pfp) localStorage.setItem("selectedAvatar", data.user.pfp);
+        onSuccess();
+      } else if (!otpStep) {
+        // ── Signup step 1: send OTP ────────────────────────────────
+        if (!name.trim()) throw new Error("Name is required");
+        await authAPI.sendOtp(email);
+        setOtpStep(true);
+        setOtp("");
+        // start 60s resend cooldown
+        setResendTimer(60);
+        resendIntervalRef.current = setInterval(() => {
+          setResendTimer(t => { if (t <= 1) { clearInterval(resendIntervalRef.current); return 0; } return t - 1; });
+        }, 1000);
+      } else {
+        // ── Signup step 2: verify OTP + create account ─────────────
+        if (!otp || otp.length !== 6) throw new Error("Enter the 6-digit code from your email");
+        const data = await authAPI.signup(email, password, name, otp);
+        setAuthData(data.token, data.user, data.user.id, rememberMe);
+        if (data.user.pfp) localStorage.setItem("selectedAvatar", data.user.pfp);
+        onSuccess();
+      }
     } catch (err) {
       const msg = err.message || "";
       if (msg === "Failed to fetch" || msg === "Load failed") {
@@ -232,7 +254,7 @@ function MobileLogin({ onSuccess, onGuest }) {
             try {
               const data = isLogin
                 ? await authAPI.login(email, password)
-                : await authAPI.signup(email, password, name);
+                : await authAPI.signup(email, password, name, otp);
               setAuthData(data.token, data.user, data.user.id, rememberMe);
               if (data.user.pfp) localStorage.setItem("selectedAvatar", data.user.pfp);
               onSuccess(); return;
@@ -244,6 +266,20 @@ function MobileLogin({ onSuccess, onGuest }) {
           }
         }
       } else setError(msg || "Something went wrong.");
+    } finally { setLoading(false); }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendTimer > 0) return;
+    setError(""); setLoading(true);
+    try {
+      await authAPI.sendOtp(email);
+      setResendTimer(60);
+      resendIntervalRef.current = setInterval(() => {
+        setResendTimer(t => { if (t <= 1) { clearInterval(resendIntervalRef.current); return 0; } return t - 1; });
+      }, 1000);
+    } catch (err) {
+      setError(err.message || "Failed to resend code.");
     } finally { setLoading(false); }
   };
 
@@ -293,7 +329,7 @@ function MobileLogin({ onSuccess, onGuest }) {
           transition={{ delay: 0.08 }}
           className="text-2xl font-black text-white text-center tracking-tight mb-8"
         >
-          {isLogin ? "Log in to Smart Split" : "Create your account"}
+          {isLogin ? "Log in to Smart Split" : otpStep ? "Verify your email" : "Create your account"}
         </motion.h1>
 
         {/* Error */}
@@ -313,7 +349,7 @@ function MobileLogin({ onSuccess, onGuest }) {
         {/* Form */}
         <AnimatePresence mode="wait">
           <motion.form
-            key={isLogin ? "login" : "signup"}
+            key={isLogin ? "login" : otpStep ? "otp" : "signup"}
             initial={{ opacity: 0, x: isLogin ? -16 : 16 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0 }}
@@ -321,87 +357,125 @@ function MobileLogin({ onSuccess, onGuest }) {
             onSubmit={handleSubmit}
             className="w-full flex flex-col gap-4"
           >
-            {/* Name field (signup only) */}
-            {!isLogin && (
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-white/60 tracking-wide uppercase">
-                  What's your name?
-                </label>
-                <input
-                  type="text" placeholder="Full name" value={name}
-                  onChange={e => setName(e.target.value)} required
-                  className="w-full px-4 py-3.5 rounded-xl text-sm text-white outline-none transition-all"
-                  style={{ background: "#1e1e24", border: "2px solid #2e2e38" }}
-                  onFocus={e => { e.target.style.borderColor = "#ec4899"; }}
-                  onBlur={e => { e.target.style.borderColor = "#2e2e38"; }}
-                />
-              </div>
-            )}
+            {/* OTP step — replaces the rest of the form */}
+            {!isLogin && otpStep ? (
+              <>
+                <div className="flex flex-col items-center gap-1 mb-2">
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-1" style={{ background: "rgba(236,72,153,0.15)", border: "1px solid rgba(236,72,153,0.3)" }}>📧</div>
+                  <p className="text-sm text-white/60 text-center">We sent a 6-digit code to</p>
+                  <p className="text-sm font-bold text-white">{email}</p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-white/60 tracking-wide uppercase">Verification Code</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]{6}"
+                    maxLength={6}
+                    placeholder="000000"
+                    value={otp}
+                    onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    autoFocus
+                    required
+                    className="w-full px-4 py-4 rounded-xl text-2xl font-black text-white text-center outline-none tracking-[0.4em] transition-all"
+                    style={{ background: "#1e1e24", border: "2px solid #2e2e38", letterSpacing: "0.4em" }}
+                    onFocus={e => { e.target.style.borderColor = "#ec4899"; }}
+                    onBlur={e => { e.target.style.borderColor = "#2e2e38"; }}
+                  />
+                </div>
+                <div className="flex justify-between items-center">
+                  <button
+                    type="button"
+                    onClick={() => { setOtpStep(false); setOtp(""); setError(""); clearInterval(resendIntervalRef.current); }}
+                    className="text-xs text-white/40 hover:text-white/70 transition-colors"
+                  >
+                    ← Change email
+                  </button>
+                  <button
+                    type="button"
+                    disabled={resendTimer > 0 || loading}
+                    onClick={handleResendOtp}
+                    className="text-xs font-semibold transition-colors disabled:opacity-40"
+                    style={{ color: resendTimer > 0 ? "rgba(255,255,255,0.35)" : "#ec4899" }}
+                  >
+                    {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend code"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Name field (signup only) */}
+                {!isLogin && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-white/60 tracking-wide uppercase">What&apos;s your name?</label>
+                    <input
+                      type="text" placeholder="Full name" value={name}
+                      onChange={e => setName(e.target.value)} required
+                      className="w-full px-4 py-3.5 rounded-xl text-sm text-white outline-none transition-all"
+                      style={{ background: "#1e1e24", border: "2px solid #2e2e38" }}
+                      onFocus={e => { e.target.style.borderColor = "#ec4899"; }}
+                      onBlur={e => { e.target.style.borderColor = "#2e2e38"; }}
+                    />
+                  </div>
+                )}
 
-            {/* Email */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-white/60 tracking-wide uppercase">
-                Email address
-              </label>
-              <input
-                type="email" placeholder="name@example.com" value={email}
-                onChange={e => setEmail(e.target.value)} required
-                className="w-full px-4 py-3.5 rounded-xl text-sm text-white outline-none transition-all"
-                style={{ background: "#1e1e24", border: "2px solid #2e2e38" }}
-                onFocus={e => { e.target.style.borderColor = "#ec4899"; }}
-                onBlur={e => { e.target.style.borderColor = "#2e2e38"; }}
-              />
-            </div>
+                {/* Email */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-white/60 tracking-wide uppercase">Email address</label>
+                  <input
+                    type="email" placeholder="name@example.com" value={email}
+                    onChange={e => setEmail(e.target.value)} required
+                    className="w-full px-4 py-3.5 rounded-xl text-sm text-white outline-none transition-all"
+                    style={{ background: "#1e1e24", border: "2px solid #2e2e38" }}
+                    onFocus={e => { e.target.style.borderColor = "#ec4899"; }}
+                    onBlur={e => { e.target.style.borderColor = "#2e2e38"; }}
+                  />
+                </div>
 
-            {/* Password */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-white/60 tracking-wide uppercase">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password" value={password}
-                  onChange={e => setPassword(e.target.value)} required minLength={6}
-                  className="w-full px-4 py-3.5 pr-12 rounded-xl text-sm text-white outline-none transition-all"
-                  style={{ background: "#1e1e24", border: "2px solid #2e2e38" }}
-                  onFocus={e => { e.target.style.borderColor = "#ec4899"; }}
-                  onBlur={e => { e.target.style.borderColor = "#2e2e38"; }}
-                />
-                <button
-                  type="button" tabIndex={-1}
-                  onMouseDown={e => e.preventDefault()}
-                  onClick={() => setShowPassword(p => !p)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2"
-                  style={{ color: "rgba(255,255,255,0.35)" }}
-                >
-                  {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
-                </button>
-              </div>
-            </div>
+                {/* Password */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-white/60 tracking-wide uppercase">Password</label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Password" value={password}
+                      onChange={e => setPassword(e.target.value)} required minLength={6}
+                      className="w-full px-4 py-3.5 pr-12 rounded-xl text-sm text-white outline-none transition-all"
+                      style={{ background: "#1e1e24", border: "2px solid #2e2e38" }}
+                      onFocus={e => { e.target.style.borderColor = "#ec4899"; }}
+                      onBlur={e => { e.target.style.borderColor = "#2e2e38"; }}
+                    />
+                    <button
+                      type="button" tabIndex={-1}
+                      onMouseDown={e => e.preventDefault()}
+                      onClick={() => setShowPassword(p => !p)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2"
+                      style={{ color: "rgba(255,255,255,0.35)" }}
+                    >
+                      {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                    </button>
+                  </div>
+                </div>
 
-            {/* Remember me */}
-            {isLogin && (
-              <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                <input
-                  type="checkbox" checked={rememberMe}
-                  onChange={e => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded accent-pink-500"
-                />
-                <span className="text-sm" style={{ color: "rgba(255,255,255,0.55)" }}>
-                  Remember me
-                </span>
-              </label>
+                {/* Remember me */}
+                {isLogin && (
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox" checked={rememberMe}
+                      onChange={e => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded accent-pink-500"
+                    />
+                    <span className="text-sm" style={{ color: "rgba(255,255,255,0.55)" }}>Remember me</span>
+                  </label>
+                )}
+              </>
             )}
 
             {/* Submit */}
             <motion.button
               type="submit" disabled={loading} whileTap={{ scale: 0.97 }}
               className="w-full py-4 rounded-full text-white text-sm font-black mt-2 relative overflow-hidden"
-              style={{
-                background: "linear-gradient(135deg, #ec4899 0%, #f97316 100%)",
-                opacity: loading ? 0.75 : 1,
-              }}
+              style={{ background: "linear-gradient(135deg, #ec4899 0%, #f97316 100%)", opacity: loading ? 0.75 : 1 }}
             >
               <motion.div
                 className="absolute inset-0 pointer-events-none"
@@ -411,8 +485,8 @@ function MobileLogin({ onSuccess, onGuest }) {
               />
               <span className="relative z-10 flex items-center justify-center gap-2">
                 {loading
-                  ? <><svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>{isLogin ? "Logging in…" : "Creating account…"}</>
-                  : isLogin ? "Log In" : "Sign Up"
+                  ? <><svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>{isLogin ? "Logging in…" : otpStep ? "Verifying…" : "Sending code…"}</>
+                  : isLogin ? "Log In" : otpStep ? "Verify & Create Account" : "Send Verification Code"
                 }
               </span>
             </motion.button>
@@ -468,7 +542,7 @@ function MobileLogin({ onSuccess, onGuest }) {
         <p className="mt-8 text-sm text-center" style={{ color: "rgba(255,255,255,0.40)" }}>
           {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
           <button
-            onClick={() => { setIsLogin(v => !v); setError(""); }}
+            onClick={() => { setIsLogin(v => !v); setError(""); setOtpStep(false); setOtp(""); }}
             className="font-bold underline underline-offset-2"
             style={{ color: "white" }}
           >
@@ -1571,15 +1645,30 @@ function DesktopLogin({ onSuccess, onGuest }) {
   const [email,setEmail]=useState("");const [password,setPassword]=useState("");const [name,setName]=useState("");
   const [loading,setLoading]=useState(false);const [error,setError]=useState("");
   const [rememberMe,setRememberMe]=useState(false);const [showPassword,setShowPassword]=useState(false);
+  const [otpStep,setOtpStep]=useState(false);const [otp,setOtp]=useState("");
+  const [resendTimer,setResendTimer]=useState(0);const resendRef=React.useRef(null);
 
   const handleSubmit=async(e)=>{
     e.preventDefault();setError("");setLoading(true);
     try{
-      if(!isLogin&&!name.trim())throw new Error("Name is required");
-      const data=isLogin?await authAPI.login(email,password):await authAPI.signup(email,password,name);
-      setAuthData(data.token,data.user,data.user.id,rememberMe);
-      if(data.user.pfp)localStorage.setItem("selectedAvatar",data.user.pfp);
-      onSuccess();
+      if(isLogin){
+        const data=await authAPI.login(email,password);
+        setAuthData(data.token,data.user,data.user.id,rememberMe);
+        if(data.user.pfp)localStorage.setItem("selectedAvatar",data.user.pfp);
+        onSuccess();
+      }else if(!otpStep){
+        if(!name.trim())throw new Error("Name is required");
+        await authAPI.sendOtp(email);
+        setOtpStep(true);setOtp("");
+        setResendTimer(60);
+        resendRef.current=setInterval(()=>setResendTimer(t=>{if(t<=1){clearInterval(resendRef.current);return 0;}return t-1;}),1000);
+      }else{
+        if(!otp||otp.length!==6)throw new Error("Enter the 6-digit code from your email");
+        const data=await authAPI.signup(email,password,name,otp);
+        setAuthData(data.token,data.user,data.user.id,rememberMe);
+        if(data.user.pfp)localStorage.setItem("selectedAvatar",data.user.pfp);
+        onSuccess();
+      }
     }catch(err){
       const msg=err.message||"";
       if(msg==="Failed to fetch"||msg==="Load failed"){
@@ -1590,7 +1679,7 @@ function DesktopLogin({ onSuccess, onGuest }) {
           const up=await wakeUpServer();
           if(up){
             try{
-              const data=isLogin?await authAPI.login(email,password):await authAPI.signup(email,password,name);
+              const data=isLogin?await authAPI.login(email,password):await authAPI.signup(email,password,name,otp);
               setAuthData(data.token,data.user,data.user.id,rememberMe);
               if(data.user.pfp)localStorage.setItem("selectedAvatar",data.user.pfp);
               onSuccess();return;
@@ -1599,6 +1688,14 @@ function DesktopLogin({ onSuccess, onGuest }) {
         }
       }else setError(msg||"Something went wrong.");
     }finally{setLoading(false);}
+  };
+
+  const handleResendOtp=async()=>{
+    if(resendTimer>0)return;
+    setError("");setLoading(true);
+    try{ await authAPI.sendOtp(email); setResendTimer(60); resendRef.current=setInterval(()=>setResendTimer(t=>{if(t<=1){clearInterval(resendRef.current);return 0;}return t-1;}),1000); }
+    catch(err){setError(err.message||"Failed to resend.");}
+    finally{setLoading(false);}
   };
 
   return (
@@ -1629,28 +1726,50 @@ function DesktopLogin({ onSuccess, onGuest }) {
         <div className="rounded-3xl overflow-hidden shadow-2xl shadow-black/70" style={CARD_STYLE}>
           <div className="h-[3px]" style={{ background:"linear-gradient(90deg,#ec4899,#f97316)" }}/>
           <div className="p-7">
-            <h2 className="text-xl font-bold text-white">{isLogin?"Welcome back":"Create account"}</h2>
-            <p className="text-xs text-white/55 mt-1 mb-4">{isLogin?"Sign in to your Smart Split account":"Join Smart Split — it's free forever"}</p>
-            <div className="flex p-1 mb-4 gap-1 rounded-2xl" style={{ background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)" }}>
+            <h2 className="text-xl font-bold text-white">{isLogin?"Welcome back":otpStep?"Verify your email":"Create account"}</h2>
+            <p className="text-xs text-white/55 mt-1 mb-4">{isLogin?"Sign in to your Smart Split account":otpStep?`We sent a 6-digit code to ${email}`:"Join Smart Split — it's free forever"}</p>
+            {!otpStep&&<div className="flex p-1 mb-4 gap-1 rounded-2xl" style={{ background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)" }}>
               {[["Sign In",true],["Register",false]].map(([label,val])=>(
-                <button key={label} onClick={()=>{setIsLogin(val);setError("");}} className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${isLogin===val?"bg-white text-gray-900 shadow-sm":"text-white/55 hover:text-white/80"}`}>{label}</button>
+                <button key={label} onClick={()=>{setIsLogin(val);setError("");setOtpStep(false);setOtp("");}} className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${isLogin===val?"bg-white text-gray-900 shadow-sm":"text-white/55 hover:text-white/80"}`}>{label}</button>
               ))}
-            </div>
+            </div>}
             {error&&<div className="mb-3 px-3 py-2.5 rounded-xl text-xs text-red-300 flex items-start gap-2" style={{ background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.22)" }}><span className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1 flex-shrink-0"/>{error}</div>}
             <form onSubmit={handleSubmit} className="space-y-3">
-              {!isLogin&&<AuthInputDark icon={<FiUser size={15}/>} type="text" placeholder="Full name" value={name} onChange={e=>setName(e.target.value)} required/>}
-              <AuthInputDark icon={<FiMail size={15}/>} type="email" placeholder="Email address" value={email} onChange={e=>setEmail(e.target.value)} required/>
-              <AuthInputDark icon={<FiLock size={15}/>} type={showPassword?"text":"password"} placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={6}
-                suffix={<button type="button" onMouseDown={e=>e.preventDefault()} onClick={()=>setShowPassword(p=>!p)} className="text-white/50 hover:text-white/80 transition" tabIndex={-1}>{showPassword?<FiEyeOff size={15}/>:<FiEye size={15}/>}</button>}
-              />
-              {isLogin&&<label className="flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" checked={rememberMe} onChange={e=>setRememberMe(e.target.checked)} className="w-3.5 h-3.5 rounded accent-pink-500"/><span className="text-xs text-white/55">Keep me signed in</span></label>}
+              {!isLogin&&otpStep?(
+                <>
+                  <div className="flex flex-col items-center gap-3 py-2">
+                    <span className="text-4xl">📧</span>
+                    <input
+                      type="text" inputMode="numeric" maxLength={6} autoFocus
+                      value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,""))}
+                      placeholder="• • • • • •"
+                      className="w-full text-center text-3xl font-black tracking-[0.5em] py-4 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-white/20 focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-400/30 transition"
+                    />
+                    <div className="flex w-full items-center justify-between">
+                      <button type="button" onClick={()=>{setOtpStep(false);setOtp("");setResendTimer(0);if(resendRef.current)clearInterval(resendRef.current);setError("");}} className="text-xs text-white/50 hover:text-white/80 transition flex items-center gap-1"><FiArrowRight size={12} className="rotate-180"/>Change email</button>
+                      <button type="button" onClick={handleResendOtp} disabled={resendTimer>0||loading} className="text-xs font-semibold transition disabled:cursor-not-allowed" style={{ color:resendTimer>0?"rgba(255,255,255,0.3)":"#f97316" }}>{resendTimer>0?`Resend in ${resendTimer}s`:"Resend code"}</button>
+                    </div>
+                  </div>
+                </>
+              ):(
+                <>
+                  {!isLogin&&<AuthInputDark icon={<FiUser size={15}/>} type="text" placeholder="Full name" value={name} onChange={e=>setName(e.target.value)} required/>}
+                  <AuthInputDark icon={<FiMail size={15}/>} type="email" placeholder="Email address" value={email} onChange={e=>setEmail(e.target.value)} required/>
+                  <AuthInputDark icon={<FiLock size={15}/>} type={showPassword?"text":"password"} placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={6}
+                    suffix={<button type="button" onMouseDown={e=>e.preventDefault()} onClick={()=>setShowPassword(p=>!p)} className="text-white/50 hover:text-white/80 transition" tabIndex={-1}>{showPassword?<FiEyeOff size={15}/>:<FiEye size={15}/>}</button>}
+                  />
+                  {isLogin&&<label className="flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" checked={rememberMe} onChange={e=>setRememberMe(e.target.checked)} className="w-3.5 h-3.5 rounded accent-pink-500"/><span className="text-xs text-white/55">Keep me signed in</span></label>}
+                </>
+              )}
               <button type="submit" disabled={loading} className="w-full py-3 text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-50" style={{ background:"linear-gradient(135deg,#ec4899 0%,#f97316 100%)" }}>
-                {loading?"Please wait…":<>{isLogin?"Sign In":"Create Account"}<FiArrowRight size={16}/></>}
+                {loading?"Please wait…":<>{isLogin?"Sign In":otpStep?"Verify & Create Account":"Send Verification Code"}<FiArrowRight size={16}/></>}
               </button>
             </form>
-            <div className="flex items-center gap-3 my-3"><div className="flex-1 h-px opacity-20 bg-white"/><span className="text-xs text-white/30">or</span><div className="flex-1 h-px opacity-20 bg-white"/></div>
-            <button onClick={onGuest} className="w-full py-2.5 rounded-xl text-xs font-semibold text-white/50 hover:text-white/80 transition" style={{ background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)" }}>Continue as Guest 👀</button>
-            <p className="mt-4 text-center text-xs text-white/50">{isLogin?"New to Smart Split?":"Already have an account?"}{" "}<button onClick={()=>{setIsLogin(v=>!v);setError("");}} className="text-white font-semibold hover:text-pink-300 transition-colors">{isLogin?"Create an account":"Sign in instead"}</button></p>
+            {!otpStep&&<>
+              <div className="flex items-center gap-3 my-3"><div className="flex-1 h-px opacity-20 bg-white"/><span className="text-xs text-white/30">or</span><div className="flex-1 h-px opacity-20 bg-white"/></div>
+              <button onClick={onGuest} className="w-full py-2.5 rounded-xl text-xs font-semibold text-white/50 hover:text-white/80 transition" style={{ background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)" }}>Continue as Guest 👀</button>
+              <p className="mt-4 text-center text-xs text-white/50">{isLogin?"New to Smart Split?":"Already have an account?"}{" "}<button onClick={()=>{setIsLogin(v=>!v);setError("");setOtpStep(false);setOtp("");}} className="text-white font-semibold hover:text-pink-300 transition-colors">{isLogin?"Create an account":"Sign in instead"}</button></p>
+            </>}
           </div>
         </div>
       </div>
