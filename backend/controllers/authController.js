@@ -9,19 +9,17 @@ const Payment = require('../models/Payment');
 // ── OTP store: email → { otp, expiresAt, sentAt, attempts } ───────────────
 const otpStore = new Map();
 
-const SENDER_EMAIL = 'puutinnn@proton.me';
+const SENDER_EMAIL = process.env.GMAIL_USER || '';
 
 // Lazy transporter — only created when first needed
 let _transporter = null;
 const getTransporter = () => {
   if (!_transporter) {
     _transporter = nodemailer.createTransport({
-      host: 'smtp.protonmail.ch',
-      port: 587,
-      secure: false, // STARTTLS
+      service: 'gmail',
       auth: {
         user: SENDER_EMAIL,
-        pass: process.env.PROTON_APP_PASSWORD,
+        pass: process.env.GMAIL_APP_PASSWORD,
       },
       connectionTimeout: 8000,
       greetingTimeout: 8000,
@@ -121,7 +119,7 @@ exports.googleAuth = async (req, res) => {
 // POST /auth/send-otp — send 6-digit code to email before signup
 exports.sendOtp = async (req, res) => {
   try {
-    if (!process.env.PROTON_APP_PASSWORD) {
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
       return res.status(503).json({ message: 'Email service is not configured. Please contact support.' });
     }
 
