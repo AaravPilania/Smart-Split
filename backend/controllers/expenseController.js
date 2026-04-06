@@ -96,14 +96,16 @@ exports.getBalances = async (req, res) => {
     // Calculate balances
     const balances = {};
 
-    // Initialize balances for all members
+    // Initialize balances for all members — skip nulls (deleted users)
     group.members.forEach(member => {
+      if (!member || !member._id) return;
       const memberId = member._id.toString();
       balances[memberId] = { user: member, balance: 0 };
     });
 
     // Calculate: positive = paid more than share, negative = owes
     expenses.forEach(expense => {
+      if (!expense.paidBy?._id) return;
       const paidById = expense.paidBy._id.toString();
 
       // Person who paid gets credited with full amount
@@ -113,6 +115,7 @@ exports.getBalances = async (req, res) => {
 
       // Each person in split gets debited their share
       expense.splitBetween.forEach(split => {
+        if (!split.user?._id) return;
         const userId = split.user._id.toString();
         if (balances[userId]) {
           balances[userId].balance -= split.amount;
@@ -160,16 +163,19 @@ exports.getSettlements = async (req, res) => {
     const balanceMap = {};
 
     group.members.forEach(member => {
+      if (!member || !member._id) return;
       balanceMap[member._id.toString()] = { user: member, balance: 0 };
     });
 
     expenses.forEach(expense => {
+      if (!expense.paidBy?._id) return;
       const paidById = expense.paidBy._id.toString();
       if (balanceMap[paidById]) {
         balanceMap[paidById].balance += expense.amount;
       }
 
       expense.splitBetween.forEach(split => {
+        if (!split.user?._id) return;
         const userId = split.user._id.toString();
         if (balanceMap[userId]) {
           balanceMap[userId].balance -= split.amount;
@@ -256,16 +262,19 @@ exports.getBalanceSummary = async (req, res) => {
       Payment.findByGroup(groupId),
     ]);
 
-    // Build balance map
+    // Build balance map — filter out nulls (deleted users whose refs remain in the group)
     const balanceMap = {};
     group.members.forEach(member => {
+      if (!member || !member._id) return;
       balanceMap[member._id.toString()] = { user: member, balance: 0 };
     });
 
     expenses.forEach(expense => {
+      if (!expense.paidBy?._id) return;
       const paidById = expense.paidBy._id.toString();
       if (balanceMap[paidById]) balanceMap[paidById].balance += expense.amount;
       expense.splitBetween.forEach(split => {
+        if (!split.user?._id) return;
         const uid = split.user._id.toString();
         if (balanceMap[uid]) balanceMap[uid].balance -= split.amount;
       });
