@@ -69,12 +69,25 @@ const TopoBackground = () => {
           for(let s=0;s<sg.length;s+=2){ctx.moveTo(ox+sg[s][0]*STEP,oy+sg[s][1]*STEP);ctx.lineTo(ox+sg[s+1][0]*STEP,oy+sg[s+1][1]*STEP);}
         }}ctx.stroke();
       }
-      raf=requestAnimationFrame(()=>draw(t+0.35));
     };
-    raf=requestAnimationFrame(()=>draw(0));
+    /* Frame-rate independent tick — caps canvas redraws at 30fps so the heavy
+       marching-squares CPU work doesn't consume the compositor budget at 120/144Hz */
+    let animT=0, prevTs=0, drawAcc=0;
+    const DRAW_MS=1000/30; // max 30 redraws per second
+    const tick=(ts)=>{
+      if(prevTs){
+        const dt=Math.min(ts-prevTs,50); // clamp to avoid huge time jumps
+        animT+=0.35*dt/(1000/60);        // constant animation speed (60fps-normalised)
+        drawAcc+=dt;
+      }
+      prevTs=ts;
+      if(drawAcc>=DRAW_MS){ drawAcc-=DRAW_MS; draw(animT); }
+      raf=requestAnimationFrame(tick);
+    };
+    raf=requestAnimationFrame(tick);
     return()=>{cancelAnimationFrame(raf);window.removeEventListener("resize",resize);};
   },[]);
-  return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />;
+  return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" style={{willChange:"transform",transform:"translateZ(0)"}} />;
 };
 
 const GRAD_STYLE = {
@@ -553,6 +566,7 @@ const DeskFloatCard = ({ children, style, delay=0, tilt=0, onClick, accentColor 
         background:"rgba(255,255,255,0.06)",
         border:`1px solid ${accentColor ? accentColor+"30" : "rgba(255,255,255,0.12)"}`,
         backdropFilter:"blur(20px) saturate(130%)",WebkitBackdropFilter:"blur(20px) saturate(130%)",
+        willChange:"transform",
         rotate:`${tilt}deg`,cursor:onClick?"pointer":"default",...style}}
     >
       {children}
@@ -1048,7 +1062,7 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
       </nav>
 
       {/* ── Scroll container ── */}
-      <div ref={scrollRef} className="intro-scroll h-full w-full">
+      <div ref={scrollRef} className="intro-scroll h-full w-full" style={{willChange:"scroll-position"}}>
 
         {/* ══════════════════════════════════
             S — SITUATION / Hero
@@ -1075,7 +1089,7 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
               <div style={{width:220,height:220,borderRadius:"50%",background:"radial-gradient(circle,rgba(168,85,247,0.18) 0%,transparent 70%)",filter:"blur(55px)"}} />
             </div>
             <div className="absolute z-[2] cursor-pointer" title="Click to explore" style={{left:"50%",top:"50%",transform:"translate(-50%,-50%)"}} onClick={()=>setPhoneExpanded(true)}>
-              <motion.div animate={{y:[0,-10,0]}} transition={{duration:4.5,repeat:Infinity,ease:[0.45,0,0.55,1],delay:1.0,repeatType:"mirror"}}>
+              <motion.div animate={{y:[0,-10,0]}} transition={{duration:4.5,repeat:Infinity,ease:[0.45,0,0.55,1],delay:1.0,repeatType:"mirror"}} style={{willChange:"transform"}}>
                 <DeskDashMockup/>
                 <div className="flex items-center justify-center gap-1.5 mt-2 pointer-events-none">
                   <span className="text-[10px] font-bold text-white">→</span>

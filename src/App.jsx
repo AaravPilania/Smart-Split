@@ -1,15 +1,18 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import Dashboard from "./pages/Dashboard";
-import Home from "./pages/Home";
-import Groups from "./pages/Groups";
-import Expenses from "./pages/Expenses";
-import Profile from "./pages/Profile";
-import Balances from "./pages/Balances";
-import Friends from "./pages/Friends";
-import AddFriend from "./pages/AddFriend";
-import NotFound from "./pages/NotFound";
+
+// Lazy-loaded pages — each becomes its own JS chunk so the initial bundle is ~40KB lighter
+const Dashboard  = lazy(() => import("./pages/Dashboard"));
+const Home       = lazy(() => import("./pages/Home"));
+const Groups     = lazy(() => import("./pages/Groups"));
+const Expenses   = lazy(() => import("./pages/Expenses"));
+const Profile    = lazy(() => import("./pages/Profile"));
+const Balances   = lazy(() => import("./pages/Balances"));
+const Friends    = lazy(() => import("./pages/Friends"));
+const AddFriend  = lazy(() => import("./pages/AddFriend"));
+const NotFound   = lazy(() => import("./pages/NotFound"));
+
 import { getToken, setToken, clearAuth, silentRefresh, wakeUpServer, getUserId, API_URL, apiFetch } from "./utils/api";
 import Aaru from "./components/Aaru";
 
@@ -53,7 +56,7 @@ const PAGE_EXIT_TRAN     = { duration: 0.1, ease: "easeIn" };
 function PageTransition({ children }) {
   const location = useLocation();
   return (
-    <AnimatePresence initial={false}>
+    <AnimatePresence initial={false} mode="wait">
       <motion.div
         key={location.pathname}
         initial={PAGE_INIT}
@@ -115,7 +118,6 @@ function usePWAAutoUpdate() {
 
 // Provides Aaru with live groups + friend names; renders nothing when logged out
 function AaruContainer() {
-  const { pathname } = useLocation(); // re-render on every navigation (e.g. after login)
   const [groups, setGroups] = useState([]);
   const [friends, setFriends] = useState([]);
   const userId = getUserId();
@@ -134,7 +136,7 @@ function AaruContainer() {
         setFriends(list.map((f) => f.name || f.email || "").filter(Boolean));
       })
       .catch(() => {});
-  }, [token, userId, pathname]); // re-fetch when token appears or route changes
+  }, [token, userId]); // removed pathname — fetching on every navigation caused 4x duplicate group calls
 
   if (!token) return null;
   return <Aaru groups={groups} userId={userId} friends={friends} />;
@@ -187,19 +189,21 @@ function App() {
       <AaruContainer />
       <BackButtonGuard />
       <PageTransition>
-        <Routes>
-          <Route path="/" element={<PublicRoute authReady={authReady} element={<Home />} />} />
-          <Route path="/dashboard" element={<ProtectedRoute element={<Dashboard />} />} />
-          <Route path="/groups" element={<ProtectedRoute element={<Groups />} />} />
-          <Route path="/expenses" element={<ProtectedRoute element={<Expenses />} />} />
-          <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
-          <Route path="/balances" element={<ProtectedRoute element={<Balances />} />} />
-          <Route path="/friends" element={<ProtectedRoute element={<Friends />} />} />
-          {/* Public — anyone with the link/QR can land here */}
-          <Route path="/add-friend/:userId" element={<AddFriend />} />
-          {/* 404 catch-all */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Suspense fallback={null}>
+          <Routes>
+            <Route path="/" element={<PublicRoute authReady={authReady} element={<Home />} />} />
+            <Route path="/dashboard" element={<ProtectedRoute element={<Dashboard />} />} />
+            <Route path="/groups" element={<ProtectedRoute element={<Groups />} />} />
+            <Route path="/expenses" element={<ProtectedRoute element={<Expenses />} />} />
+            <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
+            <Route path="/balances" element={<ProtectedRoute element={<Balances />} />} />
+            <Route path="/friends" element={<ProtectedRoute element={<Friends />} />} />
+            {/* Public — anyone with the link/QR can land here */}
+            <Route path="/add-friend/:userId" element={<AddFriend />} />
+            {/* 404 catch-all */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </PageTransition>
     </BrowserRouter>
   );

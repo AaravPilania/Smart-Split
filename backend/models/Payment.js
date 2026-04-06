@@ -8,6 +8,8 @@ const paymentSchema = new mongoose.Schema({
   note:   { type: String, default: '' }
 }, { timestamps: true });
 
+paymentSchema.index({ group: 1 });
+
 const PaymentModel = mongoose.model('Payment', paymentSchema);
 
 const POPULATE_PAYMENT = [

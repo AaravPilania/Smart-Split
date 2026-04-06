@@ -56,10 +56,12 @@ exports.getFriends = async (req, res) => {
       .populate('requester', 'name email')
       .populate('recipient', 'name email');
 
-    const friends = friendships.map((f) => {
-      const friend = f.requester._id.toString() === userId ? f.recipient : f.requester;
-      return { id: friend._id, name: friend.name, email: friend.email, friendshipId: f._id };
-    });
+    const friends = friendships
+      .filter((f) => f.requester && f.recipient) // skip orphaned records where a user was deleted
+      .map((f) => {
+        const friend = f.requester._id.toString() === userId ? f.recipient : f.requester;
+        return { id: friend._id, name: friend.name, email: friend.email, friendshipId: f._id };
+      });
 
     res.json({ friends });
   } catch (err) {

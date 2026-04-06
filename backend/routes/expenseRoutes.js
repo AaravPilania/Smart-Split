@@ -12,6 +12,7 @@ const {
   getExpenses,
   getBalances,
   getSettlements,
+  getBalanceSummary,
   settleExpense,
   recordPayment,
   getPayments,
@@ -27,6 +28,7 @@ router.post('/group/:groupId', auth, requireGroupMember, addExpense);
 router.get('/group/:groupId', auth, requireGroupMember, getExpenses);
 router.get('/group/:groupId/balances', auth, requireGroupMember, getBalances);
 router.get('/group/:groupId/settlements', auth, requireGroupMember, getSettlements);
+router.get('/group/:groupId/balance-summary', auth, requireGroupMember, getBalanceSummary);
 router.post('/group/:groupId/payment', auth, requireGroupMember, recordPayment);
 router.get('/group/:groupId/payments', auth, requireGroupMember, getPayments);
 router.post('/analyze-receipt', auth, aaruRateLimit, upload.single('image'), analyzeReceipt);

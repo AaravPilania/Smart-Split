@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -6,7 +6,8 @@ import {
   FiSun, FiMoon, FiBell, FiX, FiCamera, FiLogOut,
 } from "react-icons/fi";
 import { useTheme, getGradientStyle, toggleDarkMode } from "../utils/theme";
-import { API_URL, apiFetch, clearAuth, getUserId, getUser, getToken } from "../utils/api";
+import { API_URL, apiFetch, clearAuth, getUserId, getUser } from "../utils/api";
+import { useNotifications } from "../utils/notificationsStore";
 import ScanReceipt from "./ScanReceipt";
 
 export default function DashboardSidebar({ goals = [], onGoalsNeeded }) {
@@ -18,9 +19,11 @@ export default function DashboardSidebar({ goals = [], onGoalsNeeded }) {
   const [avatar, setAvatar] = useState(null);
   const [showScanModal, setShowScanModal] = useState(false);
   const [groups, setGroups] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState([]);
+  const notifPanelRef = useRef(null);
+
+  // Shared notifications store — no duplicate SSE connections
+  const { notifications, unreadCount, markAllRead } = useNotifications();
 
   useEffect(() => {
     const saved = localStorage.getItem("selectedAvatar");
@@ -32,41 +35,20 @@ export default function DashboardSidebar({ goals = [], onGoalsNeeded }) {
     return () => { window.removeEventListener("avatar-changed", onAvatarChanged); window.removeEventListener("storage", onAvatarChanged); };
   }, []);
 
-  useEffect(() => {
-    if (!userId) return;
-    fetchNotifications();
-    const token = getToken();
-    let es, fallbackInterval;
-    if (token && typeof EventSource !== "undefined") {
-      es = new EventSource(`${API_URL}/notifications/stream?token=${encodeURIComponent(token)}`);
-      es.onmessage = (e) => {
-        try {
-          const data = JSON.parse(e.data);
-          if (data.type === "notification" && data.notification) {
-            setNotifications((prev) => [data.notification, ...prev].slice(0, 50));
-            setUnreadCount((c) => c + 1);
-          }
-        } catch {}
-      };
-      es.onerror = () => { es.close(); es = null; if (!fallbackInterval) fallbackInterval = setInterval(fetchNotifications, 60000); };
-    } else {
-      fallbackInterval = setInterval(fetchNotifications, 60000);
-    }
-    return () => { if (es) es.close(); if (fallbackInterval) clearInterval(fallbackInterval); };
-  }, [userId]);
-
+  // Close notifications panel on route change
   useEffect(() => { setShowNotifications(false); }, [location.pathname]);
 
-  const fetchNotifications = async () => {
-    try {
-      const res = await apiFetch(`${API_URL}/notifications`);
-      if (res.ok) { const data = await res.json(); const notes = data.notifications || []; setNotifications(notes); setUnreadCount(notes.filter((n) => !n.read).length); }
-    } catch {}
-  };
-
-  const markAllRead = async () => {
-    try { await apiFetch(`${API_URL}/notifications/read-all`, { method: "PATCH" }); setNotifications((prev) => prev.map((n) => ({ ...n, read: true }))); setUnreadCount(0); } catch {}
-  };
+  // Close notifications panel when clicking outside
+  useEffect(() => {
+    if (!showNotifications) return;
+    const handler = (e) => {
+      if (notifPanelRef.current && !notifPanelRef.current.contains(e.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showNotifications]);
 
   const handleLogout = () => { clearAuth(); localStorage.removeItem("selectedAvatar"); sessionStorage.clear(); navigate("/", { replace: true }); };
   const handleScanClick = async () => {
@@ -243,6 +225,7 @@ export default function DashboardSidebar({ goals = [], onGoalsNeeded }) {
 
             {showNotifications && (
               <div
+                ref={notifPanelRef}
                 className="absolute left-full ml-3 bottom-0 w-64 rounded-2xl shadow-2xl z-50 overflow-hidden"
                 style={{
                   background: isDark ? "rgba(8,10,22,0.97)" : "rgba(255,255,255,0.97)",
@@ -269,7 +252,7 @@ export default function DashboardSidebar({ goals = [], onGoalsNeeded }) {
                     )}
                   </div>
                   <button
-                    onClick={() => setShowNotifications(false)}
+                    onClick={(e) => { e.stopPropagation(); setShowNotifications(false); }}
                     className="h-6 w-6 rounded-full flex items-center justify-center transition hover:scale-110"
                     style={{ background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)", color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)" }}
                   >

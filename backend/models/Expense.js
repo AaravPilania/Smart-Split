@@ -30,6 +30,9 @@ const expenseSchema = new mongoose.Schema({
   editHistory: [editHistorySchema],
 }, { timestamps: true });
 
+expenseSchema.index({ group: 1, settled: 1 });
+expenseSchema.index({ group: 1, createdAt: -1 });
+
 const ExpenseModel = mongoose.model('Expense', expenseSchema);
 
 const POPULATE_EXPENSE = [

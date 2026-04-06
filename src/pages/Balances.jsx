@@ -65,15 +65,13 @@ export default function Balances() {
       const groupsData = await groupsRes.json();
       const groups = groupsData.groups || [];
 
-      // Fetch settlements + balances for all groups in parallel (instead of sequential)
+      // Single request per group instead of two (balance-summary returns both)
       const grouped = await Promise.all(
         groups.map(async (group) => {
-          const [settleRes, balRes] = await Promise.all([
-            apiFetch(`${API_URL}/expenses/group/${group.id}/settlements`),
-            apiFetch(`${API_URL}/expenses/group/${group.id}/balances`),
-          ]);
-          const settlements = settleRes.ok ? ((await settleRes.json()).settlements || []) : [];
-          const simplified = balRes.ok ? simplifyDebts((await balRes.json()).balances || []) : [];
+          const res = await apiFetch(`${API_URL}/expenses/group/${group.id}/balance-summary`);
+          const data = res.ok ? await res.json() : { settlements: [], balances: [] };
+          const settlements = data.settlements || [];
+          const simplified = simplifyDebts(data.balances || []);
           return { group, settlements, simplified };
         })
       );

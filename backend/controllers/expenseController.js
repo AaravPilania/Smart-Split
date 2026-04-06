@@ -242,6 +242,82 @@ exports.getSettlements = async (req, res) => {
   }
 };
 
+// Get balances AND settlements in a single round-trip (replaces 2 separate calls from the frontend)
+exports.getBalanceSummary = async (req, res) => {
+  try {
+    const groupId = req.params.groupId;
+
+    const group = await Group.findByIdPopulated(groupId);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+
+    // Fetch expenses + payments in parallel
+    const [expenses, payments] = await Promise.all([
+      Expense.findUnsettledByGroup(groupId),
+      Payment.findByGroup(groupId),
+    ]);
+
+    // Build balance map
+    const balanceMap = {};
+    group.members.forEach(member => {
+      balanceMap[member._id.toString()] = { user: member, balance: 0 };
+    });
+
+    expenses.forEach(expense => {
+      const paidById = expense.paidBy._id.toString();
+      if (balanceMap[paidById]) balanceMap[paidById].balance += expense.amount;
+      expense.splitBetween.forEach(split => {
+        const uid = split.user._id.toString();
+        if (balanceMap[uid]) balanceMap[uid].balance -= split.amount;
+      });
+    });
+
+    payments.forEach(payment => {
+      const fromId = payment.from._id?.toString() || payment.from.toString();
+      const toId   = payment.to._id?.toString()   || payment.to.toString();
+      if (balanceMap[fromId]) balanceMap[fromId].balance += payment.amount;
+      if (balanceMap[toId])   balanceMap[toId].balance   -= payment.amount;
+    });
+
+    // Derive balance details
+    const balances = Object.values(balanceMap).map(entry => ({
+      user: { id: entry.user._id, name: entry.user.name, email: entry.user.email },
+      balance: parseFloat(entry.balance.toFixed(2)),
+    }));
+
+    // Derive settlements
+    const creditors = [];
+    const debtors = [];
+    Object.values(balanceMap).forEach(entry => {
+      const b = parseFloat(entry.balance.toFixed(2));
+      if (b > 0.01)  creditors.push({ user: entry.user, balance: b });
+      else if (b < -0.01) debtors.push({ user: entry.user, balance: Math.abs(b) });
+    });
+    creditors.sort((a, b) => b.balance - a.balance);
+    debtors.sort((a, b) => b.balance - a.balance);
+
+    const settlements = [];
+    let ci = 0, di = 0;
+    while (ci < creditors.length && di < debtors.length) {
+      const creditor = creditors[ci];
+      const debtor   = debtors[di];
+      const amount   = Math.min(creditor.balance, debtor.balance);
+      settlements.push({
+        from: { id: debtor.user._id,   name: debtor.user.name,   email: debtor.user.email,   upiId: debtor.user.upiId   || '' },
+        to:   { id: creditor.user._id, name: creditor.user.name, email: creditor.user.email, upiId: creditor.user.upiId || '' },
+        amount: parseFloat(amount.toFixed(2)),
+      });
+      creditor.balance -= amount;
+      debtor.balance   -= amount;
+      if (creditor.balance < 0.01) ci++;
+      if (debtor.balance   < 0.01) di++;
+    }
+
+    res.json({ balances, settlements });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Mark expense as settled
 exports.settleExpense = async (req, res) => {
   try {

@@ -68,12 +68,14 @@ const FloatCard = ({ children, style, delay = 0, tilt = 0, driftY = 8 }) => (
       WebkitBackdropFilter: "blur(24px)",
       boxShadow: "0 16px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)",
       rotate: `${tilt}deg`,
+      willChange: "transform",
       ...style,
     }}
   >
     <motion.div
       animate={{ y: [0, -driftY, 0] }}
       transition={{ duration: 3.5 + delay * 0.4, repeat: Infinity, ease: "easeInOut" }}
+      style={{ willChange: "transform" }}
     >
       {children}
     </motion.div>
@@ -336,7 +338,7 @@ const DesktopIntro = ({ onGetStarted, onGoogleSignIn }) => {
               <motion.div
                 animate={{ y: [0, -12, 0] }}
                 transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut" }}
-                style={{ transformOrigin: "center bottom", scale: 1.32 }}
+                style={{ transformOrigin: "center bottom", scale: 1.32, willChange: "transform" }}
               >
                 <DashboardMockup />
               </motion.div>

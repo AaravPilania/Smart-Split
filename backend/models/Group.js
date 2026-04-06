@@ -9,6 +9,8 @@ const groupSchema = new mongoose.Schema({
   pfp: { type: String, default: '' }
 }, { timestamps: true });
 
+groupSchema.index({ members: 1 });
+
 const GroupModel = mongoose.model('Group', groupSchema);
 
 const POPULATE_GROUP = [

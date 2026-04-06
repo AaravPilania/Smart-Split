@@ -1,5 +1,5 @@
 ﻿// src/components/Navbar.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FiUser,
@@ -15,8 +15,9 @@ import {
   FiHeart,
 } from "react-icons/fi";
 import ScanReceipt from "./ScanReceipt";
-import { API_URL, apiFetch, clearAuth, getUserId, getUser, getToken } from "../utils/api";
+import { API_URL, apiFetch, clearAuth, getUserId, getUser } from "../utils/api";
 import { useTheme, getGradientStyle, toggleDarkMode } from "../utils/theme";
+import { useNotifications } from "../utils/notificationsStore";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -24,11 +25,12 @@ export default function Navbar() {
   const { theme, isDark } = useTheme();
   const [showScanModal, setShowScanModal] = useState(false);
   const [groups, setGroups] = useState([]);
-  const userId = getUserId();
   const [avatar, setAvatar] = useState(null);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState([]);
+  const notifPanelRef = useRef(null);
+
+  // Shared notifications store — no duplicate SSE connections
+  const { notifications, unreadCount, markAllRead } = useNotifications();
 
   useEffect(() => {
     const saved = localStorage.getItem("selectedAvatar");
@@ -51,64 +53,22 @@ export default function Navbar() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!userId) return;
-    fetchNotifications();
-
-    // Try SSE for real-time updates, fall back to polling
-    const token = getToken();
-    let es;
-    let fallbackInterval;
-    if (token && typeof EventSource !== "undefined") {
-      es = new EventSource(`${API_URL}/notifications/stream?token=${encodeURIComponent(token)}`);
-      es.onmessage = (e) => {
-        try {
-          const data = JSON.parse(e.data);
-          if (data.type === "notification" && data.notification) {
-            setNotifications((prev) => [data.notification, ...prev].slice(0, 50));
-            setUnreadCount((c) => c + 1);
-          }
-        } catch {}
-      };
-      es.onerror = () => {
-        // SSE failed — close and start polling
-        es.close();
-        es = null;
-        if (!fallbackInterval) fallbackInterval = setInterval(fetchNotifications, 60000);
-      };
-    } else {
-      fallbackInterval = setInterval(fetchNotifications, 60000);
-    }
-    return () => {
-      if (es) es.close();
-      if (fallbackInterval) clearInterval(fallbackInterval);
-    };
-  }, [userId]);
-
   // Close notifications on route change
   useEffect(() => {
     setShowNotifications(false);
   }, [location.pathname]);
 
-  const fetchNotifications = async () => {
-    try {
-      const res = await apiFetch(`${API_URL}/notifications`);
-      if (res.ok) {
-        const data = await res.json();
-        const notes = data.notifications || [];
-        setNotifications(notes);
-        setUnreadCount(notes.filter((n) => !n.read).length);
+  // Close notifications panel when clicking outside
+  useEffect(() => {
+    if (!showNotifications) return;
+    const handler = (e) => {
+      if (notifPanelRef.current && !notifPanelRef.current.contains(e.target)) {
+        setShowNotifications(false);
       }
-    } catch {}
-  };
-
-  const markAllRead = async () => {
-    try {
-      await apiFetch(`${API_URL}/notifications/read-all`, { method: "PATCH" });
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      setUnreadCount(0);
-    } catch {}
-  };
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showNotifications]);
 
   const handleLogout = () => {
     clearAuth();
@@ -291,6 +251,7 @@ export default function Navbar() {
               </button>
               {showNotifications && (
                 <div
+                  ref={notifPanelRef}
                   className="absolute right-0 mt-2 w-80 rounded-2xl shadow-2xl z-50 overflow-hidden"
                   style={{
                     background: isDark
@@ -318,7 +279,7 @@ export default function Navbar() {
                       Reminders
                     </span>
                     <button
-                      onClick={() => setShowNotifications(false)}
+                      onClick={(e) => { e.stopPropagation(); setShowNotifications(false); }}
                       className="h-5 w-5 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
                       style={{
                         background: isDark
@@ -413,6 +374,7 @@ export default function Navbar() {
               {/* Notification dropdown on mobile */}
               {showNotifications && (
                 <div
+                  ref={notifPanelRef}
                   className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-sm rounded-2xl shadow-2xl z-50 overflow-hidden"
                   style={{
                     background: isDark
@@ -440,7 +402,7 @@ export default function Navbar() {
                       Reminders
                     </span>
                     <button
-                      onClick={() => setShowNotifications(false)}
+                      onClick={(e) => { e.stopPropagation(); setShowNotifications(false); }}
                       className="h-6 w-6 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
                       style={{
                         background: isDark

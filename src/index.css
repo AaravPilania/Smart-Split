@@ -257,11 +257,13 @@ img[data-fit="contain"], .img-contain {
 .intro-scroll {
   overflow-y: auto;
   overflow-x: hidden;
-  scroll-behavior: smooth;
+  /* no scroll-behavior:smooth — it fights scroll-snap and causes double-ease stutter */
   scroll-snap-type: y mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   height: 100%;
+  overscroll-behavior-y: none;
+  will-change: scroll-position;
 }
 .intro-scroll::-webkit-scrollbar { display: none; }
 
@@ -271,6 +273,10 @@ img[data-fit="contain"], .img-contain {
   position: relative;
   scroll-snap-align: start;
   scroll-snap-stop: always;
+  /* GPU‑composite each section so scroll doesn't trigger full repaints */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* Subtle film grain overlay for intro sections */

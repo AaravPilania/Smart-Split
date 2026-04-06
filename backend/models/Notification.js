@@ -10,6 +10,9 @@ const notificationSchema = new mongoose.Schema({
   read:    { type: Boolean, default: false },
 }, { timestamps: true });
 
+notificationSchema.index({ to: 1, createdAt: -1 });
+notificationSchema.index({ to: 1, read: 1 });
+
 // Virtual `id` field
 notificationSchema.virtual('id').get(function () { return this._id.toHexString(); });
 notificationSchema.set('toJSON', { virtuals: true });

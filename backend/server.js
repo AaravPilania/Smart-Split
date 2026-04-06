@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const compression = require('compression');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
@@ -17,6 +18,9 @@ const app = express();
 
 // Security headers
 app.use(helmet());
+
+// Gzip compression — reduces JSON payload size by ~60-80%
+app.use(compression());
 
 // Request logging
 app.use(morgan('short'));
