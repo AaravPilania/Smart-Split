@@ -14,7 +14,7 @@ import {
   FiTrash2,
   FiEdit2,
 } from "react-icons/fi";
-import { API_URL, apiFetch, getUserId } from "../utils/api";
+import { API_URL, apiFetch, getUserId, cachedApiFetch, invalidateCache } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 import { CATEGORIES, detectCategory, getCategoryInfo } from "../utils/categories";
 import { downloadExpensesCSV } from "../utils/export";
@@ -129,7 +129,16 @@ export default function Expenses() {
 
   const fetchGroups = async (userId) => {
     try {
-      const response = await apiFetch(`${API_URL}/groups?userId=${userId}`);
+      const response = await cachedApiFetch(
+        `${API_URL}/groups?userId=${userId}`,
+        `groups_${userId}`,
+        (freshData) => {
+          setGroups(freshData.groups || []);
+          if (freshData.groups?.length > 0 && !selectedGroupId) {
+            setSelectedGroupId(freshData.groups[0].id);
+          }
+        }
+      );
       if (!response.ok) throw new Error("Failed to fetch groups");
       const data = await response.json();
       setGroups(data.groups || []);
@@ -144,7 +153,11 @@ export default function Expenses() {
   const fetchExpenses = async (groupId) => {
     try {
       setLoading(true);
-      const response = await apiFetch(`${API_URL}/expenses/group/${groupId}`);
+      const response = await cachedApiFetch(
+        `${API_URL}/expenses/group/${groupId}`,
+        `expenses_${groupId}`,
+        (freshData) => setExpenses(freshData.expenses || [])
+      );
       if (!response.ok) throw new Error("Failed to fetch expenses");
       const data = await response.json();
       setExpenses(data.expenses || []);
@@ -162,6 +175,7 @@ export default function Expenses() {
       const res = await apiFetch(`${API_URL}/expenses/${expenseId}`, { method: 'DELETE' });
       if (res.ok) {
         setExpenses(prev => prev.filter(e => e.id !== expenseId));
+        invalidateCache(`expenses_${selectedGroupId}`, `balance_summary_${selectedGroupId}`, 'dashboard_summary');
       } else {
         const d = await res.json();
         alert(d.message || 'Failed to delete expense');
@@ -208,6 +222,7 @@ export default function Expenses() {
       if (!res.ok) throw new Error(data.message || 'Failed to update expense');
       setExpenses(prev => prev.map(ex => ex.id === editingExpense.id ? data.expense : ex));
       setEditingExpense(null);
+      invalidateCache(`expenses_${selectedGroupId}`, `balance_summary_${selectedGroupId}`, 'dashboard_summary');
     } catch (err) {
       alert(err.message);
     } finally {
@@ -269,6 +284,7 @@ export default function Expenses() {
         category: "other",
       });
       setShowCreateModal(false);
+      invalidateCache(`expenses_${selectedGroupId}`, `balance_summary_${selectedGroupId}`, 'dashboard_summary');
       fetchExpenses(selectedGroupId);
       alert("Expense created successfully!");
     } catch (error) {

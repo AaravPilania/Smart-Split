@@ -9,7 +9,7 @@ import {
   FiTarget, FiRepeat, FiPlus, FiTrash2, FiCalendar,
 } from "react-icons/fi";
 import { QRCodeSVG } from "qrcode.react";
-import { API_URL, apiFetch, getUserId, clearAuth } from "../utils/api";
+import { API_URL, apiFetch, getUserId, clearAuth, cachedApiFetch, invalidateCache } from "../utils/api";
 import {
   ACCENT_PRESETS,
   getGradientStyle,
@@ -156,7 +156,14 @@ export default function Profile() {
 
   const fetchProfile = async (uid) => {
     try {
-      const res = await apiFetch(`${API_URL}/auth/profile/${uid}`);
+      const res = await cachedApiFetch(
+        `${API_URL}/auth/profile/${uid}`,
+        `profile_${uid}`,
+        (d) => {
+          setUser(d.user);
+          setForm({ name: d.user.name||"", email: d.user.email||"", username: d.user.username||"", upiId: d.user.upiId||"", password: "", currentPassword: "" });
+        }
+      );
       if (!res.ok) throw new Error();
       const d = await res.json();
       setUser(d.user);
@@ -170,7 +177,11 @@ export default function Profile() {
 
   const fetchGroups = async (uid) => {
     try {
-      const res = await apiFetch(`${API_URL}/groups?userId=${uid}`);
+      const res = await cachedApiFetch(
+        `${API_URL}/groups?userId=${uid}`,
+        `groups_${uid}`,
+        (d) => setGroups(d.groups || [])
+      );
       if (res.ok) { const d = await res.json(); setGroups(d.groups || []); }
     } catch {}
   };
@@ -363,6 +374,7 @@ export default function Profile() {
       if (!res.ok) throw new Error(d.message || "Failed");
       setUser(d.user);
       localStorage.setItem("user", JSON.stringify(d.user));
+      invalidateCache(`profile_${uid}`);
       setEditing(false);
       setForm((f) => ({ ...f, password: "", currentPassword: "" }));
       showToast("Profile updated!");

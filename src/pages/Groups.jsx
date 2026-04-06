@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import DesktopLayout from "../components/DesktopLayout";
 import DesktopPageHeader from "../components/DesktopPageHeader";
 import { FiUsers, FiPlus, FiX, FiUserPlus, FiLink, FiZap, FiHeart, FiClock, FiTrash2, FiCamera } from "react-icons/fi";
-import { API_URL, apiFetch, getUserId } from "../utils/api";
+import { API_URL, apiFetch, getUserId, cachedApiFetch, invalidateCache } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 import { simplifyDebts } from "../utils/debts";
 
@@ -52,8 +52,13 @@ export default function Groups() {
   }, [navigate]);
 
   const fetchFriends = async () => {
+    const uid = getUserId();
     try {
-      const res = await apiFetch(`${API_URL}/friends`);
+      const res = await cachedApiFetch(
+        `${API_URL}/friends`,
+        `friends_${uid}`,
+        (d) => setFriends(d.friends || [])
+      );
       if (res.ok) { const d = await res.json(); setFriends(d.friends || []); }
     } catch {}
   };
@@ -82,6 +87,7 @@ export default function Groups() {
       const res = await apiFetch(`${API_URL}/groups/${group.id}`, { method: 'DELETE' });
       if (res.ok) {
         setGroups(prev => prev.filter(g => g.id !== group.id));
+        invalidateCache(`groups_${userId}`, `expenses_`, `balance_summary_`, 'dashboard_summary');
       } else {
         const d = await res.json();
         alert(d.message || 'Failed to delete group');
@@ -121,7 +127,14 @@ export default function Groups() {
   const fetchGroups = async (userId) => {
     try {
       setLoading(true);
-      const response = await apiFetch(`${API_URL}/groups?userId=${userId}`);
+      const response = await cachedApiFetch(
+        `${API_URL}/groups?userId=${userId}`,
+        `groups_${userId}`,
+        (freshData) => {
+          setGroups(freshData.groups || []);
+          setFetchError(false);
+        }
+      );
       if (!response.ok) throw new Error("Failed to fetch groups");
       const data = await response.json();
       setGroups(data.groups || []);
@@ -194,6 +207,7 @@ export default function Groups() {
 
       setCreateForm({ name: "", description: "" });
       setShowCreateModal(false);
+      invalidateCache(`groups_${userId}`, 'dashboard_summary');
       fetchGroups(userId);
       alert("Group created successfully!");
     } catch (error) {
@@ -220,6 +234,7 @@ export default function Groups() {
 
       setAddMemberForm({ memberEmail: "" });
       setShowAddMemberModal(null);
+      invalidateCache(`groups_${userId}`);
       fetchGroups(userId);
       alert("Member added successfully!");
     } catch (error) {

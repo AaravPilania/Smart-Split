@@ -7,7 +7,7 @@ import {
   FiCheck, FiX, FiTrash2, FiMail, FiGrid,
 } from "react-icons/fi";
 import { QRCodeSVG } from "qrcode.react";
-import { API_URL, apiFetch, getUserId } from "../utils/api";
+import { API_URL, apiFetch, getUserId, cachedApiFetch, invalidateCache } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 
 const APP_URL = import.meta.env.VITE_APP_URL || "https://thesmartsplit.pages.dev";
@@ -52,8 +52,13 @@ export default function Friends() {
   };
 
   const fetchFriends = async () => {
+    const uid = getUserId();
     try {
-      const res = await apiFetch(`${API_URL}/friends`);
+      const res = await cachedApiFetch(
+        `${API_URL}/friends`,
+        `friends_${uid}`,
+        (d) => setFriends(d.friends || [])
+      );
       if (res.ok) {
         const data = await res.json();
         setFriends(data.friends || []);
@@ -62,8 +67,13 @@ export default function Friends() {
   };
 
   const fetchRequests = async () => {
+    const uid = getUserId();
     try {
-      const res = await apiFetch(`${API_URL}/friends/requests`);
+      const res = await cachedApiFetch(
+        `${API_URL}/friends/requests`,
+        `friend_requests_${uid}`,
+        (d) => setRequests(d.requests || [])
+      );
       if (res.ok) {
         const data = await res.json();
         setRequests(data.requests || []);
@@ -112,7 +122,11 @@ export default function Friends() {
     setActionLoading(friendshipId);
     try {
       const res = await apiFetch(`${API_URL}/friends/accept/${friendshipId}`, { method: "PATCH" });
-      if (res.ok) { await fetchAll(); }
+      if (res.ok) {
+        const uid = getUserId();
+        invalidateCache(`friends_${uid}`, `friend_requests_${uid}`);
+        await fetchAll();
+      }
     } finally {
       setActionLoading(null);
     }
@@ -122,7 +136,11 @@ export default function Friends() {
     setActionLoading(friendshipId);
     try {
       const res = await apiFetch(`${API_URL}/friends/reject/${friendshipId}`, { method: "PATCH" });
-      if (res.ok) { await fetchRequests(); }
+      if (res.ok) {
+        const uid = getUserId();
+        invalidateCache(`friend_requests_${uid}`);
+        await fetchRequests();
+      }
     } finally {
       setActionLoading(null);
     }
@@ -132,6 +150,8 @@ export default function Friends() {
     if (!confirm("Remove this friend?")) return;
     try {
       await apiFetch(`${API_URL}/friends/${friendId}`, { method: "DELETE" });
+      const uid = getUserId();
+      invalidateCache(`friends_${uid}`, `groups_`);
       setFriends((prev) => prev.filter((f) => f.id !== friendId));
     } catch {}
   };

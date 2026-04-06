@@ -111,20 +111,40 @@ export function setCache(key, data) {
 }
 
 /**
+ * Remove one or more cache entries by exact key or key prefix.
+ * Pass a prefix ending with '_' to wipe all related keys.
+ * e.g. invalidateCache('groups_') removes groups_{userId} for all users.
+ */
+export function invalidateCache(...keys) {
+  try {
+    const allKeys = Object.keys(localStorage).filter(k => k.startsWith(CACHE_PREFIX));
+    keys.forEach(key => {
+      const full = CACHE_PREFIX + key;
+      allKeys.forEach(k => {
+        if (k === full || k.startsWith(full)) localStorage.removeItem(k);
+      });
+    });
+  } catch { /* ignore */ }
+}
+
+/**
  * Fetch with cache-first strategy.
- * Returns cached data immediately if available, then refreshes in background.
- * @param {string} url - API URL
- * @param {string} cacheKey - Cache key (e.g. 'dashboard_summary')
- * @param {function} onFresh - Callback when fresh data arrives (optional)
- * @returns {Promise<Response>} - The fetch response (from network)
+ * - Returns cached data immediately if fresh (< 5 min old).
+ * - Always fires a background network request to refresh the cache.
+ * - When fresh data arrives, calls onFresh(data) so the UI can update.
+ *
+ * @param {string} url       - API URL
+ * @param {string} cacheKey  - Unique cache key
+ * @param {function} onFresh - Called with fresh data when background fetch succeeds
+ * @returns {Promise<Response>} Resolves with cached Response immediately, or network Response if no cache
  */
 export async function cachedApiFetch(url, cacheKey, onFresh) {
-  // Start network fetch immediately
+  // Always start the network request immediately (don't wait for cache check first)
   const networkPromise = apiFetch(url);
-  // If we have cached data, return it wrapped in a fake Response
   const cached = getCached(cacheKey);
+
   if (cached) {
-    // Still refresh in background
+    // Return cached data right away; update cache + call onFresh when network responds
     networkPromise.then(async (res) => {
       if (res.ok) {
         const data = await res.clone().json();
@@ -134,7 +154,8 @@ export async function cachedApiFetch(url, cacheKey, onFresh) {
     }).catch(() => {});
     return new Response(JSON.stringify(cached), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }
-  // No cache — wait for network
+
+  // No cache — wait for network, then store
   const res = await networkPromise;
   if (res.ok) {
     const data = await res.clone().json();

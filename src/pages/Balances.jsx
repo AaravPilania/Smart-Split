@@ -16,7 +16,7 @@ import {
   FiLink,
 } from "react-icons/fi";
 import { QRCodeSVG } from "qrcode.react";
-import { API_URL, apiFetch, getUserId } from "../utils/api";
+import { API_URL, apiFetch, getUserId, cachedApiFetch, invalidateCache } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 import { simplifyDebts } from "../utils/debts";
 
@@ -60,7 +60,11 @@ export default function Balances() {
   const fetchAllBalances = async () => {
     setLoading(true);
     try {
-      const groupsRes = await apiFetch(`${API_URL}/groups?userId=${userId}`);
+      const groupsRes = await cachedApiFetch(
+        `${API_URL}/groups?userId=${userId}`,
+        `groups_${userId}`,
+        () => {} // onFresh handled below via re-fetch pattern
+      );
       if (!groupsRes.ok) return;
       const groupsData = await groupsRes.json();
       const groups = groupsData.groups || [];
@@ -68,7 +72,18 @@ export default function Balances() {
       // Single request per group instead of two (balance-summary returns both)
       const grouped = await Promise.all(
         groups.map(async (group) => {
-          const res = await apiFetch(`${API_URL}/expenses/group/${group.id}/balance-summary`);
+          const res = await cachedApiFetch(
+            `${API_URL}/expenses/group/${group.id}/balance-summary`,
+            `balance_summary_${group.id}`,
+            (freshData) => {
+              // Update this group's data when background refresh arrives
+              setGroupBalances(prev => prev.map(r =>
+                r.group.id === group.id
+                  ? { ...r, settlements: freshData.settlements || [], simplified: simplifyDebts(freshData.balances || []) }
+                  : r
+              ));
+            }
+          );
           const data = res.ok ? await res.json() : { settlements: [], balances: [] };
           const settlements = data.settlements || [];
           const simplified = simplifyDebts(data.balances || []);
@@ -129,6 +144,7 @@ export default function Balances() {
           }),
         }).catch(() => {});
         setPaidNotice(key);
+        invalidateCache(`balance_summary_${group.id}`, 'dashboard_summary');
         setTimeout(() => { setPaidNotice(null); fetchAllBalances(); }, 1800);
       }
     } catch (e) {
@@ -158,6 +174,7 @@ export default function Balances() {
           });
         }
       }
+      invalidateCache(`balance_summary_${group.id}`, `expenses_${group.id}`, 'dashboard_summary');
       await fetchAllBalances();
     } catch (e) {
       console.error(e);
