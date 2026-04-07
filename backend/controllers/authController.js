@@ -16,7 +16,9 @@ let _transporter = null;
 const getTransporter = () => {
   if (!_transporter) {
     _transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
       auth: {
         user: SENDER_EMAIL,
         pass: process.env.GMAIL_APP_PASSWORD,
@@ -159,9 +161,14 @@ exports.sendOtp = async (req, res) => {
 
     res.json({ message: 'Verification code sent to your email.' });
   } catch (error) {
-    console.error('sendOtp error:', error.message);
+    console.error('sendOtp error — code:', error.code, '| message:', error.message);
     _transporter = null; // reset so next attempt tries fresh
-    res.status(500).json({ message: 'Failed to send verification code. Please try again.' });
+    const hint = error.code === 'EAUTH'
+      ? 'Gmail auth failed — check your App Password on Render.'
+      : (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT')
+      ? 'Cannot reach Gmail SMTP. Please try again in a moment.'
+      : 'Failed to send verification code. Please try again.';
+    res.status(500).json({ message: hint });
   }
 };
 

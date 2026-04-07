@@ -271,9 +271,9 @@ function SlideContent({ slide, slideIndex, theme, onNext, onGetStarted }) {
   };
 
   return (
-    <div className="flex flex-col h-full w-full px-6 pb-20" style={{ paddingTop: 72 }}>
-      {/* Visual */}
-      <div className="flex items-center justify-center" style={{ flex: 1.5 }}>
+    <div className="flex flex-col h-full w-full px-6" style={{ paddingTop: 8, paddingBottom: 80 }}>
+      {/* Visual — fills the space between top bar and text, always centered */}
+      <div className="flex-1 flex items-center justify-center">
         <motion.div
           initial={{ scale: 0.84, opacity: 0, y: 16 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -285,7 +285,7 @@ function SlideContent({ slide, slideIndex, theme, onNext, onGetStarted }) {
       </div>
 
       {/* Editorial text block */}
-      <div style={{ flex: 1 }}>
+      <div>
         {/* Tag line with colored dash */}
         <motion.div
           initial={{ opacity: 0, x: -12 }}
