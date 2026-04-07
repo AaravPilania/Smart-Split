@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const { Resend } = require('resend');
 const User = require('../models/User');
 const Group = require('../models/Group');
 const Expense = require('../models/Expense');
@@ -9,8 +8,31 @@ const Payment = require('../models/Payment');
 // ── OTP store: email → { otp, expiresAt, sentAt, attempts } ───────────────
 const otpStore = new Map();
 
-// Resend HTTP API — works on all cloud platforms (no SMTP needed)
-const getResend = () => new Resend(process.env.RESEND_API_KEY);
+// Brevo (Sendinblue) HTTP API — works on all cloud platforms, no SMTP needed
+async function sendOtpEmail(to, otp) {
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': process.env.BREVO_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      sender: { name: 'Smart Split', email: process.env.BREVO_SENDER_EMAIL },
+      to: [{ email: to }],
+      subject: `${otp} is your Smart Split verification code`,
+      htmlContent: `<div style="font-family:Arial,sans-serif;max-width:420px;margin:0 auto;padding:24px;">
+  <h2 style="margin:0 0 8px;color:#111;font-size:20px;">Verify your email</h2>
+  <p style="color:#555;font-size:14px;margin:0 0 20px;">Use the code below to complete your Smart Split sign-up. It expires in <strong>10 minutes</strong>.</p>
+  <div style="font-size:40px;font-weight:900;letter-spacing:10px;color:#ec4899;padding:20px 0;text-align:center;">${otp}</div>
+  <p style="color:#888;font-size:12px;margin-top:24px;">If you didn't request this, you can safely ignore this email.</p>
+</div>`,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || `Brevo error ${res.status}`);
+  }
+}
 
 const REFRESH_COOKIE_NAME = 'refreshToken';
 const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -101,12 +123,12 @@ exports.googleAuth = async (req, res) => {
 
 // POST /auth/send-otp — send 6-digit code to email before signup
 exports.sendOtp = async (req, res) => {
+  const { email } = req.body;
   try {
-    if (!process.env.RESEND_API_KEY) {
+    if (!process.env.BREVO_API_KEY || !process.env.BREVO_SENDER_EMAIL) {
       return res.status(503).json({ message: 'Email service is not configured. Please contact support.' });
     }
 
-    const { email } = req.body;
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ message: 'A valid email address is required.' });
     }
@@ -126,29 +148,13 @@ exports.sendOtp = async (req, res) => {
     const otp = String(Math.floor(100000 + Math.random() * 900000));
     otpStore.set(email, { otp, expiresAt: Date.now() + 10 * 60_000, sentAt: Date.now(), attempts: 0 });
 
-    const { error: sendError } = await getResend().emails.send({
-      from: 'Smart Split <onboarding@resend.dev>',
-      to: email,
-      subject: `${otp} is your Smart Split verification code`,
-      html: `<div style="font-family:Arial,sans-serif;max-width:420px;margin:0 auto;padding:24px;">
-  <h2 style="margin:0 0 8px;color:#111;font-size:20px;">Verify your email</h2>
-  <p style="color:#555;font-size:14px;margin:0 0 20px;">Use the code below to complete your Smart Split sign-up. It expires in <strong>10 minutes</strong>.</p>
-  <div style="font-size:40px;font-weight:900;letter-spacing:10px;color:#ec4899;padding:20px 0;text-align:center;">${otp}</div>
-  <p style="color:#888;font-size:12px;margin-top:24px;">If you didn't request this, you can safely ignore this email.</p>
-</div>`,
-    });
-
-    if (sendError) {
-      console.error('Resend error:', sendError);
-      otpStore.delete(email);
-      return res.status(500).json({ message: 'Failed to send verification code. Please try again.' });
-    }
+    await sendOtpEmail(email, otp);
 
     res.json({ message: 'Verification code sent to your email.' });
   } catch (error) {
     console.error('sendOtp error:', error.message);
     otpStore.delete(email);
-    res.status(500).json({ message: 'Failed to send verification code. Please try again.' });
+    res.status(500).json({ message: error.message || 'Failed to send verification code. Please try again.' });
   }
 };
 
