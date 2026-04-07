@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const User = require('../models/User');
 const Group = require('../models/Group');
 const Expense = require('../models/Expense');
@@ -9,27 +9,8 @@ const Payment = require('../models/Payment');
 // ── OTP store: email → { otp, expiresAt, sentAt, attempts } ───────────────
 const otpStore = new Map();
 
-const SENDER_EMAIL = process.env.GMAIL_USER || '';
-
-// Lazy transporter — only created when first needed
-let _transporter = null;
-const getTransporter = () => {
-  if (!_transporter) {
-    _transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: {
-        user: SENDER_EMAIL,
-        pass: process.env.GMAIL_APP_PASSWORD,
-      },
-      connectionTimeout: 8000,
-      greetingTimeout: 8000,
-      socketTimeout: 10000,
-    });
-  }
-  return _transporter;
-};
+// Resend HTTP API — works on all cloud platforms (no SMTP needed)
+const getResend = () => new Resend(process.env.RESEND_API_KEY);
 
 const REFRESH_COOKIE_NAME = 'refreshToken';
 const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -121,7 +102,7 @@ exports.googleAuth = async (req, res) => {
 // POST /auth/send-otp — send 6-digit code to email before signup
 exports.sendOtp = async (req, res) => {
   try {
-    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+    if (!process.env.RESEND_API_KEY) {
       return res.status(503).json({ message: 'Email service is not configured. Please contact support.' });
     }
 
@@ -145,30 +126,29 @@ exports.sendOtp = async (req, res) => {
     const otp = String(Math.floor(100000 + Math.random() * 900000));
     otpStore.set(email, { otp, expiresAt: Date.now() + 10 * 60_000, sentAt: Date.now(), attempts: 0 });
 
-    await getTransporter().sendMail({
-      from: `"Smart Split" <${SENDER_EMAIL}>`,
-      replyTo: SENDER_EMAIL,
+    const { error: sendError } = await getResend().emails.send({
+      from: 'Smart Split <onboarding@resend.dev>',
       to: email,
       subject: `${otp} is your Smart Split verification code`,
       html: `<div style="font-family:Arial,sans-serif;max-width:420px;margin:0 auto;padding:24px;">
-  <img src="https://smartsplit.in/icon.png" alt="Smart Split" width="48" style="border-radius:12px;margin-bottom:16px;"/>
   <h2 style="margin:0 0 8px;color:#111;font-size:20px;">Verify your email</h2>
   <p style="color:#555;font-size:14px;margin:0 0 20px;">Use the code below to complete your Smart Split sign-up. It expires in <strong>10 minutes</strong>.</p>
   <div style="font-size:40px;font-weight:900;letter-spacing:10px;color:#ec4899;padding:20px 0;text-align:center;">${otp}</div>
-  <p style="color:#888;font-size:12px;margin-top:24px;">If you didn&apos;t request this, you can safely ignore this email.</p>
+  <p style="color:#888;font-size:12px;margin-top:24px;">If you didn't request this, you can safely ignore this email.</p>
 </div>`,
     });
 
+    if (sendError) {
+      console.error('Resend error:', sendError);
+      otpStore.delete(email);
+      return res.status(500).json({ message: 'Failed to send verification code. Please try again.' });
+    }
+
     res.json({ message: 'Verification code sent to your email.' });
   } catch (error) {
-    console.error('sendOtp error — code:', error.code, '| message:', error.message);
-    _transporter = null; // reset so next attempt tries fresh
-    const hint = error.code === 'EAUTH'
-      ? 'Gmail auth failed — check your App Password on Render.'
-      : (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT')
-      ? 'Cannot reach Gmail SMTP. Please try again in a moment.'
-      : 'Failed to send verification code. Please try again.';
-    res.status(500).json({ message: hint });
+    console.error('sendOtp error:', error.message);
+    otpStore.delete(email);
+    res.status(500).json({ message: 'Failed to send verification code. Please try again.' });
   }
 };
 
