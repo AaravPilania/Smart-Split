@@ -1739,12 +1739,28 @@ function DesktopLogin({ onSuccess, onGuest }) {
                 <>
                   <div className="flex flex-col items-center gap-3 py-2">
                     <span className="text-4xl">📧</span>
-                    <input
-                      type="text" inputMode="numeric" maxLength={6} autoFocus
-                      value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,""))}
-                      placeholder="• • • • • •"
-                      className="w-full text-center text-3xl font-black tracking-[0.5em] py-4 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-white/20 focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-400/30 transition"
-                    />
+                    <div className="flex gap-2 justify-center w-full">
+                      {[0,1,2,3,4,5].map(i=>(
+                        <input
+                          key={i} id={`dotp-${i}`}
+                          type="text" inputMode="numeric" maxLength={1}
+                          value={otp[i]||""}
+                          autoFocus={i===0}
+                          onChange={e=>{
+                            const v=e.target.value.replace(/\D/g,"").slice(-1);
+                            const arr=Array.from({length:6},(_,j)=>otp[j]||"");
+                            arr[i]=v;
+                            setOtp(arr.join(""));
+                            if(v&&i<5)document.getElementById(`dotp-${i+1}`)?.focus();
+                          }}
+                          onKeyDown={e=>{
+                            if(e.key==="Backspace"&&!otp[i]&&i>0)document.getElementById(`dotp-${i-1}`)?.focus();
+                          }}
+                          onPaste={e=>{e.preventDefault();const p=e.clipboardData.getData("text").replace(/\D/g,"").slice(0,6);setOtp(p);document.getElementById(`dotp-${Math.min(p.length,5)}`)?.focus();}}
+                          className="w-11 h-14 text-center text-xl font-black rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-400/30 transition caret-pink-400"
+                        />
+                      ))}
+                    </div>
                     <div className="flex w-full items-center justify-between">
                       <button type="button" onClick={()=>{setOtpStep(false);setOtp("");setResendTimer(0);if(resendRef.current)clearInterval(resendRef.current);setError("");}} className="text-xs text-white/50 hover:text-white/80 transition flex items-center gap-1"><FiArrowRight size={12} className="rotate-180"/>Change email</button>
                       <button type="button" onClick={handleResendOtp} disabled={resendTimer>0||loading} className="text-xs font-semibold transition disabled:cursor-not-allowed" style={{ color:resendTimer>0?"rgba(255,255,255,0.3)":"#f97316" }}>{resendTimer>0?`Resend in ${resendTimer}s`:"Resend code"}</button>
