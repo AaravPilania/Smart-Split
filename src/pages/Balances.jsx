@@ -588,14 +588,29 @@ export default function Balances() {
                 </p>
               </div>
             )}
-            <a
-              href={`upi://pay?${new URLSearchParams({ ...(upiModal.toUpiId ? { pa: upiModal.toUpiId } : {}), pn: upiModal.toName, am: Number(upiModal.editAmount ?? upiModal.amount).toFixed(2), cu: "INR", tn: `SmartSplit: ${upiModal.toName}` }).toString()}`}
-              onClick={() => { upiOpenedRef.current = true; try { navigator.clipboard.writeText(Number(upiModal.editAmount ?? upiModal.amount).toFixed(2)); } catch {} }}
+            <button
+              onClick={() => {
+                const amt = Number(upiModal.editAmount ?? upiModal.amount).toFixed(2);
+                // Copy amount to clipboard
+                try { navigator.clipboard.writeText(amt); } catch {}
+                // Build upi:// deep-link — opens the UPI app chooser directly on mobile
+                const params = new URLSearchParams({
+                  ...(upiModal.toUpiId ? { pa: upiModal.toUpiId } : {}),
+                  pn: upiModal.toName,
+                  am: amt,
+                  cu: 'INR',
+                  tn: `SmartSplit: ${upiModal.toName}`,
+                });
+                const upiUrl = `upi://pay?${params.toString()}`;
+                upiOpenedRef.current = true;
+                window.location.href = upiUrl;
+              }}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm mb-2"
               style={getGradientStyle(theme)}
             >
               <FiSmartphone size={15} /> Pay ₹{Number(upiModal.editAmount ?? upiModal.amount).toFixed(2)} via UPI
-            </a>
+            </button>
+            <p className="text-[10px] mb-2" style={{ color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)' }}>Amount copied to clipboard</p>
             {showPaidPrompt && (
               <div className="mb-2 px-3 py-2.5 rounded-xl text-xs text-center"
                 style={{ background: isDark ? "rgba(34,197,94,0.12)" : "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.3)" }}>
