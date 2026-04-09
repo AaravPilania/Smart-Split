@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import DesktopLayout from "../components/DesktopLayout";
 import DesktopPageHeader from "../components/DesktopPageHeader";
-import { FiUsers, FiPlus, FiX, FiUserPlus, FiLink, FiZap, FiHeart, FiClock, FiTrash2, FiCamera } from "react-icons/fi";
+import { FiUsers, FiPlus, FiX, FiUserPlus, FiLink, FiZap, FiHeart, FiClock, FiTrash2, FiCamera, FiArchive, FiCalendar } from "react-icons/fi";
 import { API_URL, apiFetch, getUserId, cachedApiFetch, invalidateCache } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 import { simplifyDebts } from "../utils/debts";
@@ -26,6 +26,8 @@ export default function Groups() {
   const [activityGroupId, setActivityGroupId] = useState(null);
   const [activityLogs, setActivityLogs] = useState([]);
   const [activityLoading, setActivityLoading] = useState(false);
+  const [archivedGroups, setArchivedGroups] = useState([]);
+  const [showArchived, setShowArchived] = useState(false);
 
   const [pfpUploading, setPfpUploading] = useState(null); // groupId being uploaded
   const pfpInputRef = useRef(null);
@@ -34,6 +36,11 @@ export default function Groups() {
   const [createForm, setCreateForm] = useState({
     name: "",
     description: "",
+    type: "regular",
+    startDate: "",
+    endDate: "",
+    budget: "",
+    defaultCurrency: "INR",
   });
 
   const [addMemberForm, setAddMemberForm] = useState({
@@ -48,6 +55,7 @@ export default function Groups() {
     }
     setUserId(userIdStr);
     fetchGroups(userIdStr);
+    fetchArchivedGroups(userIdStr);
     fetchFriends();
   }, [navigate]);
 
@@ -147,6 +155,57 @@ export default function Groups() {
     }
   };
 
+  const fetchArchivedGroups = async (uid) => {
+    try {
+      const res = await apiFetch(`${API_URL}/groups?userId=${uid}&archived=true`);
+      if (res.ok) {
+        const data = await res.json();
+        setArchivedGroups(data.groups || []);
+      }
+    } catch {}
+  };
+
+  const handleArchiveGroup = async (group) => {
+    if (!window.confirm(`Archive "${group.name}"? It will move to your Archived tab.`)) return;
+    try {
+      const res = await apiFetch(`${API_URL}/groups/${group.id}/archive`, { method: "PATCH" });
+      if (res.ok) {
+        setGroups(prev => prev.filter(g => g.id !== group.id));
+        invalidateCache(`groups_${userId}`, 'dashboard_summary');
+        fetchArchivedGroups(userId);
+      } else {
+        const d = await res.json();
+        alert(d.message || "Failed to archive");
+      }
+    } catch { alert("Failed to archive group"); }
+  };
+
+  // Trip status helper
+  const getTripStatus = (group) => {
+    if (group.type !== 'trip') return null;
+    const now = new Date();
+    const start = group.startDate ? new Date(group.startDate) : null;
+    const end = group.endDate ? new Date(group.endDate) : null;
+    if (group.archived) return { label: "Ended", color: "#6b7280", bg: "rgba(107,114,128,0.15)" };
+    if (end && now > end) return { label: "Ending soon", color: "#f59e0b", bg: "rgba(245,158,11,0.15)" };
+    if (start && now < start) {
+      const days = Math.ceil((start - now) / 86400000);
+      return { label: `Starts in ${days}d`, color: "#3b82f6", bg: "rgba(59,130,246,0.15)" };
+    }
+    if (start && end) {
+      const days = Math.ceil((end - now) / 86400000);
+      return { label: `${days}d left`, color: "#22c55e", bg: "rgba(34,197,94,0.15)" };
+    }
+    return { label: "Active", color: "#22c55e", bg: "rgba(34,197,94,0.15)" };
+  };
+
+  // Sort groups: trips first, then by creation date
+  const sortedGroups = [...groups].sort((a, b) => {
+    if (a.type === 'trip' && b.type !== 'trip') return -1;
+    if (a.type !== 'trip' && b.type === 'trip') return 1;
+    return 0;
+  });
+
   const handlePfpButtonClick = (groupId) => {
     pfpTargetGroupId.current = groupId;
     pfpInputRef.current?.click();
@@ -193,19 +252,27 @@ export default function Groups() {
     }
 
     try {
+      const payload = {
+        name: createForm.name,
+        description: createForm.description,
+        createdBy: userId,
+        type: createForm.type,
+        defaultCurrency: createForm.defaultCurrency,
+      };
+      if (createForm.type === "trip") {
+        payload.startDate = createForm.startDate;
+        payload.endDate = createForm.endDate;
+        if (createForm.budget) payload.budget = Number(createForm.budget);
+      }
       const response = await apiFetch(`${API_URL}/groups`, {
         method: "POST",
-        body: JSON.stringify({
-          name: createForm.name,
-          description: createForm.description,
-          createdBy: userId,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Failed to create group");
 
-      setCreateForm({ name: "", description: "" });
+      setCreateForm({ name: "", description: "", type: "regular", startDate: "", endDate: "", budget: "", defaultCurrency: "INR" });
       setShowCreateModal(false);
       invalidateCache(`groups_${userId}`, 'dashboard_summary');
       fetchGroups(userId);
@@ -289,7 +356,7 @@ export default function Groups() {
           label="Manage"
           title="Your"
           gradWord="Groups"
-          subtitle={`${groups.length} active group${groups.length !== 1 ? "s" : ""} · Split expenses effortlessly`}
+          subtitle={`${groups.length} active group${groups.length !== 1 ? "s" : ""}${archivedGroups.length ? ` · ${archivedGroups.length} archived` : ""} · Split expenses effortlessly`}
           actions={
             <motion.button
               onClick={() => setShowCreateModal(true)}
@@ -302,6 +369,25 @@ export default function Groups() {
             </motion.button>
           }
         />
+
+        {/* Active / Archived tabs */}
+        <div className="flex gap-2 mb-5">
+          {["active", "archived"].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setShowArchived(tab === "archived")}
+              className="px-4 py-2 rounded-xl text-sm font-bold transition-all"
+              style={{
+                background: (showArchived ? tab === "archived" : tab === "active")
+                  ? `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})`
+                  : isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
+                color: (showArchived ? tab === "archived" : tab === "active") ? "#fff" : isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)",
+              }}
+            >
+              {tab === "active" ? `Active (${groups.length})` : `Archived (${archivedGroups.length})`}
+            </button>
+          ))}
+        </div>
 
         {/* Groups List */}
         {fetchError ? (
@@ -321,6 +407,45 @@ export default function Groups() {
               </button>
             </div>
           </div>
+        ) : showArchived ? (
+          /* ── Archived Groups View ── */
+          archivedGroups.length === 0 ? (
+            <div className="rounded-2xl p-10 sm:p-14 flex flex-col items-center justify-center"
+              style={isDark
+                ? { background: "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)", border: "1px solid rgba(255,255,255,0.08)" }
+                : { background: "rgba(255,255,255,0.92)", border: "1px solid rgba(0,0,0,0.06)" }}>
+              <FiArchive size={28} className="mb-3" style={{ color: isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.25)" }} />
+              <h3 className="font-black text-lg mb-1" style={{ color: isDark ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.8)" }}>No archived groups</h3>
+              <p className="text-sm" style={{ color: isDark ? "rgba(255,255,255,0.38)" : "rgba(0,0,0,0.42)" }}>Ended trips and archived groups appear here</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {archivedGroups.map((group, gIdx) => (
+                <motion.div key={group.id} className="rounded-2xl p-5 flex flex-col relative overflow-hidden opacity-75"
+                  style={isDark
+                    ? { background: "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)", border: "1px solid rgba(255,255,255,0.06)" }
+                    : { background: "rgba(255,255,255,0.8)", border: "1px solid rgba(0,0,0,0.05)" }}
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 0.75, y: 0 }}
+                  transition={{ type: "spring", stiffness: 280, damping: 26, delay: gIdx * 0.05 }}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm text-white font-bold" style={{ background: "#6b7280" }}>
+                      {group.type === 'trip' ? '✈️' : group.name?.[0]?.toUpperCase() || "G"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-[15px] font-bold truncate" style={{ color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.6)" }}>{group.name}</h3>
+                      {group.endDate && <p className="text-[11px]" style={{ color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)" }}>Ended {new Date(group.endDate).toLocaleDateString()}</p>}
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: "rgba(107,114,128,0.15)", color: "#6b7280" }}>Archived</span>
+                  </div>
+                  <button onClick={() => navigate(`/expenses?group=${group.id}`)}
+                    className="w-full py-2 rounded-xl text-sm font-semibold transition"
+                    style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)", color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)" }}>
+                    View Expenses
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+          )
         ) : groups.length === 0 ? (
           <div
             className="rounded-2xl p-10 sm:p-14 flex flex-col items-center justify-center"
@@ -336,13 +461,15 @@ export default function Groups() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {groups.map((group, gIdx) => (
+            {sortedGroups.map((group, gIdx) => {
+              const tripStatus = getTripStatus(group);
+              return (
               <motion.div
                 key={group.id}
                 className="rounded-2xl p-5 flex flex-col premium-list-card card-grid-item relative overflow-hidden"
                 style={isDark
-                  ? { background: "linear-gradient(135deg, rgba(255,255,255,0.065) 0%, rgba(255,255,255,0.025) 100%)", border: "1px solid rgba(255,255,255,0.09)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }
-                  : { background: "rgba(255,255,255,0.9)", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}
+                  ? { background: "linear-gradient(135deg, rgba(255,255,255,0.065) 0%, rgba(255,255,255,0.025) 100%)", border: `1px solid ${group.type === 'trip' ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.09)'}`, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }
+                  : { background: "rgba(255,255,255,0.9)", border: `1px solid ${group.type === 'trip' ? 'rgba(59,130,246,0.15)' : 'rgba(0,0,0,0.07)'}`, boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}
                 initial={{ opacity: 0, y: 24, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ type: "spring", stiffness: 280, damping: 26, delay: gIdx * 0.07 }}
@@ -350,8 +477,24 @@ export default function Groups() {
                 {/* Subtle top-right glow */}
                 <div
                   className="absolute top-0 right-0 w-24 h-24 pointer-events-none rounded-2xl"
-                  style={{ background: `radial-gradient(circle at 100% 0%, ${theme.gradFrom}16 0%, transparent 60%)` }}
+                  style={{ background: `radial-gradient(circle at 100% 0%, ${group.type === 'trip' ? '#3b82f6' : theme.gradFrom}16 0%, transparent 60%)` }}
                 />
+
+                {/* Trip badge + dates */}
+                {tripStatus && (
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1"
+                      style={{ background: tripStatus.bg, color: tripStatus.color }}>
+                      ✈️ {tripStatus.label}
+                    </span>
+                    {group.startDate && group.endDate && (
+                      <span className="text-[10px] flex items-center gap-1" style={{ color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)" }}>
+                        <FiCalendar size={9} />
+                        {new Date(group.startDate).toLocaleDateString('en-IN', { day:'numeric', month:'short' })} – {new Date(group.endDate).toLocaleDateString('en-IN', { day:'numeric', month:'short' })}
+                      </span>
+                    )}
+                  </div>
+                )}
                 <div className="flex justify-between items-start mb-4 gap-3">
                   {/* Avatar with camera overlay */}
                   <div className="relative flex-shrink-0 self-start">
@@ -424,6 +567,21 @@ export default function Groups() {
                   </div>
                 </div>
 
+                {/* Trip budget bar */}
+                {group.type === 'trip' && group.budget > 0 && (
+                  <div className="mb-3 px-1">
+                    <div className="flex justify-between text-[11px] mb-1">
+                      <span style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)" }}>Trip Budget</span>
+                      <span className="font-bold" style={{ color: isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.6)" }}>
+                        {group.budgetCurrency || group.defaultCurrency || '₹'} {group.budget.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }}>
+                      <div className="h-full rounded-full transition-all" style={{ width: "0%", background: `linear-gradient(90deg, ${theme.gradFrom}, ${theme.gradTo})` }} />
+                    </div>
+                  </div>
+                )}
+
                 {/* Actions */}
                 <div className="mt-4 space-y-2">
                   {/* Primary action */}
@@ -463,13 +621,22 @@ export default function Groups() {
 
                   {/* Creator-only actions */}
                   {group.createdBy?.id === userId && (
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className={`grid ${group.type === 'trip' ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
                       <button
                         onClick={() => setShowAddMemberModal(group.id)}
                         className={`min-h-[38px] bg-white dark:bg-gray-700 border ${theme.border} ${theme.text} px-3 py-2 rounded-lg text-xs font-semibold ${theme.bgHover} active:scale-95 transition flex items-center justify-center gap-1.5`}
                       >
                         <FiUserPlus size={13} /> Add Member
                       </button>
+                      {group.type === 'trip' && (
+                        <button
+                          onClick={() => handleArchiveGroup(group)}
+                          className="min-h-[38px] px-3 py-2 rounded-lg text-amber-500 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 active:scale-95 transition text-xs font-medium flex items-center justify-center gap-1.5 border border-amber-100 dark:border-amber-900/30"
+                          title="Archive this trip"
+                        >
+                          <FiArchive size={13} /> Archive
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDeleteGroup(group)}
                         disabled={deletingGroup === group.id}
@@ -482,7 +649,8 @@ export default function Groups() {
                   )}
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -585,6 +753,23 @@ export default function Groups() {
             </div>
 
             <form onSubmit={handleCreateGroup}>
+              {/* Type selector: Regular vs Trip */}
+              <div className="mb-4 flex gap-2">
+                {["regular", "trip"].map(t => (
+                  <button key={t} type="button"
+                    onClick={() => setCreateForm({ ...createForm, type: t })}
+                    className="flex-1 py-2 rounded-xl text-sm font-bold transition"
+                    style={{
+                      background: createForm.type === t
+                        ? `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})`
+                        : isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)",
+                      color: createForm.type === t ? "#fff" : isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)",
+                    }}>
+                    {t === "regular" ? "Regular" : "✈️ Trip"}
+                  </button>
+                ))}
+              </div>
+
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Group Name *
@@ -596,7 +781,7 @@ export default function Groups() {
                     setCreateForm({ ...createForm, name: e.target.value })
                   }
                   className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="e.g., Roommates, Trip to Goa"
+                  placeholder={createForm.type === "trip" ? "e.g., Goa Trip 2026" : "e.g., Roommates, Office lunch"}
                   required
                 />
               </div>
@@ -615,8 +800,54 @@ export default function Groups() {
                   }
                   className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="Optional description"
-                  rows={3}
+                  rows={2}
                 />
+              </div>
+
+              {/* Trip-specific fields */}
+              {createForm.type === "trip" && (
+                <>
+                  <div className="mb-4 grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold mb-1" style={{ color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)" }}>Start Date *</label>
+                      <input type="date" required value={createForm.startDate}
+                        onChange={e => setCreateForm({ ...createForm, startDate: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg text-sm bg-white dark:bg-gray-700 border dark:border-gray-600 text-gray-900 dark:text-white" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold mb-1" style={{ color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)" }}>End Date *</label>
+                      <input type="date" required value={createForm.endDate}
+                        onChange={e => setCreateForm({ ...createForm, endDate: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg text-sm bg-white dark:bg-gray-700 border dark:border-gray-600 text-gray-900 dark:text-white" />
+                    </div>
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-xs font-semibold mb-1" style={{ color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)" }}>Trip Budget (optional)</label>
+                    <input type="number" min="0" placeholder="e.g., 50000"
+                      value={createForm.budget}
+                      onChange={e => setCreateForm({ ...createForm, budget: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg text-sm bg-white dark:bg-gray-700 border dark:border-gray-600 text-gray-900 dark:text-white" />
+                  </div>
+                </>
+              )}
+
+              {/* Currency selector */}
+              <div className="mb-4">
+                <label className="block text-xs font-semibold mb-1" style={{ color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)" }}>Default Currency</label>
+                <select value={createForm.defaultCurrency}
+                  onChange={e => setCreateForm({ ...createForm, defaultCurrency: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg text-sm bg-white dark:bg-gray-700 border dark:border-gray-600 text-gray-900 dark:text-white">
+                  <option value="INR">₹ INR</option>
+                  <option value="USD">$ USD</option>
+                  <option value="EUR">€ EUR</option>
+                  <option value="GBP">£ GBP</option>
+                  <option value="JPY">¥ JPY</option>
+                  <option value="AUD">A$ AUD</option>
+                  <option value="CAD">C$ CAD</option>
+                  <option value="SGD">S$ SGD</option>
+                  <option value="AED">د.إ AED</option>
+                  <option value="THB">฿ THB</option>
+                </select>
               </div>
 
               <div className="flex gap-3">

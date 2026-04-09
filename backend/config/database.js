@@ -1,9 +1,34 @@
 const mongoose = require('mongoose');
 
 mongoose.connection.on('connected',    () => console.log('✅ MongoDB connected'));
-mongoose.connection.on('disconnected', () => console.warn('⚠️  MongoDB disconnected — will auto-reconnect'));
 mongoose.connection.on('reconnected',  () => console.log('✅ MongoDB reconnected'));
 mongoose.connection.on('error',        (err) => console.error('❌ MongoDB error:', err.message));
+
+// Auto-reconnect on disconnect (Atlas maintenance, network blip, etc.)
+let reconnectTimer = null;
+mongoose.connection.on('disconnected', () => {
+  console.warn('⚠️  MongoDB disconnected — attempting reconnect...');
+  if (reconnectTimer) return; // already scheduled
+  let attempt = 0;
+  const tryReconnect = async () => {
+    attempt++;
+    try {
+      if (mongoose.connection.readyState === 0 && process.env.MONGODB_URI) {
+        await mongoose.connect(process.env.MONGODB_URI, {
+          serverSelectionTimeoutMS: 10000,
+          heartbeatFrequencyMS: 10000,
+          maxIdleTimeMS: 45000,
+        });
+      }
+      reconnectTimer = null;
+    } catch (err) {
+      console.error(`❌ Reconnect attempt ${attempt} failed: ${err.message}`);
+      const delay = Math.min(attempt * 3000, 30000); // 3s, 6s, 9s... max 30s
+      reconnectTimer = setTimeout(tryReconnect, delay);
+    }
+  };
+  reconnectTimer = setTimeout(tryReconnect, 3000);
+});
 
 /**
  * Tries to connect to MongoDB, retrying up to `maxRetries` times with

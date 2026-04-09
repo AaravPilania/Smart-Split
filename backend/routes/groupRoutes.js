@@ -10,7 +10,8 @@ const {
   getGroup,
   addMembers,
   deleteGroup,
-  updateGroupPfp
+  updateGroupPfp,
+  archiveGroup
 } = require('../controllers/groupController');
 
 router.post('/', auth, validate(createGroupSchema), createGroup);
@@ -18,6 +19,7 @@ router.get('/', auth, getGroups);
 router.get('/:id', auth, requireGroupMember, getGroup);
 router.post('/:id/members', auth, requireGroupMember, addMembers);
 router.patch('/:id/pfp', auth, requireGroupMember, updateGroupPfp);
+router.patch('/:id/archive', auth, requireGroupMember, archiveGroup);
 router.delete('/:id', auth, requireGroupMember, deleteGroup);
 
 module.exports = router;

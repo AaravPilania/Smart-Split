@@ -100,7 +100,7 @@ async function classifyExpenseCategory(title = '', ocrText = '') {
     ).trim().toLowerCase().replace(/[^a-z]/g, '');
 
     const result = VALID_CATEGORIES.includes(raw) ? raw : null;
-    if (result) setCache('category', hay.slice(0, 200), result);
+    if (result) setCache('category', hay.slice(0, 200), result).catch(() => {});
     return result;
   } catch {
     // Timeout, network error, or bad response — fall back gracefully
@@ -151,7 +151,8 @@ async function analyzeReceiptImage(imageBuffer, mimeType) {
     const match = raw.match(/\{[\s\S]*\}/);
     if (!match) return null;
 
-    const parsed = JSON.parse(match[0]);
+    let parsed;
+    try { parsed = JSON.parse(match[0]); } catch { return null; }
     const title = (parsed.title || '').trim();
     const amount = parseFloat(parsed.amount) || 0;
     const category = VALID_CATEGORIES.includes(parsed.category) ? parsed.category : 'other';
@@ -308,7 +309,7 @@ async function parseNaturalLanguageExpense(text, friends = []) {
       splitCount: parsed.splitCount ? parseInt(parsed.splitCount) : null,
       people: Array.isArray(parsed.people) ? parsed.people : [],
     };
-    setCache('parse', text.slice(0, 200), result);
+    setCache('parse', text.slice(0, 200), result).catch(() => {});
     return result;
   } catch {
     return localParseExpense(text);
@@ -361,7 +362,7 @@ async function generateAaruAdvice(text, context = {}) {
 
     const data = await res.json();
     const result = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim() || null;
-    if (result) setCache('advice', trimmedText, result);
+    if (result) setCache('advice', trimmedText, result).catch(() => {});
     return result;
   } catch {
     return null;

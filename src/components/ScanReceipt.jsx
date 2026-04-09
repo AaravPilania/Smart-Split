@@ -17,6 +17,7 @@ export default function ScanReceipt({
   const [mode, setMode] = useState(null); // 'camera', 'upload', or 'qrscan'
   const [image, setImage] = useState(null);
   const [imageUrl, setImageUrl] = useState(null);
+  const [fileQueue, setFileQueue] = useState([]); // queued files for multi-bill
   const [scanning, setScanning] = useState(false);
   const [extractedData, setExtractedData] = useState(null);
   const [aiScanSource, setAiScanSource] = useState(null); // null | 'gemini' | 'tesseract'
@@ -448,17 +449,29 @@ export default function ScanReceipt({
   // ─────────────────────────────────────────────────────────────────────────
 
   const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        alert("Please upload an image file");
-        return;
-      }
-      setImage(file);
-      const url = URL.createObjectURL(file);
-      setImageUrl(url);
-      setMode("upload");
-    }
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const images = files.filter(f => f.type.startsWith("image/"));
+    if (images.length === 0) { alert("Please upload image files"); return; }
+    const first = images[0];
+    setImage(first);
+    setImageUrl(URL.createObjectURL(first));
+    setMode("upload");
+    // Queue remaining files for "Next receipt" flow
+    if (images.length > 1) setFileQueue(images.slice(1));
+  };
+
+  const loadNextFromQueue = () => {
+    if (fileQueue.length === 0) return;
+    const next = fileQueue[0];
+    setFileQueue(prev => prev.slice(1));
+    setImage(next);
+    setImageUrl(URL.createObjectURL(next));
+    setMode("upload");
+    setExtractedData(null);
+    setAiScanSource(null);
+    setScanning(false);
+    setFormData({ title: "", amount: "", category: "", groupId: selectedGroupId || "" });
   };
 
   const extractExpenseData = (text) => {
@@ -752,7 +765,11 @@ export default function ScanReceipt({
 
       alert("Expense created successfully from receipt!");
       if (onExpenseCreated) onExpenseCreated();
-      onClose();
+      if (fileQueue.length > 0) {
+        loadNextFromQueue();
+      } else {
+        onClose();
+      }
     } catch (error) {
       alert(error.message || "Failed to create expense");
     }
@@ -1216,6 +1233,7 @@ export default function ScanReceipt({
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={handleFileUpload}
                   className="hidden"
                 />

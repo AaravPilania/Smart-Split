@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema({
   username: { type: String, unique: true, sparse: true, trim: true, lowercase: true },
   pfp: { type: String, default: '' },
   upiId: { type: String, default: '' },
+  monthlyBudget: { type: Number, default: 0 }, // 0 = no budget set
   refreshTokenHash: { type: String, select: false, default: null },
   refreshTokenExpiry: { type: Date, default: null },
 }, { timestamps: true });
@@ -128,6 +129,7 @@ module.exports = {
     if (updates.username !== undefined) setFields.username = updates.username.toLowerCase().trim();
     if (updates.pfp !== undefined) setFields.pfp = updates.pfp;
     if (updates.upiId !== undefined) setFields.upiId = updates.upiId.trim();
+    if (updates.monthlyBudget !== undefined) setFields.monthlyBudget = Math.max(0, Number(updates.monthlyBudget) || 0);
     if (updates.googleId !== undefined) setFields.googleId = updates.googleId;
     if (updates.refreshTokenHash !== undefined) setFields.refreshTokenHash = updates.refreshTokenHash;
     if (updates.refreshTokenExpiry !== undefined) setFields.refreshTokenExpiry = updates.refreshTokenExpiry;

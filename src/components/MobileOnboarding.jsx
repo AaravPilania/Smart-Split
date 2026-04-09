@@ -101,6 +101,8 @@ export default function MobileOnboarding({ onGetStarted, onGoogleSignIn }) {
               borderRadius: "50%",
               background: `radial-gradient(circle, ${theme.glow1.c} 0%, transparent 68%)`,
               filter: "blur(48px)",
+              willChange: "transform",
+              transform: "translateZ(0)",
               animation: theme.glow1.an,
             }}
           />
@@ -114,6 +116,8 @@ export default function MobileOnboarding({ onGetStarted, onGoogleSignIn }) {
               borderRadius: "50%",
               background: `radial-gradient(circle, ${theme.glow2.c} 0%, transparent 68%)`,
               filter: "blur(40px)",
+              willChange: "transform",
+              transform: "translateZ(0)",
               animation: theme.glow2.an,
             }}
           />

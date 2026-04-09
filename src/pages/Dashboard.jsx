@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, animate as fmAnimate, useInView } from "framer-motion";
 import Navbar from "../components/Navbar";
@@ -134,6 +134,11 @@ export default function Dashboard() {
     if (!userData || !userId) { navigate("/"); return; }
     setUser(userData);
     fetchDashboardData(userId);
+    // Fetch fresh profile for monthlyBudget
+    apiFetch(`${API_URL}/auth/profile/${userId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.user) setUser(prev => ({ ...prev, monthlyBudget: d.user.monthlyBudget || 0 })); })
+      .catch(() => {});
     // Fetch goals for desktop sidebar
     if (isDesktop) {
       apiFetch(`${API_URL}/goals`)
@@ -377,6 +382,9 @@ export default function Dashboard() {
     const [hoveredIdx, setHoveredIdx] = useState(null);
     const containerRef = useRef(null);
     const [dims, setDims] = useState({ w: 600, h: 240 });
+    const chartInView = useInView(containerRef, { once: true, margin: "-40px" });
+    const lineRef = useRef(null);
+    const [pathLen, setPathLen] = useState(0);
 
     useEffect(() => {
       const el = containerRef.current;
@@ -388,6 +396,11 @@ export default function Dashboard() {
       ro.observe(el);
       return () => ro.disconnect();
     }, []);
+
+    /* Measure SVG path length for line-draw animation */
+    useEffect(() => {
+      if (lineRef.current) setPathLen(lineRef.current.getTotalLength());
+    });
 
     if (!monthlyData.some((m) => m.amount > 0)) return null;
 
@@ -464,23 +477,33 @@ export default function Dashboard() {
             </defs>
 
             {/* Gradient fill under curve */}
-            <path d={fillPath} fill="url(#cfFill)" />
+            <path d={fillPath} fill="url(#cfFill)"
+              style={{ opacity: chartInView ? 1 : 0, transition: "opacity 0.8s ease 0.4s" }} />
 
             {/* Outer glow layer */}
             <path d={linePath} fill="none"
               stroke={`${theme.gradFrom}70`}
-              strokeWidth="6" strokeLinecap="round" opacity="0.5" />
+              strokeWidth="6" strokeLinecap="round" opacity={chartInView ? 0.5 : 0}
+              strokeDasharray={pathLen || 2000}
+              strokeDashoffset={chartInView ? 0 : (pathLen || 2000)}
+              style={{ transition: "stroke-dashoffset 1.2s ease-out, opacity 0.3s ease" }} />
 
-            {/* Main glowing line */}
-            <path d={linePath} fill="none"
+            {/* Main glowing line — line-draw animation */}
+            <path ref={lineRef} d={linePath} fill="none"
               stroke={theme.gradFrom}
               strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-              filter="url(#cfGlow)" />
+              filter="url(#cfGlow)"
+              strokeDasharray={pathLen || 2000}
+              strokeDashoffset={chartInView ? 0 : (pathLen || 2000)}
+              style={{ transition: "stroke-dashoffset 1.2s ease-out" }} />
 
             {/* Bright core — mix toward gradTo */}
             <path d={linePath} fill="none"
               stroke={theme.gradTo}
-              strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" opacity="0.55" />
+              strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" opacity="0.55"
+              strokeDasharray={pathLen || 2000}
+              strokeDashoffset={chartInView ? 0 : (pathLen || 2000)}
+              style={{ transition: "stroke-dashoffset 1.2s ease-out" }} />
 
             {/* Data point dots */}
             {pts.map((p, i) => {
@@ -490,7 +513,14 @@ export default function Dashboard() {
                 <circle key={i} cx={p.x} cy={p.y}
                   r={cur || hov ? 5 : 3}
                   fill={cur ? "#fff" : theme.gradFrom}
-                  stroke={cur ? theme.gradFrom : "none"} strokeWidth={cur ? 2.5 : 0} />
+                  stroke={cur ? theme.gradFrom : "none"} strokeWidth={cur ? 2.5 : 0}
+                  style={{
+                    opacity: chartInView ? 1 : 0,
+                    transform: chartInView ? "scale(1)" : "scale(0)",
+                    transformOrigin: `${p.x}px ${p.y}px`,
+                    transformBox: "fill-box",
+                    transition: `opacity 0.3s ease ${0.8 + i * 0.08}s, transform 0.3s ease ${0.8 + i * 0.08}s`,
+                  }} />
               );
             })}
 
@@ -979,7 +1009,7 @@ export default function Dashboard() {
     );
   }
 
-  // ΓöÇΓöÇ MOBILE RENDER (unchanged) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  // ── MOBILE RENDER (unchanged) ────────────────────────────────────────
   return (
     <div
       className="min-h-screen"
@@ -988,10 +1018,10 @@ export default function Dashboard() {
       <Navbar />
       <div className="h-16" />
 
-      {/* ΓöÇΓöÇ Scrollable content ΓÇö pb accounts for bottom nav ΓöÇΓöÇ */}
+      {/* ── Scrollable content — pb accounts for bottom nav ── */}
       <div className="max-w-lg mx-auto px-4 pt-5 pb-28">
 
-        {/* ΓöÇΓöÇ Greeting ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+        {/* ── Greeting ──────────────────────────────────────── */}
         <div className="mb-5 flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold tracking-[0.18em] text-gray-400 dark:text-gray-500 uppercase mb-1">
@@ -1019,24 +1049,24 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* ΓöÇΓöÇ Error state ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+        {/* ── Error state ────────────────────────────────────── */}
         {fetchError && (
           <div
             className="rounded-2xl p-5 mb-5 text-center"
             style={glass}
           >
-            <div className="text-3xl mb-2">ΓÜá∩╕Å</div>
+            <div className="text-3xl mb-2">⚡</div>
             <p className="font-bold text-gray-800 dark:text-white mb-1">
               Server Unreachable
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-              Your data is safe ΓÇö the server is warming up. Usually resolves in
-              30ΓÇô60 seconds.
+              Your data is safe — the server is warming up. Usually resolves in
+              30–60 seconds.
             </p>
             {retryIn !== null && (
               <p className="text-xs text-gray-400 mb-3">
                 Auto-retrying in{" "}
-                <span className="font-semibold">{retryIn}s</span>ΓÇª
+                <span className="font-semibold">{retryIn}s</span>…
               </p>
             )}
             <button
@@ -1052,7 +1082,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ΓöÇΓöÇ Loading skeleton ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+        {/* ── Loading skeleton ────────────────────────────────── */}
         {loading && !fetchError && (
           <div className="space-y-4">
             {[120, 80, 200, 160].map((h, i) => (
@@ -1067,7 +1097,36 @@ export default function Dashboard() {
 
         {!loading && !fetchError && (
           <>
-            {/* ΓöÇΓöÇ Hero Financial Overview card ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+            {/* ── Active Trip Banner ──────────────────────────── */}
+            {(() => {
+              const now = new Date();
+              const activeTrips = groups.filter(g => g.type === 'trip' && !g.archived && g.endDate && new Date(g.endDate) > now);
+              if (!activeTrips.length) return null;
+              return activeTrips.map(trip => {
+                const end = new Date(trip.endDate);
+                const daysLeft = Math.ceil((end - now) / 86400000);
+                return (
+                  <div key={trip._id || trip.id} className="rounded-2xl p-4 mb-4 flex items-center gap-3 cursor-pointer"
+                    style={{ background: isDark ? "rgba(59,130,246,0.1)" : "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.2)" }}
+                    onClick={() => navigate(`/expenses?group=${trip._id || trip.id}`)}>
+                    <span className="text-2xl">✈️</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold truncate" style={{ color: isDark ? "#fff" : "#111" }}>{trip.name}</p>
+                      <p className="text-[11px]" style={{ color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)" }}>
+                        {daysLeft > 0 ? `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left` : 'Ending today'}
+                        {trip.budget ? ` · Budget: ₹${trip.budget.toLocaleString()}` : ''}
+                      </p>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full text-[11px] font-bold"
+                      style={{ background: daysLeft <= 2 ? "rgba(245,158,11,0.15)" : "rgba(34,197,94,0.15)", color: daysLeft <= 2 ? "#f59e0b" : "#22c55e" }}>
+                      {daysLeft <= 2 ? "Ending Soon" : "Active"}
+                    </span>
+                  </div>
+                );
+              });
+            })()}
+
+            {/* ── Hero Financial Overview card ─────────────────── */}
             <div className="rounded-3xl p-5 mb-4" style={glass}>
               <p className="text-[10px] font-bold tracking-[0.15em] text-gray-400 dark:text-gray-500 uppercase mb-4">
                 Financial Overview
@@ -1097,10 +1156,40 @@ export default function Dashboard() {
                     {formatCurrency(stats.youOwe)}
                   </p>
                   <p className="text-[11px] text-green-500 mt-0.5">
-                    Γåæ {formatCurrency(stats.owedToYou)} owed to you
+                    ↗ {formatCurrency(stats.owedToYou)} owed to you
                   </p>
                 </div>
               </div>
+              {/* Budget progress bar */}
+              {user?.monthlyBudget > 0 && (
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-xs text-gray-400 dark:text-gray-500">Monthly Budget</p>
+                    <p className="text-xs font-bold" style={{ color: stats.totalExpenses > user.monthlyBudget ? "#ef4444" : theme.gradFrom }}>
+                      {formatCurrency(stats.totalExpenses)} / {formatCurrency(user.monthlyBudget)}
+                    </p>
+                  </div>
+                  <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }}>
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{
+                        width: `${Math.min(100, (stats.totalExpenses / user.monthlyBudget) * 100)}%`,
+                        background: stats.totalExpenses > user.monthlyBudget
+                          ? "#ef4444"
+                          : stats.totalExpenses > user.monthlyBudget * 0.8
+                            ? "#f59e0b"
+                            : `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})`,
+                      }}
+                    />
+                  </div>
+                  {stats.totalExpenses > user.monthlyBudget * 0.8 && stats.totalExpenses <= user.monthlyBudget && (
+                    <p className="text-[10px] text-amber-500 mt-1 font-semibold">Approaching budget limit</p>
+                  )}
+                  {stats.totalExpenses > user.monthlyBudget && (
+                    <p className="text-[10px] text-red-500 mt-1 font-semibold">Over budget by {formatCurrency(stats.totalExpenses - user.monthlyBudget)}</p>
+                  )}
+                </div>
+              )}
               <button
                 onClick={() => navigate("/balances")}
                 data-guide="settle"
@@ -1111,7 +1200,7 @@ export default function Dashboard() {
               </button>
             </div>
 
-            {/* ΓöÇΓöÇ Insights shortcut ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+            {/* ── Insights shortcut ───────────────────────────── */}
             <button
               onClick={() => { fetchInsightsData(); setShowInsights(true); }}
               className="w-full flex items-center justify-between px-5 py-3 rounded-2xl mb-4 transition active:scale-[0.98]"
@@ -1130,7 +1219,7 @@ export default function Dashboard() {
               </div>
             </button>
 
-            {/* ΓöÇΓöÇ Recent Activity ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+            {/* ── Recent Activity ──────────────────────────────── */}
             <div className="rounded-3xl p-5 mb-4" style={glass}>
               <div className="flex items-center justify-between mb-4">
                 <p className="font-bold text-gray-800 dark:text-white text-sm">
@@ -1147,9 +1236,9 @@ export default function Dashboard() {
 
               {recentExpenses.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-4xl mb-2">≡ƒº╛</p>
+                  <p className="text-4xl mb-2">📋</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    No expenses yet ΓÇö add your first one!
+                    No expenses yet — add your first one!
                   </p>
                 </div>
               ) : (
@@ -1219,7 +1308,7 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* ΓöÇΓöÇ Outstanding Balances ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+            {/* ── Outstanding Balances ─────────────────────────── */}
             {settlements.length > 0 && (
               <div className="rounded-3xl p-5" style={glass}>
                 <div className="flex items-center justify-between mb-4">
@@ -1290,7 +1379,7 @@ export default function Dashboard() {
 
       <BottomNav />
 
-      {/* ΓöÇΓöÇ Spending Insights Full-Screen Modal ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */}
+      {/* ── Spending Insights Full-Screen Modal ─────────────── */}
       <AnimatePresence>
         {showInsights && (
           <>
@@ -1326,7 +1415,7 @@ export default function Dashboard() {
               {/* Header */}
               <div className="flex items-center justify-between px-5 pt-2 pb-3">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-sm" style={getGradientStyle(theme)}>Γ£ª</span>
+                  <span className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-sm" style={getGradientStyle(theme)}>✨</span>
                   <h2 className="text-[17px] font-black" style={{ color: isDark ? "#ffffff" : "#0f0f1a" }}>Spending Insights</h2>
                 </div>
                 <button
@@ -1349,7 +1438,7 @@ export default function Dashboard() {
                   </div>
                 ) : categoryData.length === 0 ? (
                   <div className="text-center py-16">
-                    <p className="text-4xl mb-3">≡ƒÆ╕</p>
+                    <p className="text-4xl mb-3">💸</p>
                     <p className="font-semibold" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)" }}>
                       No expense data yet
                     </p>
@@ -1375,7 +1464,7 @@ export default function Dashboard() {
                               background: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
                               border: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.06)",
                             }}>
-                            <span className="text-2xl flex-shrink-0 w-9 text-center">{cat.icon || "≡ƒÆ░"}</span>
+                            <span className="text-2xl flex-shrink-0 w-9 text-center">{cat.icon || "💰"}</span>
                             <div className="flex-1 min-w-0">
                               <div className="flex justify-between items-center mb-1.5">
                                 <p className="text-sm font-bold truncate"
@@ -1406,7 +1495,7 @@ export default function Dashboard() {
                       })}
                     </div>
 
-                    {/* Monthly trend ΓÇö smooth wave chart */}
+                    {/* Monthly trend — smooth wave chart */}
                     {monthlyData.some((m) => m.amount > 0) && (
                       <>
                         <p className="text-[10px] font-bold uppercase tracking-[0.17em] mb-3"
@@ -1428,14 +1517,14 @@ export default function Dashboard() {
                             d += ` C${pts[i].x + cp},${pts[i].y} ${pts[i + 1].x - cp},${pts[i + 1].y} ${pts[i + 1].x},${pts[i + 1].y}`;
                           }
                           const fillD = `${d} L${pts[pts.length - 1].x},${H} L${pts[0].x},${H} Z`;
-                          return (
-                            <div className="rounded-2xl mb-5 overflow-hidden"
-                              style={{
-                                background: isDark
-                                  ? "linear-gradient(135deg, #0c1929, #0f2744, #0c1929)"
-                                  : "linear-gradient(135deg, #e0f2fe, #bae6fd, #e0f2fe)",
-                              }}>
-                              <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ display: "block", height: 160 }}>
+                          const MobileTrendSvg = () => {
+                            const svgRef = useRef(null);
+                            const trendLineRef = useRef(null);
+                            const trendInView = useInView(svgRef, { once: true, margin: "-20px" });
+                            const [tLen, setTLen] = useState(0);
+                            useEffect(() => { if (trendLineRef.current) setTLen(trendLineRef.current.getTotalLength()); });
+                            return (
+                              <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ display: "block", height: 160 }}>
                                 <defs>
                                   <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stopColor={isDark ? "rgba(59,130,246,0.35)" : "rgba(59,130,246,0.25)"} />
@@ -1447,14 +1536,19 @@ export default function Dashboard() {
                                   </filter>
                                 </defs>
                                 {/* Gradient fill under curve */}
-                                <path d={fillD} fill="url(#trendFill)" />
-                                {/* Glowing curve */}
-                                <path d={d} fill="none" stroke={isDark ? "#60a5fa" : "#3b82f6"} strokeWidth="2.5" strokeLinecap="round" filter="url(#trendGlow)" />
+                                <path d={fillD} fill="url(#trendFill)"
+                                  style={{ opacity: trendInView ? 1 : 0, transition: "opacity 0.8s ease 0.4s" }} />
+                                {/* Glowing curve — line-draw animation */}
+                                <path ref={trendLineRef} d={d} fill="none" stroke={isDark ? "#60a5fa" : "#3b82f6"} strokeWidth="2.5" strokeLinecap="round" filter="url(#trendGlow)"
+                                  strokeDasharray={tLen || 1000}
+                                  strokeDashoffset={trendInView ? 0 : (tLen || 1000)}
+                                  style={{ transition: "stroke-dashoffset 1s ease-out" }} />
                                 {/* Dots on data points */}
                                 {pts.map((p, i) => (
                                   <circle key={i} cx={p.x} cy={p.y} r={monthlyData[i].isCurrent ? 4 : 2.5}
                                     fill={monthlyData[i].isCurrent ? "#fff" : isDark ? "#60a5fa" : "#3b82f6"}
-                                    stroke={monthlyData[i].isCurrent ? "#3b82f6" : "none"} strokeWidth={monthlyData[i].isCurrent ? 2 : 0} />
+                                    stroke={monthlyData[i].isCurrent ? "#3b82f6" : "none"} strokeWidth={monthlyData[i].isCurrent ? 2 : 0}
+                                    style={{ opacity: trendInView ? 1 : 0, transition: `opacity 0.3s ease ${0.6 + i * 0.08}s` }} />
                                 ))}
                                 {/* Month labels */}
                                 {monthlyData.map((m, i) => (
@@ -1463,6 +1557,16 @@ export default function Dashboard() {
                                     fontSize="9" fontWeight="600">{m.label}</text>
                                 ))}
                               </svg>
+                            );
+                          };
+                          return (
+                            <div className="rounded-2xl mb-5 overflow-hidden"
+                              style={{
+                                background: isDark
+                                  ? "linear-gradient(135deg, #0c1929, #0f2744, #0c1929)"
+                                  : "linear-gradient(135deg, #e0f2fe, #bae6fd, #e0f2fe)",
+                              }}>
+                              <MobileTrendSvg />
                             </div>
                           );
                         })()}

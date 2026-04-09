@@ -40,6 +40,7 @@ export default function Expenses() {
     paidBy: null,
     splits: [],
     category: "other",
+    currency: "INR",
   });
   const [splitMode, setSplitMode] = useState("equal"); // "equal" | "percentage" | "exact"
 
@@ -269,6 +270,7 @@ export default function Expenses() {
             paidBy: createForm.paidBy,
             splitBetween: splitBetween,
             category: createForm.category || "other",
+            currency: createForm.currency || "INR",
           }),
         }
       );
@@ -282,6 +284,7 @@ export default function Expenses() {
         paidBy: userId,
         splits: [],
         category: "other",
+        currency: "INR",
       });
       setShowCreateModal(false);
       invalidateCache(`expenses_${selectedGroupId}`, `balance_summary_${selectedGroupId}`, 'dashboard_summary');
@@ -509,6 +512,11 @@ export default function Expenses() {
                     <p className="text-xl font-bold text-gray-900 dark:text-white">
                       {formatCurrency(parseFloat(expense.amount || 0))}
                     </p>
+                    {expense.currency && expense.currency !== 'INR' && expense.originalAmount && (
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500">
+                        Originally {expense.currency} {parseFloat(expense.originalAmount).toFixed(2)}
+                      </p>
+                    )}
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       Paid by {expense.paidBy?.name || "Unknown"}
                     </p>
@@ -629,11 +637,21 @@ export default function Expenses() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Total Amount *
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={createForm.amount}
-                  onChange={(e) => {
+                <div className="flex gap-2">
+                  <select
+                    value={createForm.currency}
+                    onChange={(e) => setCreateForm({ ...createForm, currency: e.target.value })}
+                    className="w-20 px-2 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
+                  >
+                    {["INR","USD","EUR","GBP","JPY","AUD","CAD","SGD","AED","THB","MYR","IDR","PHP","KRW","CNY","CHF","SEK","NZD","ZAR","BRL"].map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={createForm.amount}
+                    onChange={(e) => {
                     const newAmt = e.target.value;
                     const group = getSelectedGroup();
                     let newSplits = createForm.splits;
@@ -648,10 +666,16 @@ export default function Expenses() {
                     }
                     setCreateForm({ ...createForm, amount: newAmt, splits: newSplits });
                   }}
-                  className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  className="flex-1 px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
                   placeholder="0.00"
                   required
                 />
+                </div>
+                {createForm.currency !== "INR" && createForm.amount && (
+                  <p className="text-[11px] mt-1" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)" }}>
+                    Will be auto-converted to group currency (INR) at current exchange rate
+                  </p>
+                )}
               </div>
 
               <div className="mb-4">

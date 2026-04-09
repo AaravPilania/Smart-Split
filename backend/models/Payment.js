@@ -5,7 +5,8 @@ const paymentSchema = new mongoose.Schema({
   from:   { type: mongoose.Schema.Types.ObjectId, ref: 'User',  required: true },
   to:     { type: mongoose.Schema.Types.ObjectId, ref: 'User',  required: true },
   amount: { type: Number, required: true },
-  note:   { type: String, default: '' }
+  note:   { type: String, default: '' },
+  proofImage: { type: String },
 }, { timestamps: true });
 
 paymentSchema.index({ group: 1 });
@@ -27,8 +28,10 @@ function doc2obj(doc) {
 }
 
 module.exports = {
-  async create(groupId, fromId, toId, amount, note = '') {
-    const payment = await PaymentModel.create({ group: groupId, from: fromId, to: toId, amount, note });
+  async create(groupId, fromId, toId, amount, note = '', proofImage = null) {
+    const doc = { group: groupId, from: fromId, to: toId, amount, note };
+    if (proofImage) doc.proofImage = proofImage;
+    const payment = await PaymentModel.create(doc);
     return doc2obj(await PaymentModel.findById(payment._id).populate(POPULATE_PAYMENT));
   },
 

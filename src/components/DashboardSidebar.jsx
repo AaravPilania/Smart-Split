@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   FiHome, FiUsers, FiBarChart2, FiHeart,
   FiSun, FiMoon, FiBell, FiX, FiCamera, FiLogOut,
+  FiMail, FiHeart as FiSupportHeart,
 } from "react-icons/fi";
 import { useTheme, getGradientStyle, toggleDarkMode } from "../utils/theme";
 import { API_URL, apiFetch, clearAuth, getUserId, getUser } from "../utils/api";
@@ -298,6 +299,16 @@ export default function DashboardSidebar({ goals = [], onGoalsNeeded }) {
               </div>
             )}
           </button>
+
+          {/* Feedback */}
+          <a
+            href="mailto:puutinnn@proton.me?subject=Smart Split Feedback"
+            title="Send Feedback"
+            className="h-8 w-8 rounded-lg flex items-center justify-center transition-all hover:scale-110"
+            style={{ background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)", color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.38)" }}
+          >
+            <FiMail size={14} />
+          </a>
 
           {/* Logout */}
           <button

@@ -6,10 +6,20 @@ const groupSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   admins: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  pfp: { type: String, default: '' }
+  pfp: { type: String, default: '' },
+  // Trip group fields
+  type: { type: String, enum: ['regular', 'trip'], default: 'regular' },
+  startDate: { type: Date },
+  endDate: { type: Date },
+  archived: { type: Boolean, default: false },
+  budget: { type: Number, default: 0 },
+  budgetCurrency: { type: String, default: 'INR' },
+  // Multi-currency
+  defaultCurrency: { type: String, default: 'INR' },
 }, { timestamps: true });
 
 groupSchema.index({ members: 1 });
+groupSchema.index({ archived: 1, endDate: 1 });
 
 const GroupModel = mongoose.model('Group', groupSchema);
 
@@ -96,5 +106,31 @@ module.exports = {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
     await GroupModel.findByIdAndUpdate(id, { $set: { pfp } });
     return this.findByIdPopulated(id);
-  }
+  },
+
+  async archiveGroup(id) {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    await GroupModel.findByIdAndUpdate(id, { $set: { archived: true } });
+    return this.findByIdPopulated(id);
+  },
+
+  async findArchivedByUser(userId) {
+    if (!mongoose.Types.ObjectId.isValid(userId)) return [];
+    const groups = await GroupModel.find({ members: userId, archived: true }).populate(POPULATE_GROUP).sort({ endDate: -1 });
+    return groups.map(doc2obj);
+  },
+
+  async findExpiredTrips() {
+    return GroupModel.find({
+      type: 'trip',
+      archived: false,
+      endDate: { $lt: new Date() },
+    }).populate(POPULATE_GROUP);
+  },
+
+  async findActiveByUser(userId) {
+    if (!mongoose.Types.ObjectId.isValid(userId)) return [];
+    const groups = await GroupModel.find({ members: userId, archived: { $ne: true } }).populate(POPULATE_GROUP).sort({ createdAt: -1 });
+    return groups.map(doc2obj);
+  },
 };

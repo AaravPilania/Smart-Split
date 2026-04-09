@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FiMail, FiLock, FiUser, FiEye, FiEyeOff, FiArrowRight, FiZap, FiCheck } from "react-icons/fi";
 import PhoneMockup from "../components/PhoneMockup";
@@ -17,6 +17,14 @@ const TopoBackground = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
+    /* Defer heavy canvas work until after first paint so React + Framer
+       can render the intro without competing for the main thread */
+    let cancelled = false;
+    const startDeferred = () => { if (!cancelled) initCanvas(canvas, ctx); };
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(startDeferred, { timeout: 200 });
+    else setTimeout(startDeferred, 80);
+    let cleanup = () => {};
+    function initCanvas(canvas, ctx) {
     let raf;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const hills = [
@@ -85,7 +93,9 @@ const TopoBackground = () => {
       raf=requestAnimationFrame(tick);
     };
     raf=requestAnimationFrame(tick);
-    return()=>{cancelAnimationFrame(raf);window.removeEventListener("resize",resize);};
+    cleanup=()=>{cancelAnimationFrame(raf);window.removeEventListener("resize",resize);};
+    } /* end initCanvas */
+    return()=>{cancelled=true;cleanup();};
   },[]);
   return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" style={{willChange:"transform",transform:"translateZ(0)"}} />;
 };
@@ -737,7 +747,7 @@ const PainCard = ({ icon, title, desc, accent="#ec4899", delay=0, gif=null }) =>
     <div className="text-xs text-white/40 leading-relaxed">{desc}</div>
     {gif && (
       <div className="mt-auto overflow-hidden rounded-2xl">
-        <img src={gif} alt="" className="w-full rounded-2xl" style={{height:180,objectFit:"cover",display:"block"}} />
+        <img src={gif} alt="" loading="lazy" className="w-full rounded-2xl" style={{height:180,objectFit:"cover",display:"block"}} />
       </div>
     )}
   </motion.div>
@@ -979,7 +989,7 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
   const scrollRef = useRef(null);
   const sectionRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
 
-  useEffect(() => { const id = requestAnimationFrame(() => setVisible(true)); return () => cancelAnimationFrame(id); }, []);
+  useLayoutEffect(() => { setVisible(true); }, []);
 
   /* Track active section via IntersectionObserver */
   useEffect(() => {
@@ -1009,12 +1019,15 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
         scrollRef.current.style.overflowY = 'auto';
         scrollRef.current.style.scrollSnapType = 'none'; // no snap yet
         slide3LockedRef.current = false;
-        // Re-enable snap only after a short delay so momentum can't carry to slide 4
+        // Re-enable snap after a longer delay to fully absorb residual momentum
         setTimeout(() => {
           if (scrollRef.current) {
+            // Pin to section 3 top again right before re-enabling snap
+            const s3topNow = sectionRefs[2].current?.offsetTop ?? 0;
+            scrollRef.current.scrollTo({ top: s3topNow, behavior: 'instant' });
             scrollRef.current.style.scrollSnapType = 'y mandatory';
           }
-        }, 350);
+        }, 600);
       }
       /* Start auto-animation after a short pause so it feels deliberate */
       setTimeout(() => {
@@ -1048,6 +1061,7 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
       ([entry]) => {
         if (entry.isIntersecting && !slide3UnlockedRef.current) {
           setTimeout(() => {
+            // Only lock if still on section 2/3 AND not already unlocked
             if (activeSectionRef.current === 2 && !slide3UnlockedRef.current) {
               slide3LockedRef.current = true;
               container.style.overflowY = 'hidden';
@@ -1059,7 +1073,24 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
       { root: container, threshold: 0.85 }
     );
     if (sectionRefs[2].current) lockObs.observe(sectionRefs[2].current);
-    return () => lockObs.disconnect();
+
+    /* Prevent slide 4 jump-back: once slide 4 comes into view, lock briefly to
+       let scroll-snap settle without fighting section 3 re-lock logic */
+    let slide4TransitionLock = false;
+    const slide4Obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !slide4TransitionLock) {
+          slide4TransitionLock = true;
+          // Temporarily prevent section 3 from re-locking
+          slide3UnlockedRef.current = true;
+          setTimeout(() => { slide4TransitionLock = false; }, 600);
+        }
+      },
+      { root: container, threshold: 0.3 }
+    );
+    if (sectionRefs[3].current) slide4Obs.observe(sectionRefs[3].current);
+
+    return () => { lockObs.disconnect(); slide4Obs.disconnect(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1068,18 +1099,18 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
     if (slide3Unlocked) return;
     const container = scrollRef.current;
     if (!container) return;
-    let acc = 0;
+    let cooldown = false;
+    const COOLDOWN_MS = 650; // must exceed card swap animation duration
     const onWheel = (e) => {
       if (!slide3LockedRef.current || slide3UnlockedRef.current) return;
       e.preventDefault();
       e.stopPropagation();
+      if (cooldown) return; // ignore ALL scroll during cooldown
       if (e.deltaY > 0) {
-        acc += e.deltaY;
-        if (acc >= 80) {
-          acc = 0;
-          if (cardSwapRef.current && !cardSwapRef.current.isAnimating()) {
-            cardSwapRef.current.swapNext();
-          }
+        if (cardSwapRef.current && !cardSwapRef.current.isAnimating()) {
+          cooldown = true;
+          cardSwapRef.current.swapNext();
+          setTimeout(() => { cooldown = false; }, COOLDOWN_MS);
         }
       }
     };
@@ -1144,8 +1175,8 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
         <section ref={sectionRefs[0]} className="intro-section flex flex-col items-center px-8" style={{paddingTop:"14vh",paddingBottom:"2vh"}}>
           {/* Glow orbs */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div style={{position:"absolute",top:"15%",left:"20%",width:400,height:400,borderRadius:"50%",background:"radial-gradient(circle,rgba(236,72,153,0.10) 0%,transparent 70%)",filter:"blur(60px)"}}/>
-            <div style={{position:"absolute",bottom:"20%",right:"15%",width:360,height:360,borderRadius:"50%",background:"radial-gradient(circle,rgba(168,85,247,0.10) 0%,transparent 70%)",filter:"blur(60px)"}}/>
+            <div style={{position:"absolute",top:"15%",left:"20%",width:400,height:400,borderRadius:"50%",background:"radial-gradient(circle,rgba(236,72,153,0.10) 0%,transparent 70%)",filter:"blur(36px)"}}/>
+            <div style={{position:"absolute",bottom:"20%",right:"15%",width:360,height:360,borderRadius:"50%",background:"radial-gradient(circle,rgba(168,85,247,0.10) 0%,transparent 70%)",filter:"blur(36px)"}}/>
           </div>
 
           {/* Text + CTA */}
@@ -1223,7 +1254,7 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
         ══════════════════════════════════ */}
         <section ref={sectionRefs[1]} className="intro-section flex flex-col px-12 relative overflow-hidden" style={{paddingTop:"13vh"}}>
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div style={{position:"absolute",top:"30%",left:"-5%",width:500,height:500,borderRadius:"50%",background:"radial-gradient(circle,rgba(239,68,68,0.05) 0%,transparent 70%)",filter:"blur(70px)"}}/>
+            <div style={{position:"absolute",top:"30%",left:"-5%",width:500,height:500,borderRadius:"50%",background:"radial-gradient(circle,rgba(239,68,68,0.05) 0%,transparent 70%)",filter:"blur(36px)"}}/>
           </div>
 
           <motion.div className="max-w-5xl w-full relative z-10 mx-auto flex-1 flex flex-col"
@@ -1231,7 +1262,7 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
             <motion.div className="text-center mb-10"
               initial={{opacity:0,y:16}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{type:"spring",stiffness:300,damping:26}}>
               <h2 className="text-[2.8rem] xl:text-[3.4rem] font-black text-white leading-tight">
-                <DecryptedText text="Sound familiar?" animateOn="view" speed={80} maxIterations={20} sequential revealDirection="center" className="" encryptedClassName="text-white/20" />
+                <DecryptedText text="Sound familiar?" animateOn="view" speed={45} maxIterations={8} sequential revealDirection="center" className="" encryptedClassName="text-white/20" />
               </h2>
               <p className="mt-3 text-white/35 text-sm max-w-md mx-auto leading-relaxed">
                 Every group has this problem. Nobody fixes it. We did.
@@ -1271,8 +1302,8 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
         <section ref={sectionRefs[2]} className="intro-section flex items-center px-12 relative overflow-hidden">
           {/* Glow orbs */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div style={{position:"absolute",top:"20%",right:"-5%",width:480,height:480,borderRadius:"50%",background:"radial-gradient(circle,rgba(168,85,247,0.07) 0%,transparent 70%)",filter:"blur(70px)"}}/>
-            <div style={{position:"absolute",bottom:"15%",left:"5%",width:380,height:380,borderRadius:"50%",background:"radial-gradient(circle,rgba(236,72,153,0.06) 0%,transparent 70%)",filter:"blur(70px)"}}/>
+            <div style={{position:"absolute",top:"20%",right:"-5%",width:480,height:480,borderRadius:"50%",background:"radial-gradient(circle,rgba(168,85,247,0.07) 0%,transparent 70%)",filter:"blur(36px)"}}/>
+            <div style={{position:"absolute",bottom:"15%",left:"5%",width:380,height:380,borderRadius:"50%",background:"radial-gradient(circle,rgba(236,72,153,0.06) 0%,transparent 70%)",filter:"blur(36px)"}}/>
           </div>
 
           <div className="max-w-6xl w-full mx-auto relative z-10 flex items-center gap-16">
@@ -1462,7 +1493,7 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
                 {/* Glow */}
                 <div className="absolute inset-0 pointer-events-none" style={{borderRadius:"2rem",overflow:"hidden"}}>
                   <div style={{position:"absolute",top:"-20%",left:"-10%",width:360,height:360,borderRadius:"50%",
-                    background:`radial-gradient(circle,${card.accent}18 0%,transparent 70%)`,filter:"blur(70px)"}}/>
+                    background:`radial-gradient(circle,${card.accent}18 0%,transparent 70%)`,filter:"blur(36px)"}}/>
                 </div>
                 <div className="relative z-10 p-7">
                   {/* Header */}
@@ -1536,7 +1567,7 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
                   initial={{opacity:0}} animate={{opacity:1}} transition={{duration:0.5}}
                   style={{position:"absolute",top:"20%",left:"10%",width:360,height:360,borderRadius:"50%",
                     background:`radial-gradient(circle,${GUIDE_STEPS[guideStep]?.color||"#ec4899"}14 0%,transparent 70%)`,
-                    filter:"blur(70px)",pointerEvents:"none"}}/>
+                    filter:"blur(36px)",pointerEvents:"none"}}/>
               </div>
 
               {/* Left — guided phone */}
@@ -1647,6 +1678,22 @@ function DesktopLogin({ onSuccess, onGuest }) {
   const [rememberMe,setRememberMe]=useState(false);const [showPassword,setShowPassword]=useState(false);
   const [otpStep,setOtpStep]=useState(false);const [otp,setOtp]=useState("");
   const [resendTimer,setResendTimer]=useState(0);const resendRef=React.useRef(null);
+  const [googleLoading,setGoogleLoading]=useState(false);
+
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setGoogleLoading(true); setError("");
+      try {
+        const data = await authAPI.googleAuth(tokenResponse.access_token);
+        setAuthData(data.token, data.user, data.user.id, true);
+        if (data.user.pfp) localStorage.setItem("selectedAvatar", data.user.pfp);
+        onSuccess();
+      } catch (err) {
+        setError(err.message || "Google sign-in failed");
+      } finally { setGoogleLoading(false); }
+    },
+    onError: () => setError("Google sign-in was cancelled"),
+  });
 
   const handleSubmit=async(e)=>{
     e.preventDefault();setError("");setLoading(true);
@@ -1783,7 +1830,11 @@ function DesktopLogin({ onSuccess, onGuest }) {
             </form>
             {!otpStep&&<>
               <div className="flex items-center gap-3 my-3"><div className="flex-1 h-px opacity-20 bg-white"/><span className="text-xs text-white/30">or</span><div className="flex-1 h-px opacity-20 bg-white"/></div>
-              <button onClick={onGuest} className="w-full py-2.5 rounded-xl text-xs font-semibold text-white/50 hover:text-white/80 transition" style={{ background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)" }}>Continue as Guest 👀</button>
+              <button onClick={()=>loginWithGoogle()} disabled={googleLoading} className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-3 transition-all disabled:opacity-50" style={{ background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",color:googleLoading?"rgba(255,255,255,0.35)":"rgba(255,255,255,0.85)" }}>
+                {googleLoading?<svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>:<svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332Z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.166 6.656 3.58 9 3.58Z"/></svg>}
+                {googleLoading?"Signing in…":"Continue with Google"}
+              </button>
+              <button onClick={onGuest} className="w-full py-2.5 rounded-xl text-xs font-semibold text-white/50 hover:text-white/80 transition mt-2" style={{ background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)" }}>Continue as Guest 👀</button>
               <p className="mt-4 text-center text-xs text-white/50">{isLogin?"New to Smart Split?":"Already have an account?"}{" "}<button onClick={()=>{setIsLogin(v=>!v);setError("");setOtpStep(false);setOtp("");}} className="text-white font-semibold hover:text-pink-300 transition-colors">{isLogin?"Create an account":"Sign in instead"}</button></p>
             </>}
           </div>

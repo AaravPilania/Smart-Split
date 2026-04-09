@@ -3,7 +3,9 @@ const Group = require('../models/Group');
 const User = require('../models/User');
 const ActivityLog = require('../models/ActivityLog');
 const Payment = require('../models/Payment');
+const Notification = require('../models/Notification');
 const { classifyExpenseCategory, analyzeReceiptImage, parseNaturalLanguageExpense, generateAaruAdvice } = require('../utils/gemini');
+const { convert } = require('../utils/exchangeRates');
 
 // Helper: silently log activity
 async function logActivity(groupId, actorId, actorName, action, details, meta = {}) {
@@ -12,11 +14,23 @@ async function logActivity(groupId, actorId, actorName, action, details, meta = 
   } catch (_) {}
 }
 
+// Daily limits
+const DAILY_EXPENSE_LIMIT = 20;
+const DAILY_AARU_LIMIT = 5;
+// Track Aaru usage per user per day (resets at midnight)
+const aaruUsage = new Map(); // userId -> { count, date }
+
 // Add expense
 exports.addExpense = async (req, res) => {
   try {
     const { title, amount, paidBy, splitBetween, category } = req.body;
     const groupId = req.params.groupId;
+
+    // Daily expense limit
+    const todayCount = await Expense.countByUserToday(req.user.id);
+    if (todayCount >= DAILY_EXPENSE_LIMIT) {
+      return res.status(429).json({ message: `Daily limit of ${DAILY_EXPENSE_LIMIT} expenses reached. Try again tomorrow!` });
+    }
 
     // Validate group exists
     const group = await Group.findById(groupId);
@@ -41,8 +55,34 @@ exports.addExpense = async (req, res) => {
       return res.status(400).json({ message: 'Split amounts must equal total amount' });
     }
 
+    // Multi-currency: auto-convert if currency differs from group default
+    let finalAmount = amount;
+    let originalAmount, exchangeRate, currency;
+    const expCurrency = (req.body.currency || 'INR').toUpperCase();
+    const groupCurrency = (group.defaultCurrency || 'INR').toUpperCase();
+
+    if (expCurrency !== groupCurrency) {
+      const conversion = await convert(expCurrency, groupCurrency, amount);
+      if (conversion) {
+        originalAmount = amount;
+        exchangeRate = conversion.rate;
+        finalAmount = conversion.convertedAmount;
+        currency = expCurrency;
+        // Rescale splits proportionally
+        const ratio = finalAmount / amount;
+        for (const s of splitBetween) {
+          s.amount = +(s.amount * ratio).toFixed(2);
+        }
+      }
+    }
+
     // Create expense
-    const expense = await Expense.createExpense(title, amount, groupId, paidBy, splitBetween, category);
+    const expense = await Expense.createExpense(title, finalAmount, groupId, paidBy, splitBetween, category);
+
+    // Attach currency metadata if converted
+    if (originalAmount) {
+      await Expense.findByIdAndUpdate(expense._id || expense.id, { currency, originalAmount, exchangeRate });
+    }
 
     // Log activity
     const actor = await User.findById(paidBy);
@@ -50,6 +90,54 @@ exports.addExpense = async (req, res) => {
       'added_expense',
       `Added "${title}" for ₹${parseFloat(amount).toFixed(2)}`,
       { expenseId: expense.id, amount });
+
+    // Budget alert check (fire-and-forget)
+    if (actor?.monthlyBudget > 0) {
+      (async () => {
+        try {
+          const startOfMonth = new Date();
+          startOfMonth.setDate(1); startOfMonth.setHours(0, 0, 0, 0);
+          const mongoose = require('mongoose');
+          const ExpenseModel = mongoose.model('Expense');
+          const monthlyTotal = await ExpenseModel.aggregate([
+            { $match: { paidBy: new mongoose.Types.ObjectId(paidBy), createdAt: { $gte: startOfMonth } } },
+            { $group: { _id: null, total: { $sum: '$amount' } } },
+          ]);
+          const total = monthlyTotal[0]?.total || 0;
+          const pct = (total / actor.monthlyBudget) * 100;
+          if (pct >= 100) {
+            await Notification.create({ to: paidBy, type: 'reminder', message: `⚠️ You've exceeded your monthly budget of ₹${actor.monthlyBudget}! Total: ₹${Math.round(total)}` });
+          } else if (pct >= 80) {
+            await Notification.create({ to: paidBy, type: 'reminder', message: `💡 You've used ${Math.round(pct)}% of your monthly budget (₹${Math.round(total)} / ₹${actor.monthlyBudget})` });
+          }
+        } catch (_) {}
+      })();
+    }
+
+    // Trip group budget alert (fire-and-forget)
+    if (group.type === 'trip' && group.budget > 0) {
+      (async () => {
+        try {
+          const mongoose = require('mongoose');
+          const ExpenseModel = mongoose.model('Expense');
+          const groupTotal = await ExpenseModel.aggregate([
+            { $match: { group: new mongoose.Types.ObjectId(groupId) } },
+            { $group: { _id: null, total: { $sum: '$amount' } } },
+          ]);
+          const total = groupTotal[0]?.total || 0;
+          const pct = (total / group.budget) * 100;
+          if (pct >= 100) {
+            for (const memberId of group.members || []) {
+              await Notification.create({ to: memberId, type: 'reminder', message: `🚨 Trip "${group.name}" budget exceeded! ₹${Math.round(total)} / ₹${group.budget}`, groupId });
+            }
+          } else if (pct >= 80) {
+            for (const memberId of group.members || []) {
+              await Notification.create({ to: memberId, type: 'reminder', message: `⚠️ Trip "${group.name}" has used ${Math.round(pct)}% of budget (₹${Math.round(total)} / ₹${group.budget})`, groupId });
+            }
+          }
+        } catch (_) {}
+      })();
+    }
 
     res.status(201).json({
       message: 'Expense added successfully',
@@ -383,7 +471,7 @@ exports.settleExpense = async (req, res) => {
 exports.recordPayment = async (req, res) => {
   try {
     const groupId = req.params.groupId;
-    const { toUserId, amount } = req.body;
+    const { toUserId, amount, note, proofImage } = req.body;
 
     if (!toUserId || !amount || amount <= 0) {
       return res.status(400).json({ message: 'toUserId and a positive amount are required' });
@@ -395,7 +483,7 @@ exports.recordPayment = async (req, res) => {
     const isMember = await Group.isMember(groupId, req.user.id);
     if (!isMember) return res.status(403).json({ message: 'You must be a group member' });
 
-    const payment = await Payment.create(groupId, req.user.id, toUserId, amount);
+    const payment = await Payment.create(groupId, req.user.id, toUserId, amount, note, proofImage);
 
     const actor = await User.findById(req.user.id);
     logActivity(groupId, req.user.id, actor?.name || 'Unknown',
@@ -481,8 +569,24 @@ exports.aaruAdvice = async (req, res) => {
   try {
     const { text, context } = req.body;
     if (!text?.trim()) return res.status(400).json({ message: 'text is required' });
+
+    // Daily Aaru usage limit
+    const today = new Date().toDateString();
+    const usage = aaruUsage.get(req.user.id);
+    if (usage && usage.date === today && usage.count >= DAILY_AARU_LIMIT) {
+      return res.status(429).json({ message: `You've used Aaru ${DAILY_AARU_LIMIT} times today. Come back tomorrow! 🤖` });
+    }
+
     const message = await generateAaruAdvice(text.trim(), context || {});
     if (!message) return res.status(422).json({ message: "I couldn't think of an answer right now. Check your Dashboard for detailed stats!" });
+
+    // Track usage
+    if (usage && usage.date === today) {
+      usage.count++;
+    } else {
+      aaruUsage.set(req.user.id, { count: 1, date: today });
+    }
+
     res.json({ message });
   } catch (error) {
     res.status(500).json({ message: error.message });

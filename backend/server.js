@@ -7,12 +7,23 @@ const compression = require('compression');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
+const mongoose = require('mongoose');
 const { connectDB } = require('./config/database');
 const User = require('./models/User');
 const auth = require('./middleware/auth');
 const validate = require('./middleware/validate');
 const { signupSchema, loginSchema } = require('./validators/authSchema');
 const { createGroupSchema } = require('./validators/groupSchema');
+
+// ── Global error handlers — prevent silent crashes on Render ──
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️  Unhandled Rejection:', reason?.message || reason);
+  // Do NOT process.exit — let the server keep running
+});
+process.on('uncaughtException', (err) => {
+  console.error('⚠️  Uncaught Exception:', err.message, err.stack);
+  // Do NOT process.exit — let the server keep running
+});
 
 const app = express();
 
@@ -57,9 +68,22 @@ app.use(cors({
   credentials: true,
 }));
 
-// ── Health check ──
+// ── Health check — reports actual DB status for UptimeRobot ──
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Server is running' });
+  const dbState = mongoose.connection.readyState; // 0=disconnected,1=connected,2=connecting,3=disconnecting
+  if (dbState === 1) {
+    res.json({ status: 'ok', message: 'Server is running', db: 'connected' });
+  } else {
+    res.status(503).json({ status: 'degraded', message: 'Database not connected', db: dbState });
+  }
+});
+
+// ── Request timeout — prevent hung requests from filling memory ──
+app.use((req, res, next) => {
+  req.setTimeout(30000, () => {
+    if (!res.headersSent) res.status(408).json({ message: 'Request timeout' });
+  });
+  next();
 });
 
 // Progressive slowdown — starts adding latency after 200 requests/15min
@@ -82,9 +106,10 @@ app.use('/api/', limiter);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 30,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
+  skipSuccessfulRequests: true,
   message: { message: 'Too many auth attempts, please try again later.' }
 });
 app.use('/api/auth/', authLimiter);
@@ -153,10 +178,16 @@ app.use((req, res) => {
   res.status(404).json({ message: `Route ${req.method} ${req.path} not found` });
 });
 
-// Global error handler
+// Global error handler — catches all Express errors including async route errors
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
+  // Don't log CORS errors as scary stack traces
+  if (err.message?.includes('CORS')) {
+    return res.status(403).json({ message: 'Origin not allowed' });
+  }
+  console.error('Express error:', err.message);
+  if (!res.headersSent) {
+    res.status(500).json({ message: 'Something went wrong!' });
+  }
 });
 
 // Start server
@@ -166,16 +197,23 @@ connectDB()
   .then(() => {
     app.listen(PORT, () => {
       console.log(`✅ Server running on http://localhost:${PORT}`);
+
+      // Start subscription billing processor
+      require('./jobs/processSubscriptions').start();
+
+      // Start trip auto-archive processor
+      require('./jobs/processTripGroups').start();
       
+      // Keep-alive ping every 4 minutes — prevents Render free tier sleep
       const SELF_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
       setInterval(async () => {
         try {
           const res = await fetch(`${SELF_URL}/api/health`);
-          console.log(`[keep-alive] ping → ${res.status}`);
+          if (res.status !== 200) console.warn(`[keep-alive] ping → ${res.status}`);
         } catch (e) {
           console.warn('[keep-alive] ping failed:', e.message);
         }
-      }, 14 * 60 * 1000); 
+      }, 4 * 60 * 1000); 
     });
   })
   .catch((err) => {

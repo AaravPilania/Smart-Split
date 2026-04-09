@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Dynamic viewport height for mobile (dvh with fallback) ─── */
+:root {
+  --app-vh: 100vh;
+}
+@supports (height: 100dvh) {
+  :root { --app-vh: 100dvh; }
+}
+
 /* ─── Desktop dashboard sidebar/panel scroll ──────────────────── */
 .sidebar-scroll {
   scrollbar-width: thin;

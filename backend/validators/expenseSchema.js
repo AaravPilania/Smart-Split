@@ -18,6 +18,7 @@ const createExpenseSchema = z.object({
     )
     .min(1, 'At least one split entry is required'),
   category: z.enum(CATEGORIES).default('other').optional(),
+  currency: z.string().length(3, 'Currency must be 3-letter ISO code').toUpperCase().optional(),
 });
 
 const updateExpenseSchema = z.object({

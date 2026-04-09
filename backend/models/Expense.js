@@ -28,6 +28,9 @@ const expenseSchema = new mongoose.Schema({
   settled: { type: Boolean, default: false },
   settledBy: [settlementSchema],
   editHistory: [editHistorySchema],
+  currency: { type: String, default: 'INR', uppercase: true, trim: true },
+  originalAmount: { type: Number },
+  exchangeRate: { type: Number },
 }, { timestamps: true });
 
 expenseSchema.index({ group: 1, settled: 1 });
@@ -134,5 +137,11 @@ module.exports = {
 
     await ExpenseModel.findByIdAndUpdate(id, updateOp);
     return this.findByIdPopulated(id);
+  },
+
+  async countByUserToday(userId) {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    return ExpenseModel.countDocuments({ paidBy: userId, createdAt: { $gte: startOfDay } });
   },
 };

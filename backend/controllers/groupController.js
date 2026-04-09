@@ -1,9 +1,9 @@
 const Group = require('../models/Group');
 
-// Create group
+// Create group (regular or trip)
 exports.createGroup = async (req, res) => {
   try {
-    const { name, description, createdBy } = req.body;
+    const { name, description, createdBy, type, startDate, endDate, budget, budgetCurrency, defaultCurrency } = req.body;
 
     if (!createdBy) {
       return res.status(400).json({ message: 'createdBy is required' });
@@ -11,10 +11,30 @@ exports.createGroup = async (req, res) => {
 
     const group = await Group.createGroup(name, description, createdBy);
 
-    res.status(201).json({
-      message: 'Group created successfully',
-      group
-    });
+    // If it's a trip, update the extra fields
+    if (type === 'trip') {
+      if (!startDate || !endDate) {
+        return res.status(400).json({ message: 'Trip groups require start and end dates' });
+      }
+      if (new Date(startDate) >= new Date(endDate)) {
+        return res.status(400).json({ message: 'Start date must be before end date' });
+      }
+      const mongoose = require('mongoose');
+      await mongoose.model('Group').findByIdAndUpdate(group.id, {
+        type: 'trip',
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        budget: budget || 0,
+        budgetCurrency: budgetCurrency || 'INR',
+        defaultCurrency: defaultCurrency || 'INR',
+      });
+    } else if (defaultCurrency) {
+      const mongoose = require('mongoose');
+      await mongoose.model('Group').findByIdAndUpdate(group.id, { defaultCurrency });
+    }
+
+    const updatedGroup = await Group.findByIdPopulated(group.id);
+    res.status(201).json({ message: 'Group created successfully', group: updatedGroup });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -23,9 +43,8 @@ exports.createGroup = async (req, res) => {
 // Get all groups
 exports.getGroups = async (req, res) => {
   try {
-    const { userId, all } = req.query;
+    const { userId, all, archived } = req.query;
 
-    // If 'all' parameter is true, return all groups (for discovery)
     if (all === 'true') {
       const groups = await Group.findAll();
       return res.json({ groups });
@@ -35,8 +54,12 @@ exports.getGroups = async (req, res) => {
       return res.status(400).json({ message: 'userId is required' });
     }
 
-    const groups = await Group.findByUser(userId);
+    if (archived === 'true') {
+      const groups = await Group.findArchivedByUser(userId);
+      return res.json({ groups });
+    }
 
+    const groups = await Group.findActiveByUser(userId);
     res.json({ groups });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -124,6 +147,22 @@ exports.updateGroupPfp = async (req, res) => {
 
     const updated = await Group.updatePfp(req.params.id, pfp);
     res.json({ message: 'Group photo updated', group: updated });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Archive a group (creator or admin only)
+exports.archiveGroup = async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+
+    const isAdmin = await Group.isAdmin(req.params.id, req.user.id);
+    if (!isAdmin) return res.status(403).json({ message: 'Only admins can archive groups' });
+
+    const archived = await Group.archiveGroup(req.params.id);
+    res.json({ message: 'Group archived', group: archived });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

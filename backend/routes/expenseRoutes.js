@@ -39,4 +39,16 @@ router.delete('/:expenseId', auth, deleteExpense);
 router.post('/suggest-category', auth, aaruRateLimit, validate(suggestCategorySchema), suggestCategory);
 router.put('/:expenseId', auth, validate(updateExpenseSchema), updateExpense);
 
+// Exchange rates endpoint for currency picker
+router.get('/exchange-rates/:base', auth, async (req, res) => {
+  try {
+    const { getAllRates } = require('../utils/exchangeRates');
+    const data = await getAllRates(req.params.base);
+    if (!data) return res.status(503).json({ message: 'Exchange rate service unavailable' });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch rates' });
+  }
+});
+
 module.exports = router;

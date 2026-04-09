@@ -31,6 +31,8 @@ export default function Balances() {
   const [simplifiedByGroup, setSimplifiedByGroup] = useState({});
   const [upiModal, setUpiModal] = useState(null); // { amount, toName, toId, settlement, group }
   const [showPaidPrompt, setShowPaidPrompt] = useState(false);
+  const [proofImage, setProofImage] = useState(null);
+  const proofInputRef = useRef(null);
   const upiOpenedRef = useRef(false);
 
   // Detect when user returns from UPI app (page becomes visible again)
@@ -127,9 +129,11 @@ export default function Balances() {
     const key = `${settlement.from.id}-${settlement.to.id}-${group.id}`;
     setPaying(key);
     try {
+      const payload = { toUserId: settlement.to.id, amount: settlement.amount };
+      if (proofImage) payload.proofImage = proofImage;
       const res = await apiFetch(`${API_URL}/expenses/group/${group.id}/payment`, {
         method: "POST",
-        body: JSON.stringify({ toUserId: settlement.to.id, amount: settlement.amount }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         // Notify the payee that payment was made
@@ -282,7 +286,7 @@ export default function Balances() {
           </div>
         )}
 
-        {loading ? (
+        {loading && groupBalances.length === 0 ? (
           <div className="space-y-4">
             {/* Summary cards skeleton */}
             <div className="grid grid-cols-2 gap-4 mb-6">
@@ -586,7 +590,7 @@ export default function Balances() {
             )}
             <a
               href={`upi://pay?${new URLSearchParams({ ...(upiModal.toUpiId ? { pa: upiModal.toUpiId } : {}), pn: upiModal.toName, am: Number(upiModal.editAmount ?? upiModal.amount).toFixed(2), cu: "INR", tn: `SmartSplit: ${upiModal.toName}` }).toString()}`}
-              onClick={() => { upiOpenedRef.current = true; }}
+              onClick={() => { upiOpenedRef.current = true; try { navigator.clipboard.writeText(Number(upiModal.editAmount ?? upiModal.amount).toFixed(2)); } catch {} }}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm mb-2"
               style={getGradientStyle(theme)}
             >
@@ -605,13 +609,42 @@ export default function Balances() {
                 </button>
               </div>
             )}
+
+            {/* Proof of payment */}
+            <div className="mb-2">
+              <input ref={proofInputRef} type="file" accept="image/*" className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  if (file.size > 2 * 1024 * 1024) { alert("Image must be under 2MB"); return; }
+                  const reader = new FileReader();
+                  reader.onload = (ev) => setProofImage(ev.target.result);
+                  reader.readAsDataURL(file);
+                  e.target.value = "";
+                }}
+              />
+              {proofImage ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)" }}>
+                  <img src={proofImage} alt="Proof" className="h-10 w-10 rounded-lg object-cover" />
+                  <span className="text-xs flex-1" style={{ color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)" }}>Screenshot attached</span>
+                  <button onClick={() => setProofImage(null)} className="text-red-400 text-xs font-bold">Remove</button>
+                </div>
+              ) : (
+                <button onClick={() => proofInputRef.current?.click()}
+                  className="w-full py-2 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1.5"
+                  style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)" }}>
+                  📸 Attach payment screenshot (optional)
+                </button>
+              )}
+            </div>
+
             <button
-              onClick={() => { handleIPaid(upiModal.settlement, upiModal.group); setUpiModal(null); }}
+              onClick={() => { handleIPaid(upiModal.settlement, upiModal.group); setUpiModal(null); setProofImage(null); }}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm mb-2 border border-green-400 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition"
             >
               <FiCheck size={15} /> I&apos;ve Paid — Mark as Done
             </button>
-            <button onClick={() => setUpiModal(null)} className="w-full py-2.5 rounded-xl text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-medium">
+            <button onClick={() => { setUpiModal(null); setProofImage(null); }} className="w-full py-2.5 rounded-xl text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-medium">
               Close
             </button>
           </motion.div>

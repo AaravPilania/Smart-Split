@@ -54,10 +54,10 @@ const PRESET_SUBSCRIPTIONS = [
   { name: "Netflix",       label: "Netflix",  logo: "https://cdn.simpleicons.org/netflix/ffffff",    color: "#e50914", category: "entertainment" },
   { name: "YouTube",       label: "YouTube",  logo: "https://cdn.simpleicons.org/youtube/ffffff",    color: "#ff0000", category: "entertainment" },
   { name: "Spotify",       label: "Spotify",  logo: "https://cdn.simpleicons.org/spotify/ffffff",    color: "#1db954", category: "entertainment" },
-  { name: "Prime Video",   label: "Prime",    logo: "/logos/prime.jpg",   color: "#00a8e0", category: "entertainment" },
+  { name: "Prime Video",   label: "Prime",    logo: "https://cdn.simpleicons.org/primevideo/00A8E1",   color: "#00a8e1", category: "entertainment" },
   { name: "Disney+ Hotstar", label: "Hotstar", logo: "/logos/hotstar.jpg", color: "#113ccf", category: "entertainment" },
   { name: "ChatGPT Plus",  label: "ChatGPT",  logo: "/logos/chatgpt.png", color: "#10a37f", category: "utilities"    },
-  { name: "Gym / Fitness", label: "Gym",      logo: null, emoji: "💪",                               color: "#f59e0b", category: "health"       },
+  { name: "Gym / Fitness", label: "Gym",      logo: null, emoji: "🏋️‍♂️",                               color: "#6b7280", category: "health"       },
   { name: "Custom",        label: "Custom",   logo: null, emoji: "✏️",                               color: "#6b7280", category: "subscription" },
 ];
 
@@ -70,7 +70,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
-    name: "", email: "", username: "", upiId: "", password: "", currentPassword: "",
+    name: "", email: "", username: "", upiId: "", password: "", currentPassword: "", monthlyBudget: "",
   });
   const [avatar, setAvatar] = useState(localStorage.getItem("selectedAvatar") || "");
   const { theme, isDark } = useTheme();
@@ -95,8 +95,9 @@ export default function Profile() {
   const [showSubForm, setShowSubForm] = useState(false);
   const [subStep, setSubStep] = useState("pick"); // "pick" | "form"
   const [subSearch, setSubSearch] = useState("");
-  const [subForm, setSubForm] = useState({ name: "", amount: "", billingCycle: "monthly", nextBillingDate: "", color: "#6b7280", icon: "" });
+  const [subForm, setSubForm] = useState({ name: "", amount: "", billingCycle: "monthly", nextBillingDate: "", color: "#6b7280", icon: "", sharedWith: [] });
   const [totalSpent, setTotalSpent] = useState(0);
+  const [friends, setFriends] = useState([]);
   const navigate = useNavigate();
 
   const showToast = (msg, type = "success") => {
@@ -151,8 +152,19 @@ export default function Profile() {
   // Lazy-load goals, subscriptions, and spending data when switching tabs
   useEffect(() => {
     if (profileTab === "goals") { fetchGoals(); if (!insightsFetched) fetchInsightsData(); }
-    if (profileTab === "subscriptions") fetchSubscriptions();
+    if (profileTab === "subscriptions") { fetchSubscriptions(); fetchFriendsList(); }
   }, [profileTab]);
+
+  const fetchFriendsList = async () => {
+    try {
+      const res = await cachedApiFetch(
+        `${API_URL}/friends`,
+        `friends_${getUserId()}`,
+        (d) => setFriends(d.friends || [])
+      );
+      if (res.ok) { const d = await res.json(); setFriends(d.friends || []); }
+    } catch {}
+  };
 
   const fetchProfile = async (uid) => {
     try {
@@ -161,13 +173,13 @@ export default function Profile() {
         `profile_${uid}`,
         (d) => {
           setUser(d.user);
-          setForm({ name: d.user.name||"", email: d.user.email||"", username: d.user.username||"", upiId: d.user.upiId||"", password: "", currentPassword: "" });
+          setForm({ name: d.user.name||"", email: d.user.email||"", username: d.user.username||"", upiId: d.user.upiId||"", monthlyBudget: d.user.monthlyBudget || "", password: "", currentPassword: "" });
         }
       );
       if (!res.ok) throw new Error();
       const d = await res.json();
       setUser(d.user);
-      setForm({ name: d.user.name||"", email: d.user.email||"", username: d.user.username||"", upiId: d.user.upiId||"", password: "", currentPassword: "" });
+      setForm({ name: d.user.name||"", email: d.user.email||"", username: d.user.username||"", upiId: d.user.upiId||"", monthlyBudget: d.user.monthlyBudget || "", password: "", currentPassword: "" });
       const saved = localStorage.getItem("selectedAvatar");
       if (saved) setAvatar(saved);
       else if (d.user.pfp) { setAvatar(d.user.pfp); localStorage.setItem("selectedAvatar", d.user.pfp); }
@@ -277,16 +289,29 @@ export default function Profile() {
     } catch { showToast("Failed to delete", "error"); }
   };
 
-  const handleUpdateSaved = async (goal) => {
-    // Calculate savings this month: budget - spent
-    const savings = Math.max(0, goal.monthlyBudget - totalSpent);
-    const newSaved = (goal.savedAmount || 0) + savings;
+  const [goalSaveInput, setGoalSaveInput] = useState({}); // { [goalId]: { show, value, mode } }
+
+  const handleUpdateSaved = async (goal, customAmount, mode = "add") => {
+    const amount = customAmount !== undefined ? Number(customAmount) : Math.max(0, goal.monthlyBudget - totalSpent);
+    if (isNaN(amount) || amount <= 0) { showToast("Enter a valid amount", "error"); return; }
+
+    let newSaved;
+    if (mode === "set") {
+      newSaved = amount;
+    } else if (mode === "subtract") {
+      newSaved = Math.max(0, (goal.savedAmount || 0) - amount);
+    } else {
+      newSaved = (goal.savedAmount || 0) + amount;
+    }
+
     try {
       await apiFetch(`${API_URL}/goals/${goal._id}`, {
         method: "PUT", body: JSON.stringify({ savedAmount: newSaved }),
       });
       fetchGoals();
-      showToast(`Added ₹${Math.round(savings)} savings!`);
+      setGoalSaveInput(prev => ({ ...prev, [goal._id]: { show: false, value: "", mode: "add" } }));
+      const label = mode === "set" ? "Set to" : mode === "subtract" ? "Subtracted" : "Added";
+      showToast(`${label} ₹${Math.round(amount)} savings!`);
     } catch { showToast("Failed to update", "error"); }
   };
 
@@ -313,10 +338,17 @@ export default function Profile() {
         }),
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.message); }
+      const { subscription } = await res.json();
+      // If sharing with friends, add them
+      if (subForm.sharedWith.length > 0) {
+        await apiFetch(`${API_URL}/subscriptions/${subscription._id}/share`, {
+          method: "POST", body: JSON.stringify({ userIds: subForm.sharedWith }),
+        });
+      }
       setShowSubForm(false);
       setSubStep("pick");
       setSubSearch("");
-      setSubForm({ name: "", amount: "", billingCycle: "monthly", nextBillingDate: "", color: "#6b7280", icon: "" });
+      setSubForm({ name: "", amount: "", billingCycle: "monthly", nextBillingDate: "", color: "#6b7280", icon: "", sharedWith: [] });
       fetchSubscriptions();
       showToast("Subscription added!");
     } catch (err) { showToast(err.message || "Failed", "error"); }
@@ -367,6 +399,7 @@ export default function Profile() {
       if (form.email !== user.email) updates.email = form.email;
       if (form.username && form.username !== user.username) updates.username = form.username;
       if (form.upiId !== (user.upiId || "")) updates.upiId = form.upiId;
+      if (Number(form.monthlyBudget || 0) !== (user.monthlyBudget || 0)) updates.monthlyBudget = Number(form.monthlyBudget) || 0;
       if (form.password) { updates.password = form.password; updates.currentPassword = form.currentPassword; }
       if (!Object.keys(updates).length) { setEditing(false); return; }
       const res = await apiFetch(`${API_URL}/auth/profile/${uid}`, { method: "PUT", body: JSON.stringify(updates) });
@@ -471,7 +504,7 @@ export default function Profile() {
             WebkitBackdropFilter: "blur(20px)",
           }}>
           <button
-            onClick={() => { setEditing(false); setForm({ name: user.name, email: user.email, username: user.username||"", upiId: user.upiId||"", password: "", currentPassword: "" }); }}
+            onClick={() => { setEditing(false); setForm({ name: user.name, email: user.email, username: user.username||"", upiId: user.upiId||"", monthlyBudget: user.monthlyBudget || "", password: "", currentPassword: "" }); }}
             className="h-9 w-9 rounded-xl flex items-center justify-center active:scale-90 transition"
             style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", color: textClr }}
           >
@@ -560,6 +593,19 @@ export default function Profile() {
                   <input type="text" value={form.upiId} onChange={(e) => setForm({ ...form, upiId: e.target.value.trim() })}
                     className={`w-full text-[14px] font-semibold bg-transparent outline-none ${isDark ? "text-white" : "text-gray-900"}`}
                     placeholder="name@upi" />
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em] mt-5 mb-2 px-1" style={{ color: labelClr }}>Budget</p>
+            <div className="rounded-2xl overflow-hidden" style={ss}>
+              <div className="flex items-center px-4 py-3.5">
+                <span className="mr-3 flex-shrink-0 text-sm" style={{ color: subClr }}>📊</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: labelClr }}>Monthly Budget</p>
+                  <input type="number" min="0" step="100" value={form.monthlyBudget} onChange={(e) => setForm({ ...form, monthlyBudget: e.target.value })}
+                    className={`w-full text-[14px] font-semibold bg-transparent outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                    placeholder="₹0 = no limit" />
                 </div>
               </div>
             </div>
@@ -807,6 +853,25 @@ export default function Profile() {
               </div>
               <FiChevronRight size={15} style={{ color: chevClr, flexShrink: 0 }} />
             </a>
+
+            {/* ── Support Us ─────────────────────────────── */}
+            <a
+              href="https://buymeacoffee.com/smartsplit"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-4 py-3.5 rounded-2xl w-full text-left transition active:opacity-60 mt-2"
+              style={ss}
+            >
+              <span className="flex-shrink-0 w-[30px] h-[30px] rounded-xl flex items-center justify-center text-lg">
+                ❤️
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-semibold" style={{ color: textClr }}>Support Us</p>
+                <p className="text-xs mt-0.5" style={{ color: subClr }}>Help keep Smart Split free</p>
+              </div>
+              <FiChevronRight size={15} style={{ color: chevClr, flexShrink: 0 }} />
+            </a>
+
             <p className="text-center text-[11px] mt-3 mb-1" style={{ color: subClr }}>
               Smart Split · Made with ♥ for friends
             </p>
@@ -817,7 +882,7 @@ export default function Profile() {
         {profileTab === "goals" && (
           <>
             <div className="flex items-center justify-between mb-3 px-1">
-              <p className="text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: labelClr }}>Savings Goals</p>
+              <p className="text-[13px] font-bold uppercase tracking-[0.15em]" style={{ color: labelClr }}>Savings Goals</p>
               <button onClick={() => setShowGoalForm(v => !v)}
                 className="h-8 w-8 rounded-xl flex items-center justify-center text-white active:scale-90 transition"
                 style={getGradientStyle(theme)}>
@@ -951,29 +1016,72 @@ export default function Profile() {
                         {/* Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-1.5">
-                            <p className="text-[13px] font-bold truncate" style={{ color: textClr }}>{goal.title}</p>
+                            <p className="text-[15px] font-bold truncate" style={{ color: textClr }}>{goal.title}</p>
                             <button onClick={() => handleDeleteGoal(goal._id)}
                               className="h-6 w-6 rounded-md flex items-center justify-center flex-shrink-0 active:scale-90 transition"
                               style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", color: "#ef4444" }}>
                               <FiTrash2 size={10} />
                             </button>
                           </div>
-                          <p className="text-[10.5px] mt-0.5" style={{ color: subClr }}>
+                          <p className="text-[12px] mt-0.5" style={{ color: subClr }}>
                             Required: {fmt(goal.targetAmount)}
                           </p>
-                          <p className="text-[10.5px]" style={{ color: subClr }}>
+                          <p className="text-[12px]" style={{ color: subClr }}>
                             Collect: <span style={{ color: theme.gradFrom, fontWeight: 700 }}>{fmt(goal.savedAmount || 0)}</span>
                           </p>
                           {daysLeft !== null && (
-                            <p className="text-[10px] mt-0.5" style={{ color: labelClr }}>
+                            <p className="text-[11px] mt-0.5" style={{ color: labelClr }}>
                               {daysLeft}d remaining · {fmt(goal.monthlyBudget)}/mo
                             </p>
                           )}
-                          <button onClick={() => handleUpdateSaved(goal)}
-                            className="mt-1.5 px-3 py-1 rounded-lg text-[10px] font-bold text-white active:scale-95 transition"
-                            style={getGradientStyle(theme)}>
-                            +₹{Math.round(monthlySaved)} saved
-                          </button>
+                          <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                            {goalSaveInput[goal._id]?.show ? (
+                              <>
+                                <div className="flex items-center gap-0.5 mr-1">
+                                  {["add", "subtract", "set"].map(m => (
+                                    <button key={m}
+                                      onClick={() => setGoalSaveInput(prev => ({ ...prev, [goal._id]: { ...prev[goal._id], mode: m } }))}
+                                      className="px-1.5 py-0.5 rounded text-[10px] font-bold transition"
+                                      style={{
+                                        background: (goalSaveInput[goal._id]?.mode || "add") === m ? theme.gradFrom : (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"),
+                                        color: (goalSaveInput[goal._id]?.mode || "add") === m ? "#fff" : subClr,
+                                      }}>
+                                      {m === "add" ? "+" : m === "subtract" ? "−" : "="}
+                                    </button>
+                                  ))}
+                                </div>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  placeholder={`₹${Math.round(monthlySaved)}`}
+                                  value={goalSaveInput[goal._id]?.value || ""}
+                                  onChange={e => setGoalSaveInput(prev => ({ ...prev, [goal._id]: { ...prev[goal._id], show: true, value: e.target.value } }))}
+                                  className={`w-20 px-2 py-1 rounded-lg text-[12px] font-bold outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                                  style={{ background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)" }}
+                                  autoFocus
+                                />
+                                <button
+                                  onClick={() => handleUpdateSaved(goal, goalSaveInput[goal._id]?.value || monthlySaved, goalSaveInput[goal._id]?.mode || "add")}
+                                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-white active:scale-95 transition"
+                                  style={getGradientStyle(theme)}>
+                                  Save
+                                </button>
+                                <button
+                                  onClick={() => setGoalSaveInput(prev => ({ ...prev, [goal._id]: { show: false, value: "", mode: "add" } }))}
+                                  className="px-2 py-1 rounded-lg text-[11px] font-bold active:scale-95 transition"
+                                  style={{ color: subClr }}>
+                                  ✕
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => setGoalSaveInput(prev => ({ ...prev, [goal._id]: { show: true, value: "", mode: "add" } }))}
+                                className="px-3 py-1 rounded-lg text-[12px] font-bold text-white active:scale-95 transition"
+                                style={getGradientStyle(theme)}>
+                                +₹{Math.round(monthlySaved)} saved
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1007,7 +1115,7 @@ export default function Profile() {
         {profileTab === "subscriptions" && (
           <>
             <div className="flex items-center justify-between mb-3 px-1">
-              <p className="text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: labelClr }}>Subscriptions</p>
+              <p className="text-[13px] font-bold uppercase tracking-[0.15em]" style={{ color: labelClr }}>Subscriptions</p>
               <button onClick={() => { setSubStep("pick"); setSubSearch(""); setShowSubForm(v => !v); }}
                 className="h-8 w-8 rounded-xl flex items-center justify-center text-white active:scale-90 transition"
                 style={getGradientStyle(theme)}>
@@ -1139,6 +1247,51 @@ export default function Profile() {
                       isDark={isDark}
                       existingSubs={subscriptions}
                     />
+                    {/* Partnership / Split with friends */}
+                    <div>
+                      <p className="text-[11px] font-bold uppercase tracking-[0.12em] mb-2 px-0.5" style={{ color: labelClr }}>Split with friends</p>
+                      {friends.length === 0 ? (
+                        <p className="text-[11px] px-0.5" style={{ color: subClr }}>Add friends to split subscriptions</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5">
+                          {friends.map(f => {
+                            const fId = f.friendId || f._id;
+                            const selected = subForm.sharedWith.includes(fId);
+                            return (
+                              <button
+                                key={fId}
+                                type="button"
+                                onClick={() => {
+                                  setSubForm(prev => ({
+                                    ...prev,
+                                    sharedWith: selected
+                                      ? prev.sharedWith.filter(id => id !== fId)
+                                      : [...prev.sharedWith, fId],
+                                  }));
+                                }}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold transition active:scale-95"
+                                style={{
+                                  background: selected
+                                    ? `linear-gradient(135deg, ${theme.gradFrom}22, ${theme.gradTo}22)`
+                                    : isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                                  border: selected ? `1px solid ${theme.gradFrom}55` : "1px solid transparent",
+                                  color: selected ? theme.gradFrom : subClr,
+                                }}
+                              >
+                                {f.name?.[0]?.toUpperCase() || "?"}
+                                <span className="truncate max-w-[80px]">{f.name}</span>
+                                {selected && <span>✓</span>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {subForm.sharedWith.length > 0 && subForm.amount && (
+                        <p className="text-[11px] mt-2 px-0.5 font-semibold" style={{ color: theme.gradFrom }}>
+                          ₹{Math.round(Number(subForm.amount) / (subForm.sharedWith.length + 1))}/person · {subForm.sharedWith.length + 1} people
+                        </p>
+                      )}
+                    </div>
                     <div className="flex gap-2">
                       <button type="button" onClick={() => setShowSubForm(false)}
                         className="flex-1 py-2.5 rounded-xl text-sm font-bold transition active:scale-95"
@@ -1161,7 +1314,7 @@ export default function Profile() {
               <div className="rounded-2xl p-4 mb-4" style={ss}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: labelClr }}>Monthly Cost</p>
+                    <p className="text-[12px] font-bold uppercase tracking-[0.14em]" style={{ color: labelClr }}>Monthly Cost</p>
                     <p className="text-xl font-black mt-0.5" style={{ color: textClr }}>
                       {fmt(subscriptions.filter(s => s.active).reduce((sum, s) => {
                         const amt = s.amount || 0;
@@ -1173,7 +1326,7 @@ export default function Profile() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.14em]" style={{ color: labelClr }}>Active</p>
+                    <p className="text-[12px] font-bold uppercase tracking-[0.14em]" style={{ color: labelClr }}>Active</p>
                     <p className="text-xl font-black mt-0.5" style={{ color: theme.gradFrom }}>
                       {subscriptions.filter(s => s.active).length}/{subscriptions.length}
                     </p>
@@ -1205,9 +1358,9 @@ export default function Profile() {
                     <div key={sub._id} className="rounded-2xl overflow-hidden" style={{ ...ss, opacity: sub.active ? 1 : 0.5 }}>
                       <div className="flex items-center gap-3 p-4">
                         <div className="h-11 w-11 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-                          style={{ background: sub.icon?.startsWith('http') ? (sub.color || '#444') : (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)") }}>
-                          {sub.icon?.startsWith('http')
-                            ? <img src={sub.icon} className="w-6 h-6 object-contain" alt={sub.name} />
+                          style={{ background: sub.color || (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)") }}>
+                          {sub.icon?.startsWith('http') || sub.icon?.startsWith('/')
+                            ? <img src={sub.icon} className="w-6 h-6 object-contain rounded" alt={sub.name} />
                             : (sub.icon || "💳")}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1219,6 +1372,27 @@ export default function Profile() {
                           <p className="text-xs mt-0.5" style={{ color: isOverdue ? "#ef4444" : isSoon ? "#f59e0b" : subClr }}>
                             {sub.billingCycle} · {isOverdue ? `${Math.abs(daysUntil)}d overdue` : daysUntil === 0 ? "Due today" : `in ${daysUntil}d`}
                           </p>
+                          {sub.sharedWith?.length > 0 && (
+                            <div className="flex items-center gap-1 mt-1">
+                              <span className="text-[10px] font-semibold" style={{ color: theme.gradFrom }}>
+                                Split {sub.sharedWith.length + 1} ways · ₹{Math.round(sub.amount / (sub.sharedWith.length + 1))}/each
+                              </span>
+                              <div className="flex -space-x-1.5">
+                                {sub.sharedWith.slice(0, 3).map(u => (
+                                  <div key={u._id} className="h-4 w-4 rounded-full flex items-center justify-center text-[7px] font-bold text-white border border-white/20"
+                                    style={getGradientStyle(theme)}>
+                                    {u.name?.[0]?.toUpperCase() || "?"}
+                                  </div>
+                                ))}
+                                {sub.sharedWith.length > 3 && (
+                                  <div className="h-4 w-4 rounded-full flex items-center justify-center text-[7px] font-bold"
+                                    style={{ background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)", color: subClr }}>
+                                    +{sub.sharedWith.length - 3}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <p className="text-sm font-black" style={{ color: textClr }}>{fmt(sub.amount)}</p>

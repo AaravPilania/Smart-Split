@@ -12,7 +12,8 @@ const createSubscriptionSchema = z.object({
     { message: 'Invalid date' }
   ),
   color: z.string().max(20).optional().default('#6b7280'),
-  icon: z.string().max(10).optional().default(''),
+  icon: z.string().max(500).optional().default(''),
+  sharedWith: z.array(z.string()).optional().default([]),
 });
 
 const updateSubscriptionSchema = z.object({
@@ -26,7 +27,8 @@ const updateSubscriptionSchema = z.object({
   ).optional(),
   active: z.boolean({ coerce: true }).optional(),
   color: z.string().max(20).optional(),
-  icon: z.string().max(10).optional(),
+  icon: z.string().max(500).optional(),
+  sharedWith: z.array(z.string()).optional(),
 });
 
 module.exports = { createSubscriptionSchema, updateSubscriptionSchema };

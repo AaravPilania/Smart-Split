@@ -8,6 +8,17 @@ const Payment = require('../models/Payment');
 // ── OTP store: email → { otp, expiresAt, sentAt, attempts } ───────────────
 const otpStore = new Map();
 
+// Sweep expired OTPs every 60 seconds to prevent memory leak
+setInterval(() => {
+  const now = Date.now();
+  for (const [email, entry] of otpStore) {
+    if (now > entry.expiresAt) otpStore.delete(email);
+  }
+}, 60_000);
+
+// Hard cap: prevent unbounded growth under spam attacks
+const OTP_MAX_ENTRIES = 1000;
+
 // Brevo (Sendinblue) HTTP API — works on all cloud platforms, no SMTP needed
 async function sendOtpEmail(to, otp) {
   const res = await fetch('https://api.brevo.com/v3/smtp/email', {
@@ -113,6 +124,7 @@ exports.googleAuth = async (req, res) => {
         username: user.username,
         pfp: user.pfp || picture || '',
         upiId: user.upiId || '',
+        monthlyBudget: user.monthlyBudget || 0,
       },
     });
   } catch (error) {
@@ -146,6 +158,14 @@ exports.sendOtp = async (req, res) => {
     }
 
     const otp = String(Math.floor(100000 + Math.random() * 900000));
+    // Prevent unbounded map growth under spam
+    if (otpStore.size >= OTP_MAX_ENTRIES) {
+      const now = Date.now();
+      for (const [k, v] of otpStore) { if (now > v.expiresAt) otpStore.delete(k); }
+      if (otpStore.size >= OTP_MAX_ENTRIES) {
+        return res.status(503).json({ message: 'Service busy, please try again in a minute.' });
+      }
+    }
     otpStore.set(email, { otp, expiresAt: Date.now() + 10 * 60_000, sentAt: Date.now(), attempts: 0 });
 
     await sendOtpEmail(email, otp);
@@ -203,6 +223,7 @@ exports.signup = async (req, res) => {
         username: user.username,
         pfp: user.pfp || '',
         upiId: user.upiId || '',
+        monthlyBudget: user.monthlyBudget || 0,
       }
     });
   } catch (error) {
@@ -238,6 +259,7 @@ exports.login = async (req, res) => {
         username: user.username,
         pfp: user.pfp || '',
         upiId: user.upiId || '',
+        monthlyBudget: user.monthlyBudget || 0,
       }
     });
   } catch (error) {
@@ -263,7 +285,7 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.params.userId;
-    const { name, email, password, username, pfp, upiId, currentPassword } = req.body;
+    const { name, email, password, username, pfp, upiId, monthlyBudget, currentPassword } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -298,7 +320,7 @@ exports.updateProfile = async (req, res) => {
       }
     }
 
-    const updatedUser = await User.updateById(userId, { name, email, password, username, pfp, upiId });
+    const updatedUser = await User.updateById(userId, { name, email, password, username, pfp, upiId, monthlyBudget });
 
     res.json({
       message: 'Profile updated successfully',

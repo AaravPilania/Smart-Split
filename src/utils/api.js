@@ -90,7 +90,15 @@ export function apiFetch(url, options = {}) {
 
 /* ─── Local cache layer for faster loads ────────────────────── */
 const CACHE_PREFIX = 'ss_cache_';
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes (default)
+const CACHE_TTL_LONG = 15 * 60 * 1000; // 15 minutes (stable data)
+
+// Keys that use the longer TTL (friends, subscriptions, goals, notifications)
+const LONG_TTL_PREFIXES = ['friends_', 'subscriptions_', 'goals_', 'notifications_', 'friend_requests_'];
+
+function getTTL(key) {
+  return LONG_TTL_PREFIXES.some(p => key.startsWith(p)) ? CACHE_TTL_LONG : CACHE_TTL;
+}
 
 /** Returns cached data for a GET endpoint, or null if stale/missing */
 export function getCached(key) {
@@ -98,7 +106,7 @@ export function getCached(key) {
     const raw = localStorage.getItem(CACHE_PREFIX + key);
     if (!raw) return null;
     const { ts, data } = JSON.parse(raw);
-    if (Date.now() - ts > CACHE_TTL) return null;
+    if (Date.now() - ts > getTTL(key)) return null;
     return data;
   } catch { return null; }
 }
