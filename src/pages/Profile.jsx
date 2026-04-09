@@ -1155,9 +1155,9 @@ export default function Profile() {
                             type="button"
                             onClick={() => {
                               if (preset.name === "Custom") {
-                                setSubForm({ name: "", amount: "", billingCycle: "monthly", nextBillingDate: "", color: "#6b7280", icon: "" });
+                                setSubForm({ name: "", amount: "", billingCycle: "monthly", nextBillingDate: "", color: "#6b7280", icon: "", sharedWith: [] });
                               } else {
-                                setSubForm({ name: preset.name, amount: "", billingCycle: "monthly", nextBillingDate: "", color: preset.color, icon: preset.logo || preset.emoji || "" });
+                                setSubForm({ name: preset.name, amount: "", billingCycle: "monthly", nextBillingDate: "", color: preset.color, icon: preset.logo || preset.emoji || "", sharedWith: [] });
                               }
                               setSubStep("form");
                             }}
