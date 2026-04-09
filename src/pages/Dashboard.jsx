@@ -95,12 +95,14 @@ export default function Dashboard() {
   const [allExpensesRaw, setAllExpensesRaw] = useState([]);
   const navigate = useNavigate();
   const { theme, isDark } = useTheme();
-  const [isDesktop, setIsDesktop] = useState(
-    typeof window !== "undefined" && window.innerWidth >= 768
-  );
+  const isRealDesktop = () =>
+    typeof window !== "undefined" &&
+    window.innerWidth >= 768 &&
+    !window.matchMedia("(pointer: coarse)").matches;
+  const [isDesktop, setIsDesktop] = useState(isRealDesktop);
 
   useEffect(() => {
-    const onResize = () => setIsDesktop(window.innerWidth >= 768);
+    const onResize = () => setIsDesktop(isRealDesktop());
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);

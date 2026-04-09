@@ -11,13 +11,15 @@ import { useTheme, getPageBgStyle } from "../utils/theme";
  */
 export default function DesktopLayout({ children, hideBottomNav = false }) {
   const { theme, isDark } = useTheme();
-  const [isDesktop, setIsDesktop] = useState(
-    typeof window !== "undefined" && window.innerWidth >= 768
-  );
+  const isRealDesktop = () =>
+    typeof window !== "undefined" &&
+    window.innerWidth >= 768 &&
+    !window.matchMedia("(pointer: coarse)").matches;
+  const [isDesktop, setIsDesktop] = useState(isRealDesktop);
   const glowRef = useRef(null);
 
   useEffect(() => {
-    const onResize = () => setIsDesktop(window.innerWidth >= 768);
+    const onResize = () => setIsDesktop(isRealDesktop());
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
