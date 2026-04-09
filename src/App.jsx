@@ -47,12 +47,12 @@ function PublicRoute({ element, authReady = true }) {
   return getToken() ? <Navigate to="/dashboard" replace /> : element;
 }
 
-// Smooth page transition — fast fade-out, spring fade-in + subtle lift
-const PAGE_ENTER_ANIMATE = { opacity: 1, y: 0, scale: 1 };
-const PAGE_EXIT          = { opacity: 0, scale: 0.995 };
-const PAGE_INIT          = { opacity: 0, y: 10, scale: 0.995 };
-const PAGE_ENTER_TRAN    = { duration: 0.26, ease: [0.16, 1, 0.3, 1] };
-const PAGE_EXIT_TRAN     = { duration: 0.1, ease: "easeIn" };
+// Smooth page transition — instant exit so there's no blank gap, clean fade-in
+const PAGE_ENTER_ANIMATE = { opacity: 1, y: 0 };
+const PAGE_EXIT          = { opacity: 0 };
+const PAGE_INIT          = { opacity: 0, y: 6 };
+const PAGE_ENTER_TRAN    = { duration: 0.2, ease: [0.16, 1, 0.3, 1] };
+const PAGE_EXIT_TRAN     = { duration: 0.06, ease: "easeIn" };
 
 function PageTransition({ children }) {
   const location = useLocation();
@@ -63,7 +63,14 @@ function PageTransition({ children }) {
         initial={PAGE_INIT}
         animate={{ ...PAGE_ENTER_ANIMATE, transition: PAGE_ENTER_TRAN }}
         exit={{ ...PAGE_EXIT, transition: PAGE_EXIT_TRAN }}
-        style={{ minHeight: "100dvh" }}
+        style={{
+          minHeight: "100dvh",
+          width: "100%",
+          overflowX: "hidden",
+          // Force GPU layer up-front to eliminate the composite-on-first-paint jank
+          transform: "translateZ(0)",
+          WebkitTransform: "translateZ(0)",
+        }}
       >
         {children}
       </motion.div>

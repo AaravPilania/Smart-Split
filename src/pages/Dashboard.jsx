@@ -1158,7 +1158,7 @@ export default function Dashboard() {
                     {formatCurrency(stats.youOwe)}
                   </p>
                   <p className="text-[11px] text-green-500 mt-0.5">
-                    ↗ {formatCurrency(stats.owedToYou)} owed to you
+                    +{formatCurrency(stats.owedToYou)} owed to you
                   </p>
                 </div>
               </div>

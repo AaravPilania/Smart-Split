@@ -1262,7 +1262,7 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
             <motion.div className="text-center mb-10"
               initial={{opacity:0,y:16}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{type:"spring",stiffness:300,damping:26}}>
               <h2 className="text-[2.8rem] xl:text-[3.4rem] font-black text-white leading-tight">
-                <DecryptedText text="Sound familiar?" animateOn="view" speed={45} maxIterations={8} sequential revealDirection="center" className="" encryptedClassName="text-white/20" />
+                <DecryptedText text="Sound familiar?" animateOn="view" speed={45} maxIterations={8} sequential revealDirection="center" useOriginalCharsOnly className="" encryptedClassName="text-white/20" />
               </h2>
               <p className="mt-3 text-white/35 text-sm max-w-md mx-auto leading-relaxed">
                 Every group has this problem. Nobody fixes it. We did.
