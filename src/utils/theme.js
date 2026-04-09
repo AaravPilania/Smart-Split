@@ -5,8 +5,8 @@ export const ACCENT_PRESETS = {
   pink: {
     key: "pink",
     label: "Pink",
-    gradFrom: "#ec4899",
-    gradTo: "#f59e0b",
+    gradFrom: "#e91e8c",
+    gradTo: "#f472b6",
     // Tailwind classes
     text: "text-pink-500",
     textBtn: "text-pink-600",
@@ -108,21 +108,6 @@ export const ACCENT_PRESETS = {
     activeDot: "bg-rose-500",
     bgHover: "hover:bg-rose-50",
   },
-  midnight: {
-    key: "midnight",
-    label: "Midnight",
-    gradFrom: "#a3a3a3",
-    gradTo: "#525252",
-    text: "text-neutral-400",
-    textBtn: "text-neutral-300",
-    bgLight: "bg-neutral-900",
-    bgActive: "bg-neutral-800",
-    border: "border-neutral-700",
-    ring: "focus:ring-neutral-500",
-    spinner: "border-neutral-400",
-    activeDot: "bg-neutral-400",
-    bgHover: "hover:bg-neutral-800",
-  },
 };
 
 export const getGradientStyle = (theme, direction = "to right") => ({
@@ -130,15 +115,6 @@ export const getGradientStyle = (theme, direction = "to right") => ({
 });
 
 export const getPageBgStyle = (theme, isDark = false) => {
-  // Midnight / OLED black theme
-  if (theme.key === "midnight") {
-    if (isDark) return {
-      background: `radial-gradient(ellipse at 12% 8%, ${theme.gradFrom}10 0%, transparent 42%), radial-gradient(ellipse at 88% 92%, ${theme.gradTo}08 0%, transparent 42%), #000000`,
-    };
-    return {
-      background: `radial-gradient(ellipse at 0% 0%, ${theme.gradFrom}12 0%, transparent 55%), radial-gradient(ellipse at 100% 100%, ${theme.gradTo}0c 0%, transparent 55%), #0a0a0a`,
-    };
-  }
   if (isDark) return {
     background: `radial-gradient(ellipse at 12% 8%, ${theme.gradFrom}22 0%, transparent 42%), radial-gradient(ellipse at 88% 92%, ${theme.gradTo}18 0%, transparent 42%), linear-gradient(160deg, #07091a 0%, #0d1425 55%, #080e1c 100%)`,
   };
