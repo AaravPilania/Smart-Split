@@ -5,8 +5,10 @@ export const ACCENT_PRESETS = {
   pink: {
     key: "pink",
     label: "Pink",
-    gradFrom: "#e91e8c",
+    gradFrom: "#e52d96",
     gradTo: "#f472b6",
+    accent: "#e52d96",
+    bgColor: "#fff2fa",
     // Tailwind classes
     text: "text-pink-500",
     textBtn: "text-pink-600",
@@ -117,6 +119,9 @@ export const getGradientStyle = (theme, direction = "to right") => ({
 export const getPageBgStyle = (theme, isDark = false) => {
   if (isDark) return {
     background: `radial-gradient(ellipse at 12% 8%, ${theme.gradFrom}22 0%, transparent 42%), radial-gradient(ellipse at 88% 92%, ${theme.gradTo}18 0%, transparent 42%), linear-gradient(160deg, #07091a 0%, #0d1425 55%, #080e1c 100%)`,
+  };
+  if (theme.bgColor) return {
+    background: `radial-gradient(ellipse at 0% 0%, ${theme.gradFrom}20 0%, transparent 50%), radial-gradient(ellipse at 100% 100%, ${theme.gradTo}18 0%, transparent 50%), ${theme.bgColor}`,
   };
   return {
     background: `radial-gradient(ellipse at 0% 0%, ${theme.gradFrom}28 0%, transparent 55%), radial-gradient(ellipse at 100% 100%, ${theme.gradTo}20 0%, transparent 55%), radial-gradient(ellipse at 50% 50%, ${theme.gradFrom}0c 0%, transparent 70%), linear-gradient(145deg, #f5f4ff 0%, #faf6ff 50%, #f3f2ff 100%)`,
