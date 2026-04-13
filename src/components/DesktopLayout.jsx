@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Navbar from "./Navbar";
-import BottomNav from "./BottomNav";
 import DashboardSidebar from "./DashboardSidebar";
 import { useTheme, getPageBgStyle } from "../utils/theme";
 
@@ -64,7 +63,6 @@ export default function DesktopLayout({ children, hideBottomNav = false }) {
       <Navbar />
       <div className="h-16" />
       {children}
-      {!hideBottomNav && <BottomNav />}
     </div>
   );
 }

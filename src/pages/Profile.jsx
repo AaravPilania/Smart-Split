@@ -24,7 +24,7 @@ const APP_URL = import.meta.env.VITE_APP_URL || "https://thesmartsplit.pages.dev
 
 const CAT_COLORS = [
   "#ec4899", "#f59e0b", "#3b82f6", "#8b5cf6",
-  "#10b981", "#ef4444", "#f97316", "#14b8a6", "#6b7280",
+  "#10b981", "#ef4444", "#f97316", "#14b8a6", "#7c3aed", "#6b7280",
 ];
 
 function fmt(amount) {
@@ -101,6 +101,7 @@ export default function Profile() {
   const [premiumStatus, setPremiumStatus] = useState(null);
   const [premiumLoading, setPremiumLoading] = useState(true);
   const [premiumToggling, setPremiumToggling] = useState(false);
+  const [adminStats, setAdminStats] = useState(null);
   const navigate = useNavigate();
 
   const showToast = (msg, type = "success") => {
@@ -185,6 +186,8 @@ export default function Profile() {
     fetchGroups(uid);
     fetchFR();
     fetchPremiumStatus();
+    // Fetch admin stats if admin user
+    apiFetch(`${API_URL}/auth/admin/stats`).then(res => res.ok ? res.json() : null).then(data => data && setAdminStats(data)).catch(() => {});
   }, [navigate]);
 
   // Lazy-load goals, subscriptions, and spending data when switching tabs
@@ -963,6 +966,44 @@ export default function Profile() {
                 </div>
               </div>
             </div>
+
+            {/* ── Admin Dashboard (admin only) ──────────────── */}
+            {user?.email === 'aarav@gmail.com' && (
+              <div className="rounded-2xl p-5 mb-4" style={sectionSty(isDark)}>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-lg">👑</span>
+                  <span className="text-sm font-bold" style={{ color: isDark ? "#fff" : "#111" }}>Admin Dashboard</span>
+                </div>
+
+                {adminStats ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: "Total Users", value: adminStats.totalUsers, icon: "👥", color: theme.gradFrom },
+                      { label: "Active Users", value: adminStats.activeUsers, icon: "🟢", color: "#10b981" },
+                      { label: "New This Month", value: adminStats.newThisMonth, icon: "📈", color: "#f59e0b" },
+                      { label: "Premium Users", value: adminStats.premiumUsers, icon: "✨", color: "#8b5cf6" },
+                    ].map((stat, i) => (
+                      <div key={i} className="rounded-xl p-3 text-center"
+                        style={{
+                          background: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)",
+                          border: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.05)",
+                        }}>
+                        <span className="text-xl block mb-1">{stat.icon}</span>
+                        <p className="text-xl font-black" style={{ color: stat.color }}>{stat.value}</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider mt-0.5"
+                          style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)" }}>
+                          {stat.label}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex justify-center py-4">
+                    <div className={`w-5 h-5 border-2 ${theme.spinner} border-t-transparent rounded-full animate-spin`} />
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="rounded-2xl overflow-hidden mb-2"
               style={{ ...ss, border: isDark ? "1px solid rgba(239,68,68,0.18)" : "1px solid rgba(239,68,68,0.15)" }}>

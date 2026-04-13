@@ -19,6 +19,8 @@ const userSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 userSchema.methods.checkPremium = function() {
+  // Admin always has premium
+  if (this.email === 'aarav@gmail.com') return true;
   if (!this.isPremium) return false;
   if (this.premiumExpiry && new Date(this.premiumExpiry) < new Date()) {
     this.isPremium = false;
@@ -30,6 +32,7 @@ userSchema.methods.checkPremium = function() {
 };
 
 userSchema.methods.canUseOcr = function() {
+  if (this.email === 'aarav@gmail.com') return { allowed: true, remaining: 999, limit: 999 };
   const today = new Date().toISOString().split('T')[0];
   if (this.checkPremium()) return { allowed: true, remaining: Infinity };
   if (this.dailyOcrDate !== today) {

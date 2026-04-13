@@ -57,4 +57,42 @@ router.post('/toggle-premium', auth, async (req, res) => {
   }
 });
 
+// GET /api/auth/admin/stats — admin-only analytics
+router.get('/admin/stats', auth, async (req, res) => {
+  try {
+    const user = await User.Model.findById(req.user.id);
+    if (!user || user.email !== 'aarav@gmail.com') {
+      return res.status(403).json({ message: 'Admin access only' });
+    }
+
+    const totalUsers = await User.Model.countDocuments();
+
+    // Active users: logged in within last 7 days (have a refresh token)
+    const activeUsers = await User.Model.countDocuments({
+      refreshTokenHash: { $ne: null }
+    });
+
+    // New users this month
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const newThisMonth = await User.Model.countDocuments({
+      createdAt: { $gte: startOfMonth }
+    });
+
+    // Premium users count
+    const premiumUsers = await User.Model.countDocuments({ isPremium: true });
+
+    res.json({
+      totalUsers,
+      activeUsers,
+      newThisMonth,
+      premiumUsers,
+    });
+  } catch (err) {
+    console.error('Admin stats error:', err);
+    res.status(500).json({ message: 'Failed to fetch stats' });
+  }
+});
+
 module.exports = router;

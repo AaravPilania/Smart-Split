@@ -15,6 +15,7 @@ const NotFound   = lazy(() => import("./pages/NotFound"));
 
 import { getToken, setToken, clearAuth, silentRefresh, wakeUpServer, getUserId, API_URL, apiFetch } from "./utils/api";
 import Aaru from "./components/Aaru";
+import BottomNav from "./components/BottomNav";
 import PWAUpdatePrompt from "./components/PWAUpdatePrompt";
 
 // Redirects to / if not logged in (checks in-memory access token)
@@ -179,6 +180,7 @@ function App() {
           </Routes>
         </Suspense>
       </PageTransition>
+      {authReady && getToken() && <BottomNav />}
     </BrowserRouter>
   );
 }

@@ -3,7 +3,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, animate as fmAnimate, useInView } from "framer-motion";
 import Navbar from "../components/Navbar";
 import CategoryDonut from "../components/CategoryDonut";
-import BottomNav from "../components/BottomNav";
 import DashboardSidebar from "../components/DashboardSidebar";
 import DashboardRightPanel from "../components/DashboardRightPanel";
 import InsightsPanel from "../components/InsightsPanel";
@@ -51,8 +50,10 @@ const glassCard = (isDark) =>
           "0 4px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
       }
     : {
-        background: "rgba(255,255,255,0.85)",
+        background: "rgba(255,255,255,0.65)",
         border: `1px solid rgba(0,0,0,0.06)`,
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
         boxShadow: "0 2px 16px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.03)",
       };
 
@@ -1285,7 +1286,7 @@ export default function Dashboard() {
                             {expense.title}
                           </p>
                           <p className="text-xs text-gray-400 dark:text-gray-500">
-                            {expense.group?.name || "Unknown Group"} ┬╖{" "}
+                            {expense.group?.name || "Unknown Group"} ·{" "}
                             {formatDate(expense.createdAt || expense.created_at)}
                           </p>
                         </div>
@@ -1380,9 +1381,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      <BottomNav />
-
-      {/* ── Spending Insights Full-Screen Modal ─────────────── */}
+      {/* ── Spending Insights Full-Screen Modal ───────────────*/}
       <AnimatePresence>
         {showInsights && (
           <>
