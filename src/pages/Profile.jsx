@@ -6,7 +6,7 @@ import {
   FiUser, FiMail, FiEdit2, FiCheck, FiX,
   FiCopy, FiChevronRight,
   FiSun, FiMoon, FiLogOut, FiCamera, FiLock, FiArrowLeft, FiUsers,
-  FiTarget, FiRepeat, FiPlus, FiTrash2, FiCalendar,
+  FiTarget, FiRepeat, FiPlus, FiTrash2, FiCalendar, FiStar, FiZap,
 } from "react-icons/fi";
 import { QRCodeSVG } from "qrcode.react";
 import { API_URL, apiFetch, getUserId, clearAuth, cachedApiFetch, invalidateCache } from "../utils/api";
@@ -98,6 +98,9 @@ export default function Profile() {
   const [subForm, setSubForm] = useState({ name: "", amount: "", billingCycle: "monthly", nextBillingDate: "", color: "#6b7280", icon: "", sharedWith: [] });
   const [totalSpent, setTotalSpent] = useState(0);
   const [friends, setFriends] = useState([]);
+  const [premiumStatus, setPremiumStatus] = useState(null);
+  const [premiumLoading, setPremiumLoading] = useState(true);
+  const [premiumToggling, setPremiumToggling] = useState(false);
   const navigate = useNavigate();
 
   const showToast = (msg, type = "success") => {
@@ -141,12 +144,47 @@ export default function Profile() {
     }
   };
 
+  const fetchPremiumStatus = async () => {
+    try {
+      setPremiumLoading(true);
+      const res = await apiFetch(`${API_URL}/auth/premium-status`);
+      if (res.ok) {
+        const data = await res.json();
+        setPremiumStatus(data);
+      }
+    } catch (e) {
+      console.error("Premium status fetch failed:", e);
+    } finally {
+      setPremiumLoading(false);
+    }
+  };
+
+  const handleTogglePremium = async () => {
+    setPremiumToggling(true);
+    try {
+      const newVal = !premiumStatus?.isPremium;
+      const res = await apiFetch(`${API_URL}/auth/toggle-premium`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPremium: newVal, days: 30 }),
+      });
+      if (res.ok) {
+        await fetchPremiumStatus();
+      }
+    } catch (e) {
+      console.error("Toggle premium failed:", e);
+    } finally {
+      setPremiumToggling(false);
+    }
+  };
+
   useEffect(() => {
     const uid = getUserId();
     if (!uid) { navigate("/"); return; }
     fetchProfile(uid);
     fetchGroups(uid);
     fetchFR();
+    fetchPremiumStatus();
   }, [navigate]);
 
   // Lazy-load goals, subscriptions, and spending data when switching tabs
@@ -675,7 +713,15 @@ export default function Profile() {
                 </div>
               </div>
             </div>
-            <h1 className="text-xl font-black tracking-tight" style={{ color: textClr }}>{user.name}</h1>
+            <h1 className="text-xl font-black tracking-tight flex items-center justify-center" style={{ color: textClr }}>
+              {user.name}
+              {premiumStatus?.isPremium && (
+                <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
+                  style={getGradientStyle(theme)}>
+                  ✨ Premium
+                </span>
+              )}
+            </h1>
             {user.username && <p className="text-sm mt-0.5" style={{ color: subClr }}>@{user.username}</p>}
             {user.upiId && <p className="text-xs mt-0.5" style={{ color: subClr }}>{user.upiId}</p>}
 
@@ -799,6 +845,91 @@ export default function Profile() {
                 </div>
               </>
             )}
+
+            {/* Premium Subscription */}
+            <div className="rounded-2xl p-5 mb-4" style={sectionSty(isDark)}>
+              <div className="flex items-center gap-2 mb-3">
+                <FiStar className="w-4 h-4" style={{ color: theme.gradFrom }} />
+                <span className="text-sm font-bold" style={{ color: isDark ? "#fff" : "#111" }}>Subscription</span>
+              </div>
+
+              {premiumLoading ? (
+                <div className="flex justify-center py-4">
+                  <div className={`w-5 h-5 border-2 ${theme.spinner} border-t-transparent rounded-full animate-spin`} />
+                </div>
+              ) : (
+                <>
+                  {/* Plan info */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="text-xs font-semibold" style={{ color: isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.85)" }}>
+                        {premiumStatus?.isPremium ? "Premium Plan ✨" : "Free Plan"}
+                      </p>
+                      {premiumStatus?.isPremium && premiumStatus?.premiumExpiry && (
+                        <p className="text-[10px] mt-0.5" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)" }}>
+                          Expires {new Date(premiumStatus.premiumExpiry).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Features list */}
+                  <div className="space-y-2 mb-4">
+                    {[
+                      { label: "OCR Bill Scanning", free: "5/day", premium: "Unlimited", icon: "📸" },
+                      { label: "Aaru AI Assistant", free: "Locked", premium: "Full Access", icon: "🤖" },
+                      { label: "Trip Groups", free: "Locked", premium: "Full Access", icon: "✈️" },
+                    ].map((f, i) => (
+                      <div key={i} className="flex items-center justify-between py-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">{f.icon}</span>
+                          <span className="text-xs" style={{ color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.7)" }}>{f.label}</span>
+                        </div>
+                        <span className="text-[10px] font-semibold" style={{
+                          color: premiumStatus?.isPremium ? theme.gradFrom : isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)"
+                        }}>
+                          {premiumStatus?.isPremium ? f.premium : f.free}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* OCR Usage Bar */}
+                  {!premiumStatus?.isPremium && premiumStatus?.ocrUsage && (
+                    <div className="mb-4">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-[10px] font-semibold" style={{ color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)" }}>
+                          Daily OCR Scans
+                        </span>
+                        <span className="text-[10px] font-bold" style={{ color: theme.gradFrom }}>
+                          {premiumStatus.ocrUsage.limit - premiumStatus.ocrUsage.remaining}/{premiumStatus.ocrUsage.limit}
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }}>
+                        <div className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${((premiumStatus.ocrUsage.limit - premiumStatus.ocrUsage.remaining) / premiumStatus.ocrUsage.limit) * 100}%`,
+                            background: `linear-gradient(to right, ${theme.gradFrom}, ${theme.gradTo})`,
+                          }} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Upgrade/Downgrade button */}
+                  <button
+                    onClick={handleTogglePremium}
+                    disabled={premiumToggling}
+                    className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all"
+                    style={premiumStatus?.isPremium
+                      ? { background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)", color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)" }
+                      : { ...getGradientStyle(theme), color: "#fff" }
+                    }
+                  >
+                    {premiumToggling ? "Processing..." : premiumStatus?.isPremium ? "Cancel Subscription" : "Upgrade to Premium ✨"}
+                  </button>
+                </>
+              )}
+            </div>
 
             <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Preferences</p>
             <div className="rounded-2xl overflow-hidden mb-5" style={ss}>

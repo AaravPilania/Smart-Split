@@ -67,10 +67,6 @@ function PageTransition({ children }) {
           minHeight: "100dvh",
           width: "100%",
           overflowX: "hidden",
-          // Force GPU layer up-front to eliminate the composite-on-first-paint jank
-          transform: "translateZ(0)",
-          WebkitTransform: "translateZ(0)",
-          willChange: "transform, opacity",
         }}
       >
         {children}
