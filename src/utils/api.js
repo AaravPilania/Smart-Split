@@ -90,8 +90,8 @@ export function apiFetch(url, options = {}) {
 
 /* ─── Local cache layer for faster loads ────────────────────── */
 const CACHE_PREFIX = 'ss_cache_';
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes (default)
-const CACHE_TTL_LONG = 15 * 60 * 1000; // 15 minutes (stable data)
+const CACHE_TTL = 15 * 60 * 1000; // 15 minutes (default)
+const CACHE_TTL_LONG = 60 * 60 * 1000; // 1 hour (stable data)
 
 // Keys that use the longer TTL (friends, subscriptions, goals, notifications)
 const LONG_TTL_PREFIXES = ['friends_', 'subscriptions_', 'goals_', 'notifications_', 'friend_requests_'];
@@ -116,6 +116,52 @@ export function setCache(key, data) {
   try {
     localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ ts: Date.now(), data }));
   } catch { /* quota exceeded — ignore */ }
+}
+
+/* ─── IndexedDB cache layer for large data ────────────────── */
+const IDB_NAME = 'smartsplit_cache';
+const IDB_STORE = 'data';
+const IDB_VERSION = 1;
+
+function openIDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) {
+        db.createObjectStore(IDB_STORE);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function getIDBCached(key) {
+  try {
+    const db = await openIDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const store = tx.objectStore(IDB_STORE);
+      const req = store.get(key);
+      req.onsuccess = () => {
+        const entry = req.result;
+        if (!entry) return resolve(null);
+        const ttl = LONG_TTL_PREFIXES.some(p => key.startsWith(p)) ? CACHE_TTL_LONG : CACHE_TTL;
+        if (Date.now() - entry.ts > ttl) return resolve(null);
+        resolve(entry.data);
+      };
+      req.onerror = () => resolve(null);
+    });
+  } catch { return null; }
+}
+
+export async function setIDBCache(key, data) {
+  try {
+    const db = await openIDB();
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put({ ts: Date.now(), data }, key);
+  } catch { /* ignore */ }
 }
 
 /**
@@ -147,27 +193,33 @@ export function invalidateCache(...keys) {
  * @returns {Promise<Response>} Resolves with cached Response immediately, or network Response if no cache
  */
 export async function cachedApiFetch(url, cacheKey, onFresh) {
-  // Always start the network request immediately (don't wait for cache check first)
   const networkPromise = apiFetch(url);
-  const cached = getCached(cacheKey);
+  
+  // Try localStorage first (fast sync)
+  let cached = getCached(cacheKey);
+  
+  // If no localStorage cache, try IndexedDB (async but still faster than network)
+  if (!cached) {
+    cached = await getIDBCached(cacheKey);
+  }
 
   if (cached) {
-    // Return cached data right away; update cache + call onFresh when network responds
     networkPromise.then(async (res) => {
       if (res.ok) {
         const data = await res.clone().json();
         setCache(cacheKey, data);
+        setIDBCache(cacheKey, data).catch(() => {});
         if (onFresh) onFresh(data);
       }
     }).catch(() => {});
     return new Response(JSON.stringify(cached), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }
 
-  // No cache — wait for network, then store
   const res = await networkPromise;
   if (res.ok) {
     const data = await res.clone().json();
     setCache(cacheKey, data);
+    setIDBCache(cacheKey, data).catch(() => {});
   }
   return res;
 }
@@ -200,6 +252,37 @@ export async function wakeUpServer() {
     if (await pingServer()) return true;
   }
   return false;
+}
+
+/**
+ * Pre-fetch and cache all critical data after login.
+ * Fires all requests in parallel for maximum speed.
+ */
+export async function warmCache(userId) {
+  if (!userId) return;
+  const endpoints = [
+    { url: `${API_URL}/auth/dashboard/summary`, key: `dashboard_summary_${userId}` },
+    { url: `${API_URL}/groups?userId=${userId}`, key: `groups_${userId}` },
+    { url: `${API_URL}/friends`, key: `friends_${userId}` },
+    { url: `${API_URL}/goals`, key: `goals_${userId}` },
+    { url: `${API_URL}/subscriptions`, key: `subscriptions_${userId}` },
+    { url: `${API_URL}/notifications`, key: `notifications_${userId}` },
+  ];
+
+  const results = await Promise.allSettled(
+    endpoints.map(async ({ url, key }) => {
+      try {
+        const res = await apiFetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          setCache(key, data);
+          setIDBCache(key, data).catch(() => {});
+          return data;
+        }
+      } catch { /* ignore */ }
+    })
+  );
+  return results;
 }
 
 // Convenience wrapper used by the API objects below

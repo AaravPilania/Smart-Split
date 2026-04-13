@@ -7,6 +7,7 @@ import {
   FiCopy, FiChevronRight,
   FiSun, FiMoon, FiLogOut, FiCamera, FiLock, FiArrowLeft, FiUsers,
   FiTarget, FiRepeat, FiPlus, FiTrash2, FiCalendar,
+  FiStar, FiZap,
 } from "react-icons/fi";
 import { QRCodeSVG } from "qrcode.react";
 import { API_URL, apiFetch, getUserId, clearAuth, cachedApiFetch, invalidateCache } from "../utils/api";
@@ -98,6 +99,9 @@ export default function Profile() {
   const [subForm, setSubForm] = useState({ name: "", amount: "", billingCycle: "monthly", nextBillingDate: "", color: "#6b7280", icon: "", sharedWith: [] });
   const [totalSpent, setTotalSpent] = useState(0);
   const [friends, setFriends] = useState([]);
+  const [premiumStatus, setPremiumStatus] = useState(null);
+  const [premiumLoading, setPremiumLoading] = useState(false);
+  const [premiumToggling, setPremiumToggling] = useState(false);
   const navigate = useNavigate();
 
   const showToast = (msg, type = "success") => {
@@ -147,6 +151,7 @@ export default function Profile() {
     fetchProfile(uid);
     fetchGroups(uid);
     fetchFR();
+    fetchPremiumStatus();
   }, [navigate]);
 
   // Lazy-load goals, subscriptions, and spending data when switching tabs
@@ -290,10 +295,18 @@ export default function Profile() {
   };
 
   const [goalSaveInput, setGoalSaveInput] = useState({}); // { [goalId]: { show, value, mode } }
+  const [goalSaving, setGoalSaving] = useState({}); // { [goalId]: true } — loading lock
+  const [goalSaved, setGoalSaved] = useState({}); // { [goalId]: true } — success flash
 
   const handleUpdateSaved = async (goal, customAmount, mode = "add") => {
-    const amount = customAmount !== undefined ? Number(customAmount) : Math.max(0, goal.monthlyBudget - totalSpent);
-    if (isNaN(amount) || amount <= 0) { showToast("Enter a valid amount", "error"); return; }
+    if (goalSaving[goal._id]) return; // prevent double-clicks
+
+    const fallback = Math.max(0, goal.monthlyBudget - totalSpent);
+    const raw = (customAmount !== undefined && customAmount !== "") ? Number(customAmount) : fallback;
+    const amount = isNaN(raw) ? 0 : raw;
+    if (amount <= 0) { showToast("Enter a valid amount", "error"); return; }
+
+    setGoalSaving(prev => ({ ...prev, [goal._id]: true }));
 
     let newSaved;
     if (mode === "set") {
@@ -312,7 +325,10 @@ export default function Profile() {
       setGoalSaveInput(prev => ({ ...prev, [goal._id]: { show: false, value: "", mode: "add" } }));
       const label = mode === "set" ? "Set to" : mode === "subtract" ? "Subtracted" : "Added";
       showToast(`${label} ₹${Math.round(amount)} savings!`);
-    } catch { showToast("Failed to update", "error"); }
+      setGoalSaved(prev => ({ ...prev, [goal._id]: true }));
+      setTimeout(() => setGoalSaved(prev => ({ ...prev, [goal._id]: false })), 1500);
+    } catch { showToast("Failed to update savings", "error"); }
+    finally { setGoalSaving(prev => ({ ...prev, [goal._id]: false })); }
   };
 
   const fetchSubscriptions = async () => {
@@ -385,6 +401,35 @@ export default function Profile() {
       const res = await apiFetch(`${API_URL}/friends/reject/${id}`, { method: "PATCH" });
       if (res.ok) fetchFR();
     } finally { setFrAction(null); }
+  };
+
+  const fetchPremiumStatus = async () => {
+    setPremiumLoading(true);
+    try {
+      const res = await apiFetch(`${API_URL}/auth/premium-status`);
+      const data = await res.json();
+      if (res.ok) setPremiumStatus(data);
+    } catch { /* silently fail */ }
+    finally { setPremiumLoading(false); }
+  };
+
+  const handleTogglePremium = async (activate) => {
+    setPremiumToggling(true);
+    try {
+      const res = await apiFetch(`${API_URL}/auth/toggle-premium`, {
+        method: "POST",
+        body: JSON.stringify({ isPremium: activate, days: 30 }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPremiumStatus((prev) => prev ? { ...prev, isPremium: data.isPremium, premiumExpiry: data.premiumExpiry } : prev);
+        showToast(activate ? "Premium activated! ✨" : "Switched to Free plan");
+        fetchPremiumStatus();
+      } else {
+        showToast(data.message || "Failed to update plan", "error");
+      }
+    } catch { showToast("Network error", "error"); }
+    finally { setPremiumToggling(false); }
   };
 
   const handleUpdate = async (e) => {
@@ -675,7 +720,15 @@ export default function Profile() {
                 </div>
               </div>
             </div>
-            <h1 className="text-xl font-black tracking-tight" style={{ color: textClr }}>{user.name}</h1>
+            <h1 className="text-xl font-black tracking-tight flex items-center gap-2" style={{ color: textClr }}>
+              {user.name}
+              {premiumStatus?.isPremium && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black text-white"
+                  style={getGradientStyle(theme)}>
+                  ✨ Premium
+                </span>
+              )}
+            </h1>
             {user.username && <p className="text-sm mt-0.5" style={{ color: subClr }}>@{user.username}</p>}
             {user.upiId && <p className="text-xs mt-0.5" style={{ color: subClr }}>{user.upiId}</p>}
 
@@ -799,6 +852,137 @@ export default function Profile() {
                 </div>
               </>
             )}
+
+            {/* ── Premium / Subscription Section ─────────────── */}
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Subscription</p>
+            <div className="rounded-2xl overflow-hidden mb-5" style={ss}>
+              {premiumLoading ? (
+                <div className="px-4 py-6 flex items-center justify-center">
+                  <div className="h-5 w-5 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: `${theme.gradFrom}44`, borderTopColor: "transparent" }} />
+                  <span className="ml-2.5 text-xs font-medium" style={{ color: subClr }}>Loading plan info…</span>
+                </div>
+              ) : premiumStatus ? (
+                <div className="px-4 py-4">
+                  {/* Plan name & badge */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-[30px] h-[30px] rounded-xl flex items-center justify-center text-white text-sm"
+                        style={premiumStatus.isPremium ? getGradientStyle(theme) : { background: isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.08)" }}>
+                        {premiumStatus.isPremium ? <FiStar size={13} /> : <FiZap size={13} />}
+                      </span>
+                      <div>
+                        <p className="text-[14px] font-bold" style={{ color: textClr }}>
+                          {premiumStatus.isPremium ? "Premium ✨" : "Free Plan"}
+                        </p>
+                        {premiumStatus.isPremium && premiumStatus.premiumExpiry && (
+                          <p className="text-[11px] mt-0.5" style={{ color: subClr }}>
+                            Expires {new Date(premiumStatus.premiumExpiry).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Features list */}
+                  <div className="rounded-xl p-3 mb-3" style={{ background: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)" }}>
+                    {premiumStatus.isPremium ? (
+                      <div className="space-y-2">
+                        {[
+                          { icon: "📸", text: "Unlimited OCR receipt scans" },
+                          { icon: "🤖", text: "Aaru AI chat assistant" },
+                          { icon: "✈️", text: "Trip groups & planning" },
+                        ].map((f, i) => (
+                          <div key={i} className="flex items-center gap-2.5">
+                            <span className="text-sm">{f.icon}</span>
+                            <span className="text-xs font-medium" style={{ color: textClr }}>{f.text}</span>
+                            <FiCheck size={12} className="ml-auto" style={{ color: "#10b981" }} />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {[
+                          { icon: "📸", text: "5 OCR scans per day", locked: false },
+                          { icon: "🤖", text: "Aaru AI chat", locked: true },
+                          { icon: "✈️", text: "Trip groups", locked: true },
+                        ].map((f, i) => (
+                          <div key={i} className="flex items-center gap-2.5">
+                            <span className="text-sm">{f.icon}</span>
+                            <span className="text-xs font-medium" style={{ color: f.locked ? subClr : textClr }}>{f.text}</span>
+                            {f.locked ? (
+                              <FiLock size={11} className="ml-auto" style={{ color: subClr }} />
+                            ) : (
+                              <FiCheck size={12} className="ml-auto" style={{ color: "#10b981" }} />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* OCR usage bar */}
+                  {premiumStatus.ocrUsage && (
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: labelClr }}>OCR Scans Today</span>
+                        <span className="text-[11px] font-bold" style={{ color: textClr }}>
+                          {premiumStatus.ocrUsage.limit - premiumStatus.ocrUsage.remaining}/{premiumStatus.ocrUsage.limit === 999999 ? "∞" : premiumStatus.ocrUsage.limit}
+                        </span>
+                      </div>
+                      <div className="h-2 rounded-full overflow-hidden" style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }}>
+                        <motion.div
+                          className="h-full rounded-full"
+                          style={{
+                            background: `linear-gradient(90deg, ${theme.gradFrom}, ${theme.gradTo})`,
+                          }}
+                          initial={{ width: 0 }}
+                          animate={{
+                            width: premiumStatus.ocrUsage.limit === 999999
+                              ? "0%"
+                              : `${Math.min(((premiumStatus.ocrUsage.limit - premiumStatus.ocrUsage.remaining) / premiumStatus.ocrUsage.limit) * 100, 100)}%`,
+                          }}
+                          transition={{ duration: 0.8, ease: "easeOut" }}
+                        />
+                      </div>
+                      <p className="text-[10px] mt-1" style={{ color: subClr }}>
+                        {premiumStatus.ocrUsage.remaining === 0 && premiumStatus.ocrUsage.limit !== 999999
+                          ? "Daily limit reached — resets at midnight"
+                          : premiumStatus.isPremium
+                            ? "Unlimited scans with Premium"
+                            : `${premiumStatus.ocrUsage.remaining} scan${premiumStatus.ocrUsage.remaining !== 1 ? "s" : ""} remaining today`
+                        }
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Upgrade / Manage button */}
+                  <button
+                    onClick={() => handleTogglePremium(!premiumStatus.isPremium)}
+                    disabled={premiumToggling}
+                    className="w-full py-2.5 rounded-xl text-sm font-black tracking-wide active:scale-[0.97] transition-all text-white"
+                    style={{
+                      ...(premiumStatus.isPremium
+                        ? { background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", color: textClr }
+                        : getGradientStyle(theme)),
+                      opacity: premiumToggling ? 0.6 : 1,
+                    }}
+                  >
+                    {premiumToggling
+                      ? "Updating…"
+                      : premiumStatus.isPremium
+                        ? "Switch to Free Plan"
+                        : "Upgrade to Premium ✨"}
+                  </button>
+                  {!premiumStatus.isPremium && (
+                    <p className="text-[10px] text-center mt-1.5" style={{ color: subClr }}>Dev mode — no payment required</p>
+                  )}
+                </div>
+              ) : (
+                <div className="px-4 py-4">
+                  <p className="text-xs" style={{ color: subClr }}>Unable to load plan info</p>
+                </div>
+              )}
+            </div>
 
             <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Preferences</p>
             <div className="rounded-2xl overflow-hidden mb-5" style={ss}>
@@ -1061,10 +1245,11 @@ export default function Profile() {
                                   autoFocus
                                 />
                                 <button
+                                  disabled={!!goalSaving[goal._id]}
                                   onClick={() => handleUpdateSaved(goal, goalSaveInput[goal._id]?.value || monthlySaved, goalSaveInput[goal._id]?.mode || "add")}
-                                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-white active:scale-95 transition"
+                                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-white active:scale-95 transition disabled:opacity-50"
                                   style={getGradientStyle(theme)}>
-                                  Save
+                                  {goalSaving[goal._id] ? "Saving…" : "Save"}
                                 </button>
                                 <button
                                   onClick={() => setGoalSaveInput(prev => ({ ...prev, [goal._id]: { show: false, value: "", mode: "add" } }))}
@@ -1073,13 +1258,26 @@ export default function Profile() {
                                   ✕
                                 </button>
                               </>
+                            ) : goalSaved[goal._id] ? (
+                              <span className="px-3 py-1 rounded-lg text-[12px] font-bold transition-opacity" style={{ color: "#10b981" }}>
+                                ✓ Saved!
+                              </span>
                             ) : (
-                              <button
-                                onClick={() => setGoalSaveInput(prev => ({ ...prev, [goal._id]: { show: true, value: "", mode: "add" } }))}
-                                className="px-3 py-1 rounded-lg text-[12px] font-bold text-white active:scale-95 transition"
-                                style={getGradientStyle(theme)}>
-                                +₹{Math.round(monthlySaved)} saved
-                              </button>
+                              <>
+                                <button
+                                  disabled={!!goalSaving[goal._id]}
+                                  onClick={() => handleUpdateSaved(goal, monthlySaved, "add")}
+                                  className="px-3 py-1 rounded-lg text-[12px] font-bold text-white active:scale-95 transition disabled:opacity-50"
+                                  style={getGradientStyle(theme)}>
+                                  {goalSaving[goal._id] ? "Saving…" : `+₹${Math.round(monthlySaved)} saved`}
+                                </button>
+                                <button
+                                  onClick={() => setGoalSaveInput(prev => ({ ...prev, [goal._id]: { show: true, value: "", mode: "add" } }))}
+                                  className="px-2 py-1 rounded-lg text-[11px] active:scale-95 transition"
+                                  style={{ color: subClr }}>
+                                  ✎
+                                </button>
+                              </>
                             )}
                           </div>
                         </div>

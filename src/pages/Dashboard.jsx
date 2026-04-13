@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, animate as fmAnimate, useInView } from "framer-motion";
 import Navbar from "../components/Navbar";
+import CategoryDonut from "../components/CategoryDonut";
 import BottomNav from "../components/BottomNav";
 import DashboardSidebar from "../components/DashboardSidebar";
 import DashboardRightPanel from "../components/DashboardRightPanel";
@@ -1455,46 +1456,12 @@ export default function Dashboard() {
                       style={{ color: isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.28)" }}>
                       Top Categories
                     </p>
-                    <div className="space-y-2 mb-5">
-                      {categoryData.slice(0, 6).map((cat, i) => {
-                        const total = categoryData.reduce((s, c) => s + c.amount, 0);
-                        const pct = Math.round((cat.amount / total) * 100);
-                        return (
-                          <div key={cat.key}
-                            className="flex items-center gap-3 p-4 rounded-2xl"
-                            style={{
-                              background: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
-                              border: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.06)",
-                            }}>
-                            <span className="text-2xl flex-shrink-0 w-9 text-center">{cat.icon || "💰"}</span>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex justify-between items-center mb-1.5">
-                                <p className="text-sm font-bold truncate"
-                                  style={{ color: isDark ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.8)" }}>
-                                  {cat.label || cat.key}
-                                </p>
-                                <p className="text-xs font-black ml-3 flex-shrink-0" style={{ color: theme.gradFrom }}>
-                                  {formatCurrency(cat.amount)}
-                                </p>
-                              </div>
-                              <div className="h-1.5 rounded-full overflow-hidden"
-                                style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }}>
-                                <motion.div
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${pct}%` }}
-                                  transition={{ delay: i * 0.05, duration: 0.55, ease: "easeOut" }}
-                                  className="h-full rounded-full"
-                                  style={{ background: `linear-gradient(to right, ${theme.gradFrom}, ${theme.gradTo})` }}
-                                />
-                              </div>
-                            </div>
-                            <p className="text-xs font-bold flex-shrink-0 w-8 text-right tabular-nums"
-                              style={{ color: isDark ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.3)" }}>
-                              {pct}%
-                            </p>
-                          </div>
-                        );
-                      })}
+                    <div className="mb-5 p-4 rounded-2xl"
+                      style={{
+                        background: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)",
+                        border: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.05)",
+                      }}>
+                      <CategoryDonut categoryData={categoryData} formatCurrency={formatCurrency} theme={theme} isDark={isDark} />
                     </div>
 
                     {/* Monthly trend — smooth wave chart */}
@@ -1529,7 +1496,7 @@ export default function Dashboard() {
                               <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ display: "block", height: 160 }}>
                                 <defs>
                                   <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor={isDark ? "rgba(59,130,246,0.35)" : "rgba(59,130,246,0.25)"} />
+                                    <stop offset="0%" stopColor={isDark ? `${theme.gradFrom}59` : `${theme.gradFrom}40`} />
                                     <stop offset="100%" stopColor="transparent" />
                                   </linearGradient>
                                   <filter id="trendGlow">
@@ -1541,15 +1508,15 @@ export default function Dashboard() {
                                 <path d={fillD} fill="url(#trendFill)"
                                   style={{ opacity: trendInView ? 1 : 0, transition: "opacity 0.8s ease 0.4s" }} />
                                 {/* Glowing curve — line-draw animation */}
-                                <path ref={trendLineRef} d={d} fill="none" stroke={isDark ? "#60a5fa" : "#3b82f6"} strokeWidth="2.5" strokeLinecap="round" filter="url(#trendGlow)"
+                                <path ref={trendLineRef} d={d} fill="none" stroke={isDark ? theme.gradTo : theme.gradFrom} strokeWidth="2.5" strokeLinecap="round" filter="url(#trendGlow)"
                                   strokeDasharray={tLen || 1000}
                                   strokeDashoffset={trendInView ? 0 : (tLen || 1000)}
                                   style={{ transition: "stroke-dashoffset 1s ease-out" }} />
                                 {/* Dots on data points */}
                                 {pts.map((p, i) => (
                                   <circle key={i} cx={p.x} cy={p.y} r={monthlyData[i].isCurrent ? 4 : 2.5}
-                                    fill={monthlyData[i].isCurrent ? "#fff" : isDark ? "#60a5fa" : "#3b82f6"}
-                                    stroke={monthlyData[i].isCurrent ? "#3b82f6" : "none"} strokeWidth={monthlyData[i].isCurrent ? 2 : 0}
+                                    fill={monthlyData[i].isCurrent ? "#fff" : isDark ? theme.gradTo : theme.gradFrom}
+                                    stroke={monthlyData[i].isCurrent ? theme.gradFrom : "none"} strokeWidth={monthlyData[i].isCurrent ? 2 : 0}
                                     style={{ opacity: trendInView ? 1 : 0, transition: `opacity 0.3s ease ${0.6 + i * 0.08}s` }} />
                                 ))}
                                 {/* Month labels */}
@@ -1565,8 +1532,8 @@ export default function Dashboard() {
                             <div className="rounded-2xl mb-5 overflow-hidden"
                               style={{
                                 background: isDark
-                                  ? "linear-gradient(135deg, #0c1929, #0f2744, #0c1929)"
-                                  : "linear-gradient(135deg, #e0f2fe, #bae6fd, #e0f2fe)",
+                                  ? `linear-gradient(160deg, ${theme.gradFrom}0d 0%, ${theme.gradFrom}06 50%, ${theme.gradFrom}0d 100%)`
+                                  : `linear-gradient(160deg, ${theme.gradFrom}12 0%, ${theme.gradFrom}08 50%, ${theme.gradFrom}12 100%)`,
                               }}>
                               <MobileTrendSvg />
                             </div>

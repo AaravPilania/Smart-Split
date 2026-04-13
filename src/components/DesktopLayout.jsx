@@ -24,13 +24,17 @@ export default function DesktopLayout({ children, hideBottomNav = false }) {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Cursor glow: update CSS vars --gx / --gy on mousemove
+  // Cursor glow: update CSS vars --gx / --gy on mousemove (throttled to rAF)
+  const rafRef = useRef(0);
   const onMouseMove = useCallback((e) => {
     const el = glowRef.current;
     if (!el) return;
-    const rect = el.getBoundingClientRect();
-    el.style.setProperty("--gx", `${((e.clientX - rect.left) / rect.width)  * 100}%`);
-    el.style.setProperty("--gy", `${((e.clientY - rect.top)  / rect.height) * 100}%`);
+    cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      const rect = el.getBoundingClientRect();
+      el.style.setProperty("--gx", `${((e.clientX - rect.left) / rect.width)  * 100}%`);
+      el.style.setProperty("--gy", `${((e.clientY - rect.top)  / rect.height) * 100}%`);
+    });
   }, []);
 
   if (isDesktop) {

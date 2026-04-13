@@ -543,8 +543,23 @@ exports.suggestCategory = async (req, res) => {
 exports.analyzeReceipt = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'No image provided' });
+
+    // OCR usage tracking
+    const user = await User.Model.findById(req.user.id || req.user._id);
+    const ocrStatus = user.canUseOcr();
+    if (!ocrStatus.allowed) {
+      return res.status(429).json({
+        message: 'Daily OCR limit reached. Upgrade to Premium for unlimited scans.',
+        code: 'OCR_LIMIT_REACHED',
+        remaining: 0,
+        limit: ocrStatus.limit,
+      });
+    }
+
     const result = await analyzeReceiptImage(req.file.buffer, req.file.mimetype);
     if (!result) return res.status(422).json({ message: 'Could not analyze receipt — falling back to OCR' });
+
+    await user.incrementOcr();
     res.json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });

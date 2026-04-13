@@ -33,7 +33,7 @@ export const staggerContainer = {
 
 /** Individual stagger item */
 export const staggerItem = {
-  hidden: { opacity: 0, y: 22, scale: 0.97 },
+  hidden: { opacity: 0, y: 22, scale: 0.97, willChange: "transform, opacity" },
   show:   {
     opacity: 1, y: 0, scale: 1,
     transition: { type: "spring", stiffness: 340, damping: 26 },
@@ -55,7 +55,7 @@ export const slideInRight = {
 /** Fade + scale up */
 export const popIn = {
   hidden: { opacity: 0, scale: 0.88 },
-  show:   { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 380, damping: 28 } },
+  show:   { opacity: 1, scale: 1, transformOrigin: "center center", transition: { type: "spring", stiffness: 380, damping: 28 } },
 };
 
 // ─── 3D Tilt hook ─────────────────────────────────────────────────────────────
@@ -69,15 +69,19 @@ export function use3DTilt(magnitude = 8) {
   const rotY = useMotionValue(0);
   const sRotX = useSpring(rotX, { stiffness: 280, damping: 22 });
   const sRotY = useSpring(rotY, { stiffness: 280, damping: 22 });
+  const rafId = useRef(0);
 
   const onMouseMove = useCallback((e) => {
     const el = ref.current;
     if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const px = (e.clientX - rect.left) / rect.width  - 0.5;
-    const py = (e.clientY - rect.top)  / rect.height - 0.5;
-    rotX.set(-py * magnitude * 2);
-    rotY.set( px * magnitude * 2);
+    cancelAnimationFrame(rafId.current);
+    rafId.current = requestAnimationFrame(() => {
+      const rect = el.getBoundingClientRect();
+      const px = (e.clientX - rect.left) / rect.width  - 0.5;
+      const py = (e.clientY - rect.top)  / rect.height - 0.5;
+      rotX.set(-py * magnitude * 2);
+      rotY.set( px * magnitude * 2);
+    });
   }, [rotX, rotY, magnitude]);
 
   const onMouseLeave = useCallback(() => {
@@ -154,14 +158,21 @@ export function useCursorGlow(containerRef) {
   useEffect(() => {
     const el = containerRef?.current;
     if (!el) return;
+    let rafId = 0;
     const onMove = (e) => {
-      const rect = el.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width)  * 100;
-      const y = ((e.clientY - rect.top)  / rect.height) * 100;
-      el.style.setProperty("--gx", `${x}%`);
-      el.style.setProperty("--gy", `${y}%`);
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const rect = el.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width)  * 100;
+        const y = ((e.clientY - rect.top)  / rect.height) * 100;
+        el.style.setProperty("--gx", `${x}%`);
+        el.style.setProperty("--gy", `${y}%`);
+      });
     };
     el.addEventListener("mousemove", onMove);
-    return () => el.removeEventListener("mousemove", onMove);
+    return () => {
+      cancelAnimationFrame(rafId);
+      el.removeEventListener("mousemove", onMove);
+    };
   }, [containerRef]);
 }

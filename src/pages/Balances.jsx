@@ -32,8 +32,63 @@ export default function Balances() {
   const [upiModal, setUpiModal] = useState(null); // { amount, toName, toId, settlement, group }
   const [showPaidPrompt, setShowPaidPrompt] = useState(false);
   const [proofImage, setProofImage] = useState(null);
+  const [upiToast, setUpiToast] = useState(null);
+  const [showUpiPicker, setShowUpiPicker] = useState(false);
+  const [preferredUpi, setPreferredUpi] = useState(() => localStorage.getItem('smartsplit_preferred_upi') || null);
   const proofInputRef = useRef(null);
   const upiOpenedRef = useRef(false);
+
+  const UPI_APPS = [
+    { id: 'gpay', label: 'Google Pay', scheme: 'gpay://', intentUrl: 'intent://upi#Intent;scheme=gpay;package=com.google.android.apps.nbu.paisa.user;end' },
+    { id: 'phonepe', label: 'PhonePe', scheme: 'phonepe://' },
+    { id: 'paytm', label: 'Paytm', scheme: 'paytm://' },
+    { id: 'other', label: 'Other / Manual', scheme: null },
+  ];
+
+  const handleUpiPay = (appId) => {
+    const amt = Number(upiModal.editAmount ?? upiModal.amount).toFixed(2);
+    const name = upiModal.toName;
+    const upiId = upiModal.toUpiId;
+
+    // Copy formatted payment details to clipboard
+    const clipText = upiId
+      ? `Pay ₹${amt} to ${name}\nUPI: ${upiId}`
+      : `Pay ₹${amt} to ${name}`;
+    try { navigator.clipboard.writeText(clipText); } catch {}
+
+    // Save preference
+    if (appId && appId !== 'other') {
+      localStorage.setItem('smartsplit_preferred_upi', appId);
+      setPreferredUpi(appId);
+    }
+
+    setShowUpiPicker(false);
+
+    const app = UPI_APPS.find(a => a.id === appId);
+    if (!app || !app.scheme) {
+      // "Other" — just copy & show toast
+      setUpiToast(`₹${amt} copied! Open your UPI app and pay.`);
+      setTimeout(() => setUpiToast(null), 4000);
+      return;
+    }
+
+    // Try opening the app homepage (not payment intent)
+    upiOpenedRef.current = true;
+    const schemeUrl = app.intentUrl || app.scheme;
+    const openedAt = Date.now();
+    window.location.href = schemeUrl;
+
+    // Fallback: if page is still visible after 2s, the app likely didn't open
+    setTimeout(() => {
+      if (document.visibilityState === 'visible' && Date.now() - openedAt < 3000) {
+        setUpiToast(`₹${amt} copied! Couldn't open ${app.label} — open it manually and pay.`);
+        setTimeout(() => setUpiToast(null), 5000);
+      } else {
+        setUpiToast(`₹${amt} copied! Pay in ${app.label}.`);
+        setTimeout(() => setUpiToast(null), 4000);
+      }
+    }, 2000);
+  };
 
   // Detect when user returns from UPI app (page becomes visible again)
   useEffect(() => {
@@ -546,7 +601,7 @@ export default function Balances() {
             initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.97 }} transition={{ type: "spring", stiffness: 340, damping: 28 }}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-gray-800 dark:text-white text-lg">Pay via UPI</h3>
-              <button onClick={() => setUpiModal(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><FiX size={18} /></button>
+              <button onClick={() => { setUpiModal(null); setShowUpiPicker(false); setUpiToast(null); }} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><FiX size={18} /></button>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Paying to</p>
             <p className="font-bold text-gray-900 dark:text-white mb-1">{upiModal.toName}</p>
@@ -590,33 +645,63 @@ export default function Balances() {
             )}
             <button
               onClick={() => {
-                const amt = Number(upiModal.editAmount ?? upiModal.amount).toFixed(2);
-                // Copy amount to clipboard
-                try { navigator.clipboard.writeText(amt); } catch {}
-                // Build upi:// deep-link — opens the UPI app chooser directly on mobile
-                const params = new URLSearchParams({
-                  ...(upiModal.toUpiId ? { pa: upiModal.toUpiId } : {}),
-                  pn: upiModal.toName,
-                  am: amt,
-                  cu: 'INR',
-                  tn: `SmartSplit: ${upiModal.toName}`,
-                });
-                const upiUrl = `upi://pay?${params.toString()}`;
-                upiOpenedRef.current = true;
-                window.location.href = upiUrl;
+                if (preferredUpi) {
+                  handleUpiPay(preferredUpi);
+                } else {
+                  setShowUpiPicker(true);
+                }
               }}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm mb-2"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm mb-1"
               style={getGradientStyle(theme)}
             >
-              <FiSmartphone size={15} /> Pay ₹{Number(upiModal.editAmount ?? upiModal.amount).toFixed(2)} via UPI
+              <FiSmartphone size={15} /> {preferredUpi && preferredUpi !== 'other'
+                ? `Copy & Open ${UPI_APPS.find(a => a.id === preferredUpi)?.label || 'UPI'}`
+                : `Pay ₹${Number(upiModal.editAmount ?? upiModal.amount).toFixed(2)} via UPI`}
             </button>
-            <p className="text-[10px] mb-2" style={{ color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)' }}>Amount copied to clipboard</p>
+            {preferredUpi && (
+              <button
+                onClick={() => setShowUpiPicker(true)}
+                className="text-[10px] mb-1 underline"
+                style={{ color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)' }}
+              >
+                Change UPI app
+              </button>
+            )}
+            {/* UPI App Picker */}
+            {showUpiPicker && (
+              <div className="mb-2 p-3 rounded-xl border text-left" style={{ background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}>
+                <p className="text-xs font-semibold mb-2" style={{ color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)' }}>Choose your UPI app:</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {UPI_APPS.map(app => (
+                    <button
+                      key={app.id}
+                      onClick={() => handleUpiPay(app.id)}
+                      className="px-3 py-2 rounded-lg text-xs font-medium transition"
+                      style={{
+                        background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                        color: isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)',
+                      }}
+                    >
+                      {app.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Toast notification */}
+            {upiToast && (
+              <div className="mb-2 px-3 py-2.5 rounded-xl text-xs text-center font-medium"
+                style={{ background: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.1)', color: isDark ? '#a5b4fc' : '#4f46e5', border: '1px solid rgba(99,102,241,0.3)' }}>
+                {upiToast}
+              </div>
+            )}
+            <p className="text-[10px] mb-2" style={{ color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)' }}>Payment details copied to clipboard</p>
             {showPaidPrompt && (
               <div className="mb-2 px-3 py-2.5 rounded-xl text-xs text-center"
                 style={{ background: isDark ? "rgba(34,197,94,0.12)" : "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.3)" }}>
                 <p className="text-green-600 dark:text-green-400 font-semibold mb-1.5">Payment complete?</p>
                 <button
-                  onClick={() => { handleIPaid(upiModal.settlement, upiModal.group); setUpiModal(null); setShowPaidPrompt(false); }}
+                  onClick={() => { handleIPaid(upiModal.settlement, upiModal.group); setUpiModal(null); setShowPaidPrompt(false); setShowUpiPicker(false); setUpiToast(null); }}
                   className="px-4 py-1.5 rounded-lg text-white text-xs font-bold"
                   style={{ background: "linear-gradient(135deg,#22c55e,#16a34a)" }}
                 >
@@ -654,12 +739,12 @@ export default function Balances() {
             </div>
 
             <button
-              onClick={() => { handleIPaid(upiModal.settlement, upiModal.group); setUpiModal(null); setProofImage(null); }}
+              onClick={() => { handleIPaid(upiModal.settlement, upiModal.group); setUpiModal(null); setProofImage(null); setShowUpiPicker(false); setUpiToast(null); }}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm mb-2 border border-green-400 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition"
             >
               <FiCheck size={15} /> I&apos;ve Paid — Mark as Done
             </button>
-            <button onClick={() => { setUpiModal(null); setProofImage(null); }} className="w-full py-2.5 rounded-xl text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-medium">
+            <button onClick={() => { setUpiModal(null); setProofImage(null); setShowUpiPicker(false); setUpiToast(null); }} className="w-full py-2.5 rounded-xl text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-medium">
               Close
             </button>
           </motion.div>

@@ -12,7 +12,43 @@ const userSchema = new mongoose.Schema({
   monthlyBudget: { type: Number, default: 0 }, // 0 = no budget set
   refreshTokenHash: { type: String, select: false, default: null },
   refreshTokenExpiry: { type: Date, default: null },
+  isPremium: { type: Boolean, default: false },
+  premiumExpiry: { type: Date, default: null },
+  dailyOcrCount: { type: Number, default: 0 },
+  dailyOcrDate: { type: String, default: '' },
 }, { timestamps: true });
+
+userSchema.methods.checkPremium = function() {
+  if (!this.isPremium) return false;
+  if (this.premiumExpiry && new Date(this.premiumExpiry) < new Date()) {
+    this.isPremium = false;
+    this.premiumExpiry = null;
+    this.save().catch(() => {});
+    return false;
+  }
+  return true;
+};
+
+userSchema.methods.canUseOcr = function() {
+  const today = new Date().toISOString().split('T')[0];
+  if (this.checkPremium()) return { allowed: true, remaining: Infinity };
+  if (this.dailyOcrDate !== today) {
+    this.dailyOcrCount = 0;
+    this.dailyOcrDate = today;
+  }
+  const FREE_LIMIT = 5;
+  return { allowed: this.dailyOcrCount < FREE_LIMIT, remaining: FREE_LIMIT - this.dailyOcrCount, limit: FREE_LIMIT };
+};
+
+userSchema.methods.incrementOcr = async function() {
+  const today = new Date().toISOString().split('T')[0];
+  if (this.dailyOcrDate !== today) {
+    this.dailyOcrCount = 0;
+    this.dailyOcrDate = today;
+  }
+  this.dailyOcrCount += 1;
+  await this.save();
+};
 
 const UserModel = mongoose.model('User', userSchema);
 
@@ -148,5 +184,8 @@ module.exports = {
 
   async comparePassword(candidatePassword, hashedPassword) {
     return bcrypt.compare(candidatePassword, hashedPassword);
-  }
+  },
+
+  // Expose the raw Mongoose model for instance methods (checkPremium, canUseOcr, etc.)
+  Model: UserModel,
 };

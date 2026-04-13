@@ -221,7 +221,18 @@ function MobileLogin({ onSuccess, onGuest }) {
 
   const loginWithGoogle = useGoogleLogin({
     onSuccess: handleGoogleSuccess,
-    onError: () => setError("Google sign-in was cancelled or failed."),
+    onError: (error) => {
+      console.error("Google sign-in error:", error);
+      const code = error?.error || error?.type || "";
+      const msg = code === "popup_closed_by_user"
+        ? "Google sign-in was cancelled."
+        : code === "popup_failed_to_open"
+        ? "Pop-up blocked. Please allow pop-ups for this site."
+        : "Google sign-in failed. Please try again.";
+      setError(msg);
+      setGoogleLoading(false);
+    },
+    flow: "implicit",
   });
 
   const handleSubmit = async (e) => {
@@ -1689,10 +1700,22 @@ function DesktopLogin({ onSuccess, onGuest }) {
         if (data.user.pfp) localStorage.setItem("selectedAvatar", data.user.pfp);
         onSuccess();
       } catch (err) {
-        setError(err.message || "Google sign-in failed");
+        console.error("Google auth API error:", err);
+        setError(err.message || "Google sign-in failed. Please try again.");
       } finally { setGoogleLoading(false); }
     },
-    onError: () => setError("Google sign-in was cancelled"),
+    onError: (error) => {
+      console.error("Google sign-in error:", error);
+      const code = error?.error || error?.type || "";
+      const msg = code === "popup_closed_by_user"
+        ? "Google sign-in was cancelled."
+        : code === "popup_failed_to_open"
+        ? "Pop-up blocked. Please allow pop-ups for this site."
+        : "Google sign-in failed. Please try again.";
+      setError(msg);
+      setGoogleLoading(false);
+    },
+    flow: "implicit",
   });
 
   const handleSubmit=async(e)=>{
@@ -1855,9 +1878,12 @@ export default function Home() {
   const [showGuide,setShowGuide] = useState(false);
   const isGuestRef = useRef(false);
   const [blobOrigin, setBlobOrigin] = useState(null);
+  const [introError, setIntroError] = useState("");
+  const [introGoogleLoading, setIntroGoogleLoading] = useState(false);
 
   // Google sign-in directly from intro (skip onboarding)
   const handleIntroGoogleSuccess = async (tokenResponse) => {
+    setIntroGoogleLoading(true); setIntroError("");
     try {
       const data = await authAPI.googleAuth(tokenResponse.access_token);
       setAuthData(data.token, data.user, data.user.id, true);
@@ -1867,11 +1893,25 @@ export default function Home() {
       setTimeout(()=>{
         navigate(searchParams.get("redirect")||"/dashboard",{replace:true});
       },450);
-    } catch { /* fall through — user can still use normal login */ }
+    } catch (err) {
+      console.error("Google auth API error (intro):", err);
+      setIntroError(err.message || "Google sign-in failed. Please try again.");
+    } finally { setIntroGoogleLoading(false); }
   };
   const googleSignIn = useGoogleLogin({
     onSuccess: handleIntroGoogleSuccess,
-    onError: () => {},
+    onError: (error) => {
+      console.error("Google sign-in error (intro):", error);
+      const code = error?.error || error?.type || "";
+      const msg = code === "popup_closed_by_user"
+        ? "Google sign-in was cancelled."
+        : code === "popup_failed_to_open"
+        ? "Pop-up blocked. Please allow pop-ups for this site."
+        : "Google sign-in failed. Please try again.";
+      setIntroError(msg);
+      setIntroGoogleLoading(false);
+    },
+    flow: "implicit",
   });
 
   // Splash → login after 1s
@@ -1936,11 +1976,19 @@ export default function Home() {
           <motion.div key="intro" className="relative z-10 h-full w-full"
             initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:0.12 }}>
             <div className="hidden lg:block h-full w-full">
-              <DesktopIntro onGetStarted={()=>handleGetStarted(false)} onGoogleSignIn={googleSignIn}/>
+              <DesktopIntro onGetStarted={()=>handleGetStarted(false)} onGoogleSignIn={()=>{ if(!introGoogleLoading) googleSignIn(); }}/>
             </div>
             <div className="lg:hidden h-full">
-              <MobileOnboarding onGetStarted={(rect)=>handleGetStarted(false, rect)} onGoogleSignIn={googleSignIn}/>
+              <MobileOnboarding onGetStarted={(rect)=>handleGetStarted(false, rect)} onGoogleSignIn={()=>{ if(!introGoogleLoading) googleSignIn(); }}/>
             </div>
+            {introError && (
+              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-xl text-sm font-medium text-white shadow-2xl flex items-center gap-2 animate-pulse"
+                style={{ background:"rgba(220,38,38,0.85)", backdropFilter:"blur(12px)", maxWidth:"90vw" }}
+                onClick={()=>setIntroError("")}>
+                <span>{introError}</span>
+                <button className="ml-2 opacity-60 hover:opacity-100 text-xs">✕</button>
+              </div>
+            )}
           </motion.div>
         )}
 

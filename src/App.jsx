@@ -52,7 +52,7 @@ const PAGE_ENTER_ANIMATE = { opacity: 1, y: 0 };
 const PAGE_EXIT          = { opacity: 0 };
 const PAGE_INIT          = { opacity: 0, y: 6 };
 const PAGE_ENTER_TRAN    = { duration: 0.2, ease: [0.16, 1, 0.3, 1] };
-const PAGE_EXIT_TRAN     = { duration: 0.06, ease: "easeIn" };
+const PAGE_EXIT_TRAN     = { duration: 0.10, ease: "easeIn" };
 
 function PageTransition({ children }) {
   const location = useLocation();
@@ -70,6 +70,7 @@ function PageTransition({ children }) {
           // Force GPU layer up-front to eliminate the composite-on-first-paint jank
           transform: "translateZ(0)",
           WebkitTransform: "translateZ(0)",
+          willChange: "transform, opacity",
         }}
       >
         {children}
