@@ -60,7 +60,7 @@ export default function BottomNav() {
     <>
       {/* ── Bottom Nav Bar ───────────────────────────────────── */}
       <div
-        className="fixed bottom-0 inset-x-0 z-40 md:hidden"
+        className="fixed bottom-0 inset-x-0 z-[9990] md:hidden"
         style={{
           background: isDark
             ? "rgba(8,8,18,0.92)"
@@ -71,8 +71,6 @@ export default function BottomNav() {
             ? "1px solid rgba(255,255,255,0.07)"
             : `1px solid ${theme.gradFrom}18`,
           paddingBottom: "env(safe-area-inset-bottom)",
-          transform: "translateZ(0)",
-          WebkitTransform: "translateZ(0)",
         }}
       >
         <div

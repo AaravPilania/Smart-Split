@@ -48,12 +48,12 @@ function PublicRoute({ element, authReady = true }) {
   return getToken() ? <Navigate to="/dashboard" replace /> : element;
 }
 
-// Smooth page transition — instant exit so there's no blank gap, clean fade-in
-const PAGE_ENTER_ANIMATE = { opacity: 1, y: 0 };
+// Smooth page transition — instant exit, clean fade-in (no transform to avoid stacking issues)
+const PAGE_ENTER_ANIMATE = { opacity: 1 };
 const PAGE_EXIT          = { opacity: 0 };
-const PAGE_INIT          = { opacity: 0, y: 6 };
-const PAGE_ENTER_TRAN    = { duration: 0.2, ease: [0.16, 1, 0.3, 1] };
-const PAGE_EXIT_TRAN     = { duration: 0.10, ease: "easeIn" };
+const PAGE_INIT          = { opacity: 0 };
+const PAGE_ENTER_TRAN    = { duration: 0.18, ease: [0.16, 1, 0.3, 1] };
+const PAGE_EXIT_TRAN     = { duration: 0.08, ease: "easeIn" };
 
 function PageTransition({ children }) {
   const location = useLocation();
@@ -67,7 +67,6 @@ function PageTransition({ children }) {
         style={{
           minHeight: "100dvh",
           width: "100%",
-          overflowX: "hidden",
         }}
       >
         {children}
@@ -141,20 +140,30 @@ function OfflineBanner() {
 
 function App() {
   const [authReady, setAuthReady] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(!!getToken());
 
   // Kick off a health check immediately so cold-start happens ASAP.
   // Also attempt a silent refresh to restore the session from the httpOnly cookie.
   useEffect(() => {
     wakeUpServer();
-    silentRefresh().finally(() => setAuthReady(true));
+    silentRefresh().finally(() => {
+      setAuthReady(true);
+      setIsLoggedIn(!!getToken());
+    });
 
-    // When apiFetch detects a 401 that can't be refreshed, clear everything and go home
+    // Re-render App when login/logout happens so BottomNav appears/disappears
+    const handleLogin = () => setIsLoggedIn(true);
     const handleForceLogout = () => {
       clearAuth();
+      setIsLoggedIn(false);
       window.location.replace('/');
     };
+    window.addEventListener('auth:login', handleLogin);
     window.addEventListener('auth:logout', handleForceLogout);
-    return () => window.removeEventListener('auth:logout', handleForceLogout);
+    return () => {
+      window.removeEventListener('auth:login', handleLogin);
+      window.removeEventListener('auth:logout', handleForceLogout);
+    };
   }, []);
 
   return (
@@ -180,7 +189,7 @@ function App() {
           </Routes>
         </Suspense>
       </PageTransition>
-      {authReady && getToken() && <BottomNav />}
+      {authReady && isLoggedIn && <BottomNav />}
     </BrowserRouter>
   );
 }

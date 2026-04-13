@@ -27,6 +27,8 @@ export function setAuthData(token, user, userId, remember) {
   ['user', 'userId'].forEach(k => drop.removeItem(k));
   keep.setItem('user', JSON.stringify(user));
   keep.setItem('userId', userId);
+  // Notify App so BottomNav and other auth-dependent UI re-renders
+  window.dispatchEvent(new Event('auth:login'));
 }
 
 /** Clear all auth state */
