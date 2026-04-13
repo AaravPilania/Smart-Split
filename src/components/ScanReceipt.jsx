@@ -13,14 +13,16 @@ export default function ScanReceipt({
   onExpenseCreated,
   onClose 
 }) {
-  const { theme } = useTheme();
-  const [mode, setMode] = useState(null); // 'camera', 'upload', or 'qrscan'
+  const { theme, isDark } = useTheme();
+  const [mode, setMode] = useState(null); // 'upload' or 'qrscan'
   const [image, setImage] = useState(null);
   const [imageUrl, setImageUrl] = useState(null);
   const [fileQueue, setFileQueue] = useState([]); // queued files for multi-bill
   const [scanning, setScanning] = useState(false);
   const [extractedData, setExtractedData] = useState(null);
   const [aiScanSource, setAiScanSource] = useState(null); // null | 'gemini' | 'tesseract'
+  const [premiumStatus, setPremiumStatus] = useState(null); // cached { isPremium, ocrUsage }
+  const [scanMessage, setScanMessage] = useState(null); // status message shown during/after scan
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [qrResult, setQrResult] = useState(null); // { pa, pn, am, rawUrl } when a UPI QR is decoded
@@ -54,14 +56,30 @@ export default function ScanReceipt({
     category: "other",
   });
 
+  // Premium / OCR limit gate state
+  const [scanLimitError, setScanLimitError] = useState(null); // null | 'limit_reached' | 'premium_required'
+
+  // Fetch premium status on mount to show OCR usage info
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch(`${API_URL}/auth/premium-status`);
+        if (!cancelled && res.ok) {
+          const data = await res.json();
+          setPremiumStatus(data);
+        }
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
-  const hintTimerRef = useRef(null);
+  const cameraInputRef = useRef(null);
   const qrLoopRef = useRef(null);   // holds requestAnimationFrame id for QR scan loop
   const qrCanvasRef = useRef(null); // off-screen canvas for QR scanning
-  const [facingMode, setFacingMode] = useState("environment");
-  const [showHint, setShowHint] = useState(false);
 
   // Attach stream to video element — called after stream acquired OR when video mounts
   const attachStream = useCallback(() => {
@@ -71,13 +89,8 @@ export default function ScanReceipt({
     }
   }, []);
 
-  // When camera mode activates and video element mounts, attach stream
+  // When QR scan mode activates and video element mounts, attach stream
   useEffect(() => {
-    if (mode === "camera") {
-      // Small timeout ensures the video element is in the DOM
-      const t = setTimeout(attachStream, 50);
-      return () => clearTimeout(t);
-    }
     if (mode === "qrscan") {
       const t = setTimeout(() => { attachStream(); startQRLoop(); }, 100);
       return () => clearTimeout(t);
@@ -95,110 +108,16 @@ export default function ScanReceipt({
 
   useEffect(() => {
     return () => {
-      // Cleanup: stop camera stream
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
       if (imageUrl) {
         URL.revokeObjectURL(imageUrl);
       }
-      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
       if (qrLoopRef.current) cancelAnimationFrame(qrLoopRef.current);
     };
   }, [imageUrl]);
 
-  const applyStream = (stream) => {
-    streamRef.current = stream;
-    // Detect the actual facing mode so flipCamera state is always accurate
-    const track = stream.getVideoTracks()[0];
-    if (track) {
-      const settings = track.getSettings();
-      if (settings.facingMode) setFacingMode(settings.facingMode);
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
-      videoRef.current.play().catch(() => {});
-    }
-    // Only show the receipt hint when in receipt-camera mode (not QR scan)
-    if (mode !== "qrscan") {
-      if (mode !== "camera") setMode("camera");
-      setShowHint(true);
-      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
-      hintTimerRef.current = setTimeout(() => setShowHint(false), 5000);
-    }
-  };
-
-  const startCamera = async (facing = "environment") => {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      alert("Camera access is not available. Make sure you're using a secure connection (HTTPS) and your browser supports camera access.");
-      return;
-    }
-
-    // Stop any existing stream first
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) videoRef.current.srcObject = null;
-
-    // Try constraints in order: exact → ideal → plain → any video
-    const attempts = [
-      { facingMode: { exact: facing } },
-      { facingMode: facing },
-      { facingMode: { ideal: facing } },
-      true, // last resort: any camera
-    ];
-
-    for (const videoConstraint of attempts) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: videoConstraint,
-          audio: false,
-        });
-        applyStream(stream);
-        return;
-      } catch (err) {
-        if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-          alert("Camera permission was denied. Please allow camera access in your browser settings and try again.");
-          return;
-        }
-        if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
-          alert("No camera found on this device.");
-          return;
-        }
-        // For other errors (OverconstrainedError etc.) try next constraint set
-      }
-    }
-    alert("Unable to access camera. Please check your camera is connected and try again.");
-  };
-
-  const flipCamera = async () => {
-    const next = facingMode === "environment" ? "user" : "environment";
-    setFacingMode(next);
-    await startCamera(next);
-  };
-
-  const capturePhoto = useCallback(() => {
-    const video = videoRef.current;
-    if (!video || video.videoWidth === 0) return;
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    // Mirror front camera capture
-    if (facingMode === "user") {
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-    }
-    ctx.drawImage(video, 0, 0);
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      setImage(blob);
-      setImageUrl(url);
-      stopCamera();
-    }, "image/jpeg", 0.95);
-  }, [facingMode]);
 
   const stopCamera = () => {
     if (streamRef.current) {
@@ -305,8 +224,6 @@ export default function ScanReceipt({
         audio: false,
       });
       streamRef.current = stream;
-      const track = stream.getVideoTracks()[0];
-      if (track?.getSettings().facingMode) setFacingMode(track.getSettings().facingMode);
       setMode("qrscan"); // triggers useEffect → attachStream + startQRLoop
     } catch (err) {
       if (err.name === "NotAllowedError") {
@@ -470,6 +387,7 @@ export default function ScanReceipt({
     setMode("upload");
     setExtractedData(null);
     setAiScanSource(null);
+    setScanMessage(null);
     setScanning(false);
     setFormData({ title: "", amount: "", category: "", groupId: selectedGroupId || "" });
   };
@@ -577,31 +495,48 @@ export default function ScanReceipt({
     return { title, amount: amount || 0, rawText: text };
   };
 
-  // Preprocess image for better OCR (especially handwriting)
+  // Preprocess image for better OCR: grayscale → contrast stretch → binarize → upscale
   const preprocessImage = (imageSource) => {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
-        const canvas = document.createElement("canvas");
         // Upscale small images for better OCR
-        const scale = Math.max(1, Math.min(3, 2000 / Math.max(img.width, img.height)));
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
+        let targetWidth = img.width;
+        let targetHeight = img.height;
+        if (targetWidth < 1500) {
+          const scale = 1500 / targetWidth;
+          targetWidth = 1500;
+          targetHeight = Math.round(img.height * scale);
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
         const ctx = canvas.getContext("2d");
-        // White background
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        // Boost contrast and convert to grayscale for handwriting
+        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const d = imageData.data;
+
+        // Pass 1: Convert to grayscale (R=G=B=average) and find min/max for contrast stretching
+        let min = 255, max = 0;
         for (let i = 0; i < d.length; i += 4) {
-          // Grayscale
-          const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-          // Mild contrast boost — aggressive values harm printed receipts
-          const contrast = Math.min(255, Math.max(0, (gray - 128) * 1.3 + 128));
-          d[i] = d[i + 1] = d[i + 2] = contrast;
+          const gray = Math.round((d[i] + d[i + 1] + d[i + 2]) / 3);
+          d[i] = d[i + 1] = d[i + 2] = gray;
+          if (gray < min) min = gray;
+          if (gray > max) max = gray;
         }
+
+        // Pass 2: Histogram stretch [min,max]→[0,255] then binarize at threshold 128
+        const range = max - min || 1;
+        for (let i = 0; i < d.length; i += 4) {
+          const stretched = ((d[i] - min) / range) * 255;
+          const binary = stretched > 128 ? 255 : 0;
+          d[i] = d[i + 1] = d[i + 2] = binary;
+        }
+
         ctx.putImageData(imageData, 0, 0);
         canvas.toBlob((blob) => resolve(blob || imageSource), "image/png");
       };
@@ -635,62 +570,141 @@ export default function ScanReceipt({
     img.src = URL.createObjectURL(file);
   });
 
+  // Helper: call Gemini backend and apply result to form
+  const callGeminiBackend = async (imageFile) => {
+    const compressed = await compressForUpload(imageFile);
+    const fd = new FormData();
+    fd.append('image', compressed);
+    const token = getToken();
+    const gemRes = await fetch(`${API_URL}/expenses/analyze-receipt`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: fd,
+    });
+    if (gemRes.status === 429) {
+      const errData = await gemRes.json().catch(() => ({}));
+      const err = new Error('OCR_LIMIT_REACHED');
+      err.code = 'OCR_LIMIT_REACHED';
+      err.detail = errData;
+      throw err;
+    }
+    if (gemRes.status === 403) {
+      const errData = await gemRes.json().catch(() => ({}));
+      if (errData.code === 'PREMIUM_REQUIRED') {
+        const err = new Error('PREMIUM_REQUIRED');
+        err.code = 'PREMIUM_REQUIRED';
+        throw err;
+      }
+    }
+    if (!gemRes.ok) throw new Error('Gemini API failed');
+    return gemRes.json();
+  };
+
+  // Helper: run Tesseract OCR and apply result to form
+  const applyTesseractResult = (extracted, rawText) => {
+    const splits = [];
+    if (selectedGroup?.members && extracted.amount > 0) {
+      const each = extracted.amount / selectedGroup.members.length;
+      selectedGroup.members.forEach(m => splits.push({ userId: m.id, amount: parseFloat(each.toFixed(2)) }));
+    }
+    setExtractedData({ rawText });
+    setAiScanSource('tesseract');
+    const autoCategory = detectCategoryFromText(rawText) || detectCategory(extracted.title);
+    setFormData({ title: extracted.title, amount: extracted.amount > 0 ? extracted.amount.toString() : "", paidBy: userId, splits, category: autoCategory });
+    // Silent Gemini category refinement
+    (async () => {
+      try {
+        const sgRes = await apiFetch(`${API_URL}/expenses/suggest-category`, { method: 'POST', body: JSON.stringify({ title: extracted.title, ocrText: rawText.slice(0, 500) }) });
+        if (sgRes.ok) { const sg = await sgRes.json(); if (sg.source === 'ai' && sg.category) setFormData(f => ({ ...f, category: sg.category })); }
+      } catch (_) {}
+    })();
+  };
+
   const scanReceipt = async () => {
     if (!image) { alert("Please take a photo or upload an image first"); return; }
     if (!selectedGroupId) { alert("Please select a group first"); return; }
     setScanning(true);
-    try {
-      // ── Gemini Vision (primary) ──────────────────────────────────
-      try {
-        const compressed = await compressForUpload(image);
-        const fd = new FormData();
-        fd.append('image', compressed);
-        const token = getToken();
-        const gemRes = await fetch(`${API_URL}/expenses/analyze-receipt`, {
-          method: 'POST',
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          body: fd,
-        });
-        if (gemRes.ok) {
-          const { title, amount, category, items } = await gemRes.json();
-          const splits = [];
-          if (selectedGroup?.members && amount > 0) {
-            const each = amount / selectedGroup.members.length;
-            selectedGroup.members.forEach(m => splits.push({ userId: m.id, amount: parseFloat(each.toFixed(2)) }));
-          }
-          setExtractedData({ aiScanned: true, items: items || [] });
-          setAiScanSource('gemini');
-          setFormData({ title, amount: amount.toString(), paidBy: userId, splits, category });
-          return;
-        }
-      } catch (_) { /* fall through to Tesseract */ }
+    setScanMessage(null);
 
-      // ── Tesseract fallback ───────────────────────────────────────
-      const processedImage = await preprocessImage(image);
-      const { data } = await Tesseract.recognize(processedImage, "eng", {
-        logger: () => {},
-        tessedit_pageseg_mode: "4",
-        tessedit_ocr_engine_mode: "1",
-        preserve_interword_spaces: "1",
-      });
-      const extracted = extractExpenseData(data.text);
-      const splits = [];
-      if (selectedGroup?.members && extracted.amount > 0) {
-        const each = extracted.amount / selectedGroup.members.length;
-        selectedGroup.members.forEach(m => splits.push({ userId: m.id, amount: parseFloat(each.toFixed(2)) }));
-      }
-      setExtractedData({ rawText: data.text });
-      setAiScanSource('tesseract');
-      const autoCategory = detectCategoryFromText(data.text) || detectCategory(extracted.title);
-      setFormData({ title: extracted.title, amount: extracted.amount > 0 ? extracted.amount.toString() : "", paidBy: userId, splits, category: autoCategory });
-      // Silent Gemini category refinement (Tesseract path only)
-      (async () => {
+    try {
+      // Fetch premium status (cache for this session)
+      let status = premiumStatus;
+      if (!status) {
         try {
-          const sgRes = await apiFetch(`${API_URL}/expenses/suggest-category`, { method: 'POST', body: JSON.stringify({ title: extracted.title, ocrText: data.text.slice(0, 500) }) });
-          if (sgRes.ok) { const sg = await sgRes.json(); if (sg.source === 'ai' && sg.category) setFormData(f => ({ ...f, category: sg.category })); }
+          const psRes = await apiFetch(`${API_URL}/auth/premium-status`);
+          if (psRes.ok) {
+            status = await psRes.json();
+            setPremiumStatus(status);
+          }
         } catch (_) {}
-      })();
+      }
+      // Default to free if fetch failed
+      if (!status) status = { isPremium: false, ocrUsage: { allowed: true, remaining: 5, limit: 5 } };
+
+      if (status.isPremium) {
+        // ── Premium: Gemini direct ──
+        setScanMessage('Scanning with Gemini AI ✨');
+        const { title, amount, category, items } = await callGeminiBackend(image);
+        const splits = [];
+        if (selectedGroup?.members && amount > 0) {
+          const each = amount / selectedGroup.members.length;
+          selectedGroup.members.forEach(m => splits.push({ userId: m.id, amount: parseFloat(each.toFixed(2)) }));
+        }
+        setExtractedData({ aiScanned: true, items: items || [] });
+        setAiScanSource('gemini');
+        setFormData({ title, amount: amount.toString(), paidBy: userId, splits, category });
+        setScanMessage('Scanned with Gemini AI ✨');
+      } else {
+        // ── Free: Tesseract first ──
+        setScanMessage('Scanning with Tesseract (free)…');
+        const processedImage = await preprocessImage(image);
+        const { data } = await Tesseract.recognize(processedImage, "eng", { logger: () => {} });
+        const extracted = extractExpenseData(data.text);
+
+        const hasGoodResult = extracted.amount > 0 && (extracted.title && extracted.title !== 'Receipt Expense');
+
+        if (hasGoodResult) {
+          // Tesseract result is good enough
+          applyTesseractResult(extracted, data.text);
+          setScanMessage('Scanned with Tesseract (free)');
+        } else if (status.ocrUsage?.remaining > 0) {
+          // Fallback to Gemini
+          setScanMessage('Tesseract quality low — trying Gemini AI…');
+          try {
+            const { title, amount, category, items } = await callGeminiBackend(image);
+            const splits = [];
+            if (selectedGroup?.members && amount > 0) {
+              const each = amount / selectedGroup.members.length;
+              selectedGroup.members.forEach(m => splits.push({ userId: m.id, amount: parseFloat(each.toFixed(2)) }));
+            }
+            setExtractedData({ aiScanned: true, items: items || [] });
+            setAiScanSource('gemini');
+            setFormData({ title, amount: amount.toString(), paidBy: userId, splits, category });
+            // Update remaining count locally
+            const newRemaining = (status.ocrUsage.remaining || 1) - 1;
+            const updated = { ...status, ocrUsage: { ...status.ocrUsage, remaining: newRemaining } };
+            setPremiumStatus(updated);
+            setScanMessage(`Scanned with Gemini AI (${newRemaining} of ${status.ocrUsage.limit} daily scans left)`);
+          } catch (_) {
+            // Gemini failed too — use whatever Tesseract got
+            applyTesseractResult(extracted, data.text);
+            setScanMessage('Scanned with Tesseract (free) — Gemini unavailable');
+          }
+        } else {
+          // No Gemini scans left — use partial Tesseract data
+          applyTesseractResult(extracted, data.text);
+          setScanMessage('Scanned with Tesseract (free) — daily Gemini limit reached');
+        }
+      }
     } catch (error) {
+      if (error.code === 'OCR_LIMIT_REACHED') {
+        setScanLimitError('limit_reached');
+        return;
+      }
+      if (error.code === 'PREMIUM_REQUIRED') {
+        setScanLimitError('premium_required');
+        return;
+      }
       console.error("OCR Error:", error);
       alert("Failed to scan receipt. Please try again or enter manually.");
     } finally {
@@ -800,62 +814,6 @@ export default function ScanReceipt({
 
   return (
     <>
-      {/* ── Fullscreen Camera UI (receipt) ── */}
-      <AnimatePresence>
-      {mode === "camera" && (
-        <motion.div className="fixed inset-0 z-[60] bg-black flex flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
-          {/* Video feed */}
-          <div className="flex-1 relative overflow-hidden">
-            <video
-              ref={(el) => { videoRef.current = el; if (el && streamRef.current) { el.srcObject = streamRef.current; el.play().catch(() => {}); } }}
-              autoPlay
-              playsInline
-              muted
-              className={`absolute inset-0 w-full h-full object-cover ${facingMode === "user" ? "scale-x-[-1]" : ""}`}
-            />
-            {/* Receipt guide overlay */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="border-2 border-white/60 rounded-xl w-[85%] h-[65%] shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]" />
-            </div>
-            {/* Top bar */}
-            <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center">
-              <button
-                onClick={stopCamera}
-                className="bg-black/50 text-white p-2 rounded-full"
-              >
-                <FiX className="text-xl" />
-              </button>
-              <span className="text-white/80 text-sm font-medium">Position receipt inside the frame</span>
-              <button
-                onClick={flipCamera}
-                className="bg-black/50 text-white p-2 rounded-full"
-              >
-                <FiRefreshCw className="text-xl" />
-              </button>
-            </div>
-          </div>
-          {/* 5-second photo tip */}
-          {showHint && (
-            <div className="absolute inset-x-0 bottom-36 flex justify-center px-6 pointer-events-none">
-              <div className="bg-black/75 backdrop-blur-sm text-white text-[13px] px-5 py-3 rounded-2xl text-center max-w-xs shadow-xl leading-snug">
-                📸 Hold steady — take a clear, close picture of the bill for best results
-              </div>
-            </div>
-          )}
-          {/* Bottom shutter bar */}
-          <div className="bg-black h-32 flex items-center justify-center">
-            <button
-              onClick={capturePhoto}
-              className="w-18 h-18 rounded-full border-4 border-white flex items-center justify-center active:scale-95 transition-transform"
-              style={{ width: 72, height: 72 }}
-            >
-              <div className="w-14 h-14 rounded-full bg-white" />
-            </button>
-          </div>
-        </motion.div>
-      )}
-      </AnimatePresence>
-
       {/* ── Fullscreen QR Scan UI ── */}
       <AnimatePresence>
       {mode === "qrscan" && (
@@ -1210,25 +1168,34 @@ export default function ScanReceipt({
           </div>
         )}
 
-        {!qrResult && !settleStep && mode !== "camera" && mode !== "qrscan" && !image ? (
+        {!qrResult && !settleStep && mode !== "qrscan" && !image ? (
           <>
           {/* Initial Mode Selection */}
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Hidden native camera input */}
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <button
-                onClick={startCamera}
-                className="p-6 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-3"
+                onClick={() => cameraInputRef.current?.click()}
+                className="p-5 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-2"
                 style={{ borderColor: theme.gradFrom }}
               >
-                <FiCamera className="text-4xl" style={{ color: theme.gradFrom }} />
-                <span className="font-semibold text-gray-800 dark:text-white">Open Camera</span>
-                <span className="text-sm text-gray-500 dark:text-gray-400 text-center">Take a photo of receipt</span>
+                <FiCamera className="text-3xl" style={{ color: theme.gradFrom }} />
+                <span className="font-semibold text-gray-800 dark:text-white text-sm">📷 Scan Bill</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 text-center">Use phone camera</span>
               </button>
 
-              <label className="p-6 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-3 cursor-pointer" style={{ borderColor: theme.gradTo }}>
-                <FiUpload className="text-4xl" style={{ color: theme.gradTo }} />
-                <span className="font-semibold text-gray-800 dark:text-white">Upload Photo</span>
-                <span className="text-sm text-gray-500 dark:text-gray-400 text-center">Select from device</span>
+              <label className="p-5 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-2 cursor-pointer" style={{ borderColor: theme.gradTo }}>
+                <FiUpload className="text-3xl" style={{ color: theme.gradTo }} />
+                <span className="font-semibold text-gray-800 dark:text-white text-sm">📁 Upload Image</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 text-center">Select from gallery</span>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -1240,15 +1207,52 @@ export default function ScanReceipt({
               </label>
 
               <button
+                onClick={startQRScan}
+                className="p-5 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-2"
+                style={{ borderColor: "#8b5cf6" }}
+              >
+                <span className="text-3xl">🔲</span>
+                <span className="font-semibold text-gray-800 dark:text-white text-sm">Scan QR</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 text-center">UPI / Friend QR</span>
+              </button>
+
+              <button
                 onClick={startSettleFlow}
-                className="p-6 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-3"
+                className="p-5 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-2"
                 style={{ borderColor: "#22c55e" }}
               >
-                <FiCreditCard className="text-4xl" style={{ color: "#22c55e" }} />
-                <span className="font-semibold text-gray-800 dark:text-white">Settle Payment</span>
-                <span className="text-sm text-gray-500 dark:text-gray-400 text-center">Pay what you owe via UPI</span>
+                <FiCreditCard className="text-3xl" style={{ color: "#22c55e" }} />
+                <span className="font-semibold text-gray-800 dark:text-white text-sm">Settle Payment</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 text-center">Pay via UPI</span>
               </button>
             </div>
+
+            {/* OCR usage info for free users */}
+            {premiumStatus && !premiumStatus.isPremium && premiumStatus.ocrUsage && (
+              <div className="flex items-center justify-center gap-2 text-xs px-3 py-2 rounded-xl"
+                style={{
+                  background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)",
+                  color: premiumStatus.ocrUsage.remaining > 0
+                    ? (isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)")
+                    : "#ef4444",
+                }}>
+                <span>📸</span>
+                <span>
+                  {premiumStatus.ocrUsage.remaining > 0
+                    ? `${premiumStatus.ocrUsage.remaining}/${premiumStatus.ocrUsage.limit} free AI scans remaining today`
+                    : `Daily AI scan limit reached (${premiumStatus.ocrUsage.limit}/${premiumStatus.ocrUsage.limit})`}
+                </span>
+                {premiumStatus.ocrUsage.remaining === 0 && (
+                  <span className="font-medium" style={{ color: theme.gradFrom }}> · Upgrade for unlimited</span>
+                )}
+              </div>
+            )}
+            {premiumStatus?.isPremium && (
+              <div className="flex items-center justify-center gap-1.5 text-xs px-3 py-2 rounded-xl"
+                style={{ background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)", color: theme.gradFrom }}>
+                ✨ Premium — unlimited AI scans
+              </div>
+            )}
           </div>
           </>
         ) : (
@@ -1333,9 +1337,9 @@ export default function ScanReceipt({
                 )}
 
                 {scanning && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-blue-800 text-sm">
-                      Reading your receipt with Gemini…
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+                    <p className="text-blue-800 dark:text-blue-300 text-sm">
+                      {scanMessage || 'Analyzing receipt…'}
                     </p>
                   </div>
                 )}
@@ -1343,13 +1347,13 @@ export default function ScanReceipt({
                 {/* Extracted Data Form */}
                 {extractedData && (
                   <form onSubmit={handleCreateExpense} className="space-y-4">
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
                       {aiScanSource === 'gemini' ? (
                         <>
-                          <p className="text-green-800 text-sm font-semibold mb-1">✦ Read by Gemini</p>
-                          <p className="text-green-700 text-xs">Title, amount and category auto-filled from your receipt.</p>
+                          <p className="text-green-800 dark:text-green-300 text-sm font-semibold mb-1">✦ Read by Gemini</p>
+                          <p className="text-green-700 dark:text-green-400 text-xs">Title, amount and category auto-filled from your receipt.</p>
                           {extractedData.items?.length > 0 && (
-                            <details className="mt-2 text-xs text-green-700">
+                            <details className="mt-2 text-xs text-green-700 dark:text-green-400">
                               <summary className="cursor-pointer font-medium">{extractedData.items.length} line items detected</summary>
                               <ul className="mt-1.5 space-y-0.5">
                                 {extractedData.items.map((item, i) => (
@@ -1364,9 +1368,10 @@ export default function ScanReceipt({
                         </>
                       ) : (
                         <>
-                          <p className="text-green-800 text-sm font-semibold mb-2">✓ Receipt scanned successfully!</p>
+                          <p className="text-green-800 dark:text-green-300 text-sm font-semibold mb-2">✓ Receipt scanned successfully!</p>
+                          <p className="text-green-700 dark:text-green-400 text-xs mb-1">Auto-detected with Tesseract. Results may need manual editing.</p>
                           {extractedData.rawText && (
-                            <details className="text-xs text-green-700">
+                            <details className="text-xs text-green-700 dark:text-green-400">
                               <summary className="cursor-pointer">View extracted text</summary>
                               <pre className="mt-2 whitespace-pre-wrap max-h-32 overflow-y-auto">
                                 {extractedData.rawText.substring(0, 500)}
@@ -1376,6 +1381,24 @@ export default function ScanReceipt({
                         </>
                       )}
                     </div>
+
+                    {/* Scan source badge & remaining scans */}
+                    {scanMessage && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full ${
+                          aiScanSource === 'gemini'
+                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                        }`}>
+                          {aiScanSource === 'gemini' ? '✨ Gemini AI' : '🔍 Tesseract'}
+                        </span>
+                        {!premiumStatus?.isPremium && premiumStatus?.ocrUsage && (
+                          <span className="text-xs text-gray-400 dark:text-gray-500">
+                            {premiumStatus.ocrUsage.remaining}/{premiumStatus.ocrUsage.limit} Gemini scans remaining today
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                     {/* Group Selection (post-scan, can still change) */}
                     <div>
@@ -1596,6 +1619,59 @@ export default function ScanReceipt({
         )}
       </motion.div>
     </motion.div>
+
+    {/* Scan limit / Premium required overlay */}
+    <AnimatePresence>
+    {scanLimitError && (
+      <motion.div
+        className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] p-4"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className="flex flex-col items-center justify-center text-center p-8 rounded-2xl max-w-sm w-full"
+          style={{
+            background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.85)",
+            border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.06)",
+            backdropFilter: "blur(20px)",
+          }}
+        >
+          <div className="text-4xl mb-3">{scanLimitError === 'limit_reached' ? '📸' : '✨'}</div>
+          <h3 className="text-lg font-semibold mb-2" style={{ color: isDark ? "#fff" : "#1a1a2e" }}>
+            {scanLimitError === 'limit_reached'
+              ? `Daily Scan Limit Reached (${premiumStatus?.ocrUsage?.limit || 5}/${premiumStatus?.ocrUsage?.limit || 5})`
+              : 'AI Scanning is a Premium Feature'}
+          </h3>
+          <p className="text-sm opacity-60 mb-4" style={{ color: isDark ? "#fff" : "#333" }}>
+            {scanLimitError === 'limit_reached'
+              ? 'You\'ve used all your free AI scans for today. Upgrade to Premium for unlimited scans, or try again tomorrow.'
+              : 'Upgrade to Premium for AI-powered receipt scanning with Gemini Vision.'}
+          </p>
+          <div className="flex gap-3 w-full">
+            <button
+              onClick={() => setScanLimitError(null)}
+              className="flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition hover:opacity-80"
+              style={{
+                background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
+                color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.6)",
+              }}
+            >
+              Go Back
+            </button>
+            <button
+              onClick={() => { setScanLimitError(null); window.location.hash = "#/profile"; }}
+              style={getGradientStyle(theme)}
+              className="flex-1 px-4 py-2.5 rounded-full text-white font-medium text-sm shadow-lg transition hover:opacity-90"
+            >
+              Upgrade to Premium
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    )}
+    </AnimatePresence>
     </>
   );
 }

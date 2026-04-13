@@ -265,6 +265,27 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
+  // Premium gate state
+  const [isPremium, setIsPremium] = useState(null); // null = loading
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch(`${API_URL}/auth/premium-status`);
+        if (!cancelled && res.ok) {
+          const data = await res.json();
+          setIsPremium(!!data.isPremium);
+        } else if (!cancelled) {
+          setIsPremium(false);
+        }
+      } catch {
+        if (!cancelled) setIsPremium(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // Listen for aaru-open event (dispatched by BottomNav)
   useEffect(() => {
     const handleOpen = () => setOpen(true);
@@ -509,6 +530,45 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
               }}
             />
 
+            {/* Premium gate */}
+            {isPremium === false ? (
+              <div className="flex-1 flex items-center justify-center px-4">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex flex-col items-center justify-center text-center p-8 rounded-2xl max-w-sm w-full"
+                  style={{
+                    background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.85)",
+                    border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.06)",
+                  }}
+                >
+                  <div className="text-4xl mb-3">✨</div>
+                  <h3 className="text-lg font-semibold mb-2" style={{ color: isDark ? "#fff" : "#1a1a2e" }}>
+                    Aaru AI is a Premium Feature
+                  </h3>
+                  <p className="text-sm mb-1 opacity-60" style={{ color: isDark ? "#fff" : "#333" }}>
+                    Your AI-powered expense assistant that can:
+                  </p>
+                  <ul className="text-sm opacity-50 mb-4 space-y-1" style={{ color: isDark ? "#fff" : "#333" }}>
+                    <li>💬 Parse expenses from natural language</li>
+                    <li>📊 Answer spending questions</li>
+                    <li>🎤 Accept voice input</li>
+                  </ul>
+                  <button
+                    onClick={() => { setOpen(false); window.location.hash = "#/profile"; }}
+                    style={getGradientStyle(theme)}
+                    className="px-6 py-2.5 rounded-full text-white font-medium text-sm shadow-lg transition hover:opacity-90"
+                  >
+                    Upgrade to Premium
+                  </button>
+                </motion.div>
+              </div>
+            ) : isPremium === null ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: theme.gradFrom }} />
+              </div>
+            ) : (
+              <>
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 min-h-0">
               {messages.map((msg, i) => (
@@ -646,6 +706,8 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
                 <FiSend size={14} />
               </button>
             </div>
+              </>
+            )}
           </motion.div>
         </div>
       )}

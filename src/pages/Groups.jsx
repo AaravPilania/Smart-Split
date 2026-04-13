@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import DesktopLayout from "../components/DesktopLayout";
 import DesktopPageHeader from "../components/DesktopPageHeader";
-import { FiUsers, FiPlus, FiX, FiUserPlus, FiLink, FiZap, FiHeart, FiClock, FiTrash2, FiCamera, FiArchive, FiCalendar } from "react-icons/fi";
+import { FiUsers, FiPlus, FiX, FiUserPlus, FiLink, FiZap, FiHeart, FiClock, FiTrash2, FiCamera, FiArchive, FiCalendar, FiLock } from "react-icons/fi";
 import { API_URL, apiFetch, getUserId, cachedApiFetch, invalidateCache } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 import { simplifyDebts } from "../utils/debts";
@@ -28,6 +28,10 @@ export default function Groups() {
   const [activityLoading, setActivityLoading] = useState(false);
   const [archivedGroups, setArchivedGroups] = useState([]);
   const [showArchived, setShowArchived] = useState(false);
+
+  // Premium gate for trip groups
+  const [isPremium, setIsPremium] = useState(null);
+  const [showTripPremiumGate, setShowTripPremiumGate] = useState(false);
 
   const [pfpUploading, setPfpUploading] = useState(null); // groupId being uploaded
   const pfpInputRef = useRef(null);
@@ -57,6 +61,20 @@ export default function Groups() {
     fetchGroups(userIdStr);
     fetchArchivedGroups(userIdStr);
     fetchFriends();
+    // Check premium status for trip group gating
+    (async () => {
+      try {
+        const res = await apiFetch(`${API_URL}/auth/premium-status`);
+        if (res.ok) {
+          const data = await res.json();
+          setIsPremium(!!data.isPremium);
+        } else {
+          setIsPremium(false);
+        }
+      } catch {
+        setIsPremium(false);
+      }
+    })();
   }, [navigate]);
 
   const fetchFriends = async () => {
@@ -248,6 +266,12 @@ export default function Groups() {
     e.preventDefault();
     if (!createForm.name.trim()) {
       alert("Group name is required");
+      return;
+    }
+
+    // Gate trip groups behind premium
+    if (createForm.type === "trip" && !isPremium) {
+      setShowTripPremiumGate(true);
       return;
     }
 
@@ -970,6 +994,61 @@ export default function Groups() {
                 </button>
               </div>
             </form>
+          </motion.div>
+        </motion.div>
+      )}
+      </AnimatePresence>
+
+      {/* Trip Premium Gate Modal */}
+      <AnimatePresence>
+      {showTripPremiumGate && (
+        <motion.div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="flex flex-col items-center justify-center text-center p-8 rounded-2xl max-w-sm w-full"
+            style={{
+              background: isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.85)",
+              border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.06)",
+              backdropFilter: "blur(20px)",
+            }}
+          >
+            <div className="text-4xl mb-3">✨</div>
+            <h3 className="text-lg font-semibold mb-2" style={{ color: isDark ? "#fff" : "#1a1a2e" }}>
+              Trip Groups are a Premium Feature
+            </h3>
+            <p className="text-sm opacity-60 mb-1" style={{ color: isDark ? "#fff" : "#333" }}>
+              Plan group trips with:
+            </p>
+            <ul className="text-sm opacity-50 mb-4 space-y-1" style={{ color: isDark ? "#fff" : "#333" }}>
+              <li>✈️ Start &amp; end dates</li>
+              <li>💰 Trip budgets</li>
+              <li>🌍 Multi-currency support</li>
+            </ul>
+            <p className="text-xs opacity-40 mb-4" style={{ color: isDark ? "#fff" : "#333" }}>
+              Regular groups are always free!
+            </p>
+            <div className="flex gap-3 w-full">
+              <button
+                onClick={() => setShowTripPremiumGate(false)}
+                className="flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition hover:opacity-80"
+                style={{
+                  background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
+                  color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.6)",
+                }}
+              >
+                Go Back
+              </button>
+              <button
+                onClick={() => { setShowTripPremiumGate(false); navigate("/profile"); }}
+                style={getGradientStyle(theme)}
+                className="flex-1 px-4 py-2.5 rounded-full text-white font-medium text-sm shadow-lg transition hover:opacity-90"
+              >
+                Upgrade to Premium
+              </button>
+            </div>
           </motion.div>
         </motion.div>
       )}
