@@ -189,6 +189,7 @@ export default function Navbar() {
           boxShadow: isDark
             ? "0 1px 20px rgba(0,0,0,0.35)"
             : "0 1px 20px rgba(0,0,0,0.07)",
+          paddingTop: "env(safe-area-inset-top, 0px)",
         }}
       >
         {/* ── Desktop (md+) — unchanged ─────────────────────── */}

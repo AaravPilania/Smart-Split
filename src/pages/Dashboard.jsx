@@ -657,7 +657,7 @@ export default function Dashboard() {
             {/* ── Error state ── */}
             {fetchError && (
               <div className="rounded-2xl p-6 mb-6 text-center" style={glass}>
-                <div className="text-3xl mb-3">⚡</div>
+                <FiZap className="text-3xl mb-3 mx-auto" style={{ color: theme.gradFrom }} />
                 <p className="font-bold mb-1" style={{ color: isDark ? "#fff" : "#111" }}>Server Warming Up</p>
                 <p className="text-sm mb-3" style={{ color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }}>
                   Your data is safe — usually resolves in 30–60 seconds.
@@ -936,7 +936,7 @@ export default function Dashboard() {
                     </div>
                   ) : categoryData.length === 0 ? (
                     <div className="text-center py-16">
-                      <p className="text-4xl mb-3">📊</p>
+                      <FiBarChart2 className="mx-auto mb-3" size={40} style={{ color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.25)" }} />
                       <p className="font-semibold" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)" }}>No expense data yet</p>
                     </div>
                   ) : (
@@ -1020,7 +1020,7 @@ export default function Dashboard() {
       style={getPageBgStyle(theme, isDark)}
     >
       <Navbar />
-      <div className="h-16" />
+      <div style={{ height: "calc(4rem + env(safe-area-inset-top, 0px))" }} />
 
       {/* ── Scrollable content — pb accounts for bottom nav ── */}
       <div className="max-w-lg mx-auto px-4 pt-5 pb-28">
@@ -1059,7 +1059,7 @@ export default function Dashboard() {
             className="rounded-2xl p-5 mb-5 text-center"
             style={glass}
           >
-            <div className="text-3xl mb-2">⚡</div>
+            <FiZap className="text-3xl mb-2 mx-auto" style={{ color: theme.gradFrom }} />
             <p className="font-bold text-gray-800 dark:text-white mb-1">
               Server Unreachable
             </p>
@@ -1113,7 +1113,7 @@ export default function Dashboard() {
                   <div key={trip._id || trip.id} className="rounded-2xl p-4 mb-4 flex items-center gap-3 cursor-pointer"
                     style={{ background: isDark ? "rgba(59,130,246,0.1)" : "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.2)" }}
                     onClick={() => navigate(`/expenses?group=${trip._id || trip.id}`)}>
-                    <span className="text-2xl">✈️</span>
+                    <span className="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style={{ background: "rgba(59,130,246,0.15)", color: "#3b82f6" }}>T</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold truncate" style={{ color: isDark ? "#fff" : "#111" }}>{trip.name}</p>
                       <p className="text-[11px]" style={{ color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)" }}>
@@ -1417,7 +1417,7 @@ export default function Dashboard() {
               {/* Header */}
               <div className="flex items-center justify-between px-5 pt-2 pb-3">
                 <div className="flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-sm" style={getGradientStyle(theme)}>✨</span>
+                  <span className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-sm" style={getGradientStyle(theme)}><FiTrendingUp size={16} /></span>
                   <h2 className="text-[17px] font-black" style={{ color: isDark ? "#ffffff" : "#0f0f1a" }}>Spending Insights</h2>
                 </div>
                 <button
@@ -1440,7 +1440,7 @@ export default function Dashboard() {
                   </div>
                 ) : categoryData.length === 0 ? (
                   <div className="text-center py-16">
-                    <p className="text-4xl mb-3">💸</p>
+                    <FiBarChart2 className="mx-auto mb-3" size={40} style={{ color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.25)" }} />
                     <p className="font-semibold" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)" }}>
                       No expense data yet
                     </p>

@@ -18,7 +18,7 @@ export default function ExpenseTable({ expenses = [], userId, isDark, theme, gla
   if (expenses.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-4xl mb-2">🧾</p>
+        <p className="text-4xl mb-2 text-gray-300 dark:text-gray-600">—</p>
         <p className="text-sm" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)" }}>
           No expenses yet — add your first one!
         </p>

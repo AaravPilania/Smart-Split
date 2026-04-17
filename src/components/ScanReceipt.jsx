@@ -42,10 +42,10 @@ export default function ScanReceipt({
   const [showAllApps, setShowAllApps] = useState(false);
 
   const UPI_APPS = [
-    { key: "gpay",    label: "Google Pay",  scheme: "upi://pay", logo: (<svg width="24" height="24" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="white"/><path d="M24 9.5c3.04 0 5.78 1.14 7.9 3l5.88-5.88C33.86 3.02 29.22 1 24 1 14.6 1 6.6 6.76 3.1 14.88l6.82 5.3C11.46 14.26 17.2 9.5 24 9.5z" fill="#EA4335"/><path d="M46.1 24.5c0-1.68-.15-3.3-.43-4.88H24v9.24h12.42a10.63 10.63 0 01-4.6 6.98l7.02 5.46C43.02 37.56 46.1 31.5 46.1 24.5z" fill="#4285F4"/><path d="M9.92 28.18A14.37 14.37 0 019 24c0-1.46.25-2.86.7-4.18L2.88 14.5A23.36 23.36 0 001 24c0 3.8.9 7.4 2.52 10.58l7.4-6.4z" fill="#FBBC05"/><path d="M24 47c6.48 0 11.92-2.14 15.9-5.82l-7.56-5.86c-2.1 1.42-4.78 2.26-8.34 2.26-6.42 0-11.86-4.34-13.8-10.18l-7.36 5.68C6.6 41.24 14.6 47 24 47z" fill="#34A853"/></svg>) },
-    { key: "phonepe", label: "PhonePe",     scheme: "upi://pay", logo: (<svg width="24" height="24" viewBox="0 0 28 28"><rect width="28" height="28" rx="7" fill="#5f259f"/><path d="M9 21V7h6a5 5 0 0 1 0 10h-3v4H9z" fill="white"/><path d="M12 10v4h3a2 2 0 1 0 0-4h-3z" fill="#5f259f"/></svg>) },
-    { key: "paytm",   label: "Paytm",       scheme: "upi://pay", logo: (<svg width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#00BAF2"/><circle cx="12" cy="12" r="8.5" stroke="white" strokeWidth="1.2" fill="none"/><text x="12" y="13.8" textAnchor="middle" fill="white" fontSize="6" fontWeight="bold" fontFamily="Arial,sans-serif">paytm</text></svg>) },
-    { key: "generic", label: "Other UPI",   scheme: "upi://pay", logo: (<svg width="24" height="24" viewBox="0 0 28 28"><rect width="28" height="28" rx="7" fill="#6b7280"/><text x="14" y="19" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">U</text></svg>) },
+    { key: "gpay",    label: "Google Pay",  scheme: "gpay://", intentUrl: "intent://upi#Intent;scheme=gpay;package=com.google.android.apps.nbu.paisa.user;end", logo: (<svg width="24" height="24" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="white"/><path d="M24 9.5c3.04 0 5.78 1.14 7.9 3l5.88-5.88C33.86 3.02 29.22 1 24 1 14.6 1 6.6 6.76 3.1 14.88l6.82 5.3C11.46 14.26 17.2 9.5 24 9.5z" fill="#EA4335"/><path d="M46.1 24.5c0-1.68-.15-3.3-.43-4.88H24v9.24h12.42a10.63 10.63 0 01-4.6 6.98l7.02 5.46C43.02 37.56 46.1 31.5 46.1 24.5z" fill="#4285F4"/><path d="M9.92 28.18A14.37 14.37 0 019 24c0-1.46.25-2.86.7-4.18L2.88 14.5A23.36 23.36 0 001 24c0 3.8.9 7.4 2.52 10.58l7.4-6.4z" fill="#FBBC05"/><path d="M24 47c6.48 0 11.92-2.14 15.9-5.82l-7.56-5.86c-2.1 1.42-4.78 2.26-8.34 2.26-6.42 0-11.86-4.34-13.8-10.18l-7.36 5.68C6.6 41.24 14.6 47 24 47z" fill="#34A853"/></svg>) },
+    { key: "phonepe", label: "PhonePe",     scheme: "phonepe://", logo: (<svg width="24" height="24" viewBox="0 0 28 28"><rect width="28" height="28" rx="7" fill="#5f259f"/><path d="M9 21V7h6a5 5 0 0 1 0 10h-3v4H9z" fill="white"/><path d="M12 10v4h3a2 2 0 1 0 0-4h-3z" fill="#5f259f"/></svg>) },
+    { key: "paytm",   label: "Paytm",       scheme: "paytm://", logo: (<svg width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#00BAF2"/><circle cx="12" cy="12" r="8.5" stroke="white" strokeWidth="1.2" fill="none"/><text x="12" y="13.8" textAnchor="middle" fill="white" fontSize="6" fontWeight="bold" fontFamily="Arial,sans-serif">paytm</text></svg>) },
+    { key: "generic", label: "Other UPI",   scheme: null, logo: (<svg width="24" height="24" viewBox="0 0 28 28"><rect width="28" height="28" rx="7" fill="#6b7280"/><text x="14" y="19" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">U</text></svg>) },
   ];
 
   const [formData, setFormData] = useState({
@@ -92,7 +92,19 @@ export default function ScanReceipt({
   // When QR scan mode activates and video element mounts, attach stream
   useEffect(() => {
     if (mode === "qrscan") {
-      const t = setTimeout(() => { attachStream(); startQRLoop(); }, 100);
+      // Use longer delay and retry to ensure video element is ready
+      let attempts = 0;
+      const maxAttempts = 20;
+      const tryAttach = () => {
+        attachStream();
+        if (videoRef.current && videoRef.current.srcObject) {
+          startQRLoop();
+        } else if (attempts < maxAttempts) {
+          attempts++;
+          setTimeout(tryAttach, 150);
+        }
+      };
+      const t = setTimeout(tryAttach, 100);
       return () => clearTimeout(t);
     }
   }, [mode, attachStream]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -319,6 +331,8 @@ export default function ScanReceipt({
     setSettleStep("appPicker");
   };
 
+  const [settleToast, setSettleToast] = useState(null);
+
   const openWithApp = (appKey, setAsDefault) => {
     const app = UPI_APPS.find((a) => a.key === appKey) || UPI_APPS[3];
     const s = selectedSettle;
@@ -328,26 +342,40 @@ export default function ScanReceipt({
       alert(`${s.to?.name || "This person"} hasn't set their UPI ID yet.`);
       return;
     }
+    const amt = parseFloat(s.amount).toFixed(2);
+    const name = s.to?.name || "";
+
     if (setAsDefault) {
       try { localStorage.setItem("smartsplit_default_upi_app", appKey); } catch {}
       setDefaultUpiApp(appKey);
     }
-    const params = new URLSearchParams({
-      pa: upiId,
-      pn: s.to?.name || "",
-      am: parseFloat(s.amount).toFixed(2),
-      cu: "INR",
-      tn: `SmartSplit: ${s.groupName || ""}`,
-    });
-    const upiLink = `${app.scheme}?${params.toString()}`;
 
-    // Use anchor click — browsers block window.location custom-scheme
-    const a = document.createElement('a');
-    a.href = upiLink;
-    a.rel = 'noopener';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => { try { document.body.removeChild(a); } catch (_) {} }, 500);
+    // Copy payment details to clipboard
+    const clipText = `Pay ₹${amt} to ${name}\nUPI: ${upiId}`;
+    try { navigator.clipboard.writeText(clipText); } catch {}
+
+    if (!app.scheme) {
+      // "Other" — just copy & show toast
+      setSettleToast(`₹${amt} copied! Open your UPI app and pay.`);
+      setTimeout(() => setSettleToast(null), 4000);
+      return;
+    }
+
+    // Open app homepage (not payment screen) using app-specific scheme
+    const schemeUrl = app.intentUrl || app.scheme;
+    const openedAt = Date.now();
+    window.location.href = schemeUrl;
+
+    // Fallback: if page is still visible after 2s, app likely didn't open
+    setTimeout(() => {
+      if (document.visibilityState === 'visible' && Date.now() - openedAt < 3000) {
+        setSettleToast(`₹${amt} copied! Couldn't open ${app.label} — open it manually and pay.`);
+        setTimeout(() => setSettleToast(null), 5000);
+      } else {
+        setSettleToast(`₹${amt} copied! Pay in ${app.label}.`);
+        setTimeout(() => setSettleToast(null), 4000);
+      }
+    }, 2000);
   };
 
   const clearDefaultApp = () => {
@@ -495,7 +523,7 @@ export default function ScanReceipt({
     return { title, amount: amount || 0, rawText: text };
   };
 
-  // Preprocess image for better OCR: grayscale → contrast stretch → binarize → upscale
+  // Preprocess image for better OCR: grayscale → contrast stretch → adaptive binarize → upscale
   const preprocessImage = (imageSource) => {
     return new Promise((resolve) => {
       const img = new Image();
@@ -508,6 +536,13 @@ export default function ScanReceipt({
           targetWidth = 1500;
           targetHeight = Math.round(img.height * scale);
         }
+        // Downscale very large images to avoid memory issues
+        const MAX_DIM = 4000;
+        if (targetWidth > MAX_DIM || targetHeight > MAX_DIM) {
+          const scale = MAX_DIM / Math.max(targetWidth, targetHeight);
+          targetWidth = Math.round(targetWidth * scale);
+          targetHeight = Math.round(targetHeight * scale);
+        }
 
         const canvas = document.createElement("canvas");
         canvas.width = targetWidth;
@@ -519,22 +554,49 @@ export default function ScanReceipt({
 
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const d = imageData.data;
+        const w = canvas.width;
+        const h = canvas.height;
 
-        // Pass 1: Convert to grayscale (R=G=B=average) and find min/max for contrast stretching
-        let min = 255, max = 0;
+        // Pass 1: Convert to grayscale
+        const gray = new Uint8Array(w * h);
         for (let i = 0; i < d.length; i += 4) {
-          const gray = Math.round((d[i] + d[i + 1] + d[i + 2]) / 3);
-          d[i] = d[i + 1] = d[i + 2] = gray;
-          if (gray < min) min = gray;
-          if (gray > max) max = gray;
+          const g = Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
+          gray[i >> 2] = g;
+          d[i] = d[i + 1] = d[i + 2] = g;
         }
 
-        // Pass 2: Histogram stretch [min,max]→[0,255] then binarize at threshold 128
-        const range = max - min || 1;
-        for (let i = 0; i < d.length; i += 4) {
-          const stretched = ((d[i] - min) / range) * 255;
-          const binary = stretched > 128 ? 255 : 0;
-          d[i] = d[i + 1] = d[i + 2] = binary;
+        // Pass 2: Adaptive threshold using integral image for local mean
+        const blockSize = Math.max(15, Math.round(Math.min(w, h) / 40) | 1);
+        const halfBlock = blockSize >> 1;
+        const C = 10; // bias constant
+
+        // Build integral image
+        const integral = new Float64Array(w * h);
+        for (let y = 0; y < h; y++) {
+          let rowSum = 0;
+          for (let x = 0; x < w; x++) {
+            rowSum += gray[y * w + x];
+            integral[y * w + x] = rowSum + (y > 0 ? integral[(y - 1) * w + x] : 0);
+          }
+        }
+
+        // Apply adaptive threshold
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const x1 = Math.max(0, x - halfBlock);
+            const y1 = Math.max(0, y - halfBlock);
+            const x2 = Math.min(w - 1, x + halfBlock);
+            const y2 = Math.min(h - 1, y + halfBlock);
+            const count = (x2 - x1 + 1) * (y2 - y1 + 1);
+            let sum = integral[y2 * w + x2];
+            if (x1 > 0) sum -= integral[y2 * w + (x1 - 1)];
+            if (y1 > 0) sum -= integral[(y1 - 1) * w + x2];
+            if (x1 > 0 && y1 > 0) sum += integral[(y1 - 1) * w + (x1 - 1)];
+            const mean = sum / count;
+            const idx = (y * w + x) * 4;
+            const val = gray[y * w + x] > mean - C ? 255 : 0;
+            d[idx] = d[idx + 1] = d[idx + 2] = val;
+          }
         }
 
         ctx.putImageData(imageData, 0, 0);
@@ -643,7 +705,7 @@ export default function ScanReceipt({
 
       if (status.isPremium) {
         // ── Premium: Gemini direct ──
-        setScanMessage('Scanning with Gemini AI ✨');
+        setScanMessage('Scanning with Gemini AI…');
         const { title, amount, category, items } = await callGeminiBackend(image);
         const splits = [];
         if (selectedGroup?.members && amount > 0) {
@@ -653,7 +715,7 @@ export default function ScanReceipt({
         setExtractedData({ aiScanned: true, items: items || [] });
         setAiScanSource('gemini');
         setFormData({ title, amount: amount.toString(), paidBy: userId, splits, category });
-        setScanMessage('Scanned with Gemini AI ✨');
+        setScanMessage('Scanned with Gemini AI');
       } else {
         // ── Free: Tesseract first ──
         setScanMessage('Scanning with Tesseract (free)…');
@@ -868,7 +930,7 @@ export default function ScanReceipt({
 
     <motion.div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
-      <motion.div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-3xl w-full p-4 sm:p-6 my-8 max-h-[90vh] overflow-y-auto"
+      <motion.div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-3xl w-full p-4 sm:p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto"
         initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 340, damping: 28 }}>
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-2xl font-bold text-gray-800 dark:text-white">
@@ -1155,13 +1217,24 @@ export default function ScanReceipt({
                 onClick={() => {
                   const s = selectedSettle;
                   if (!s?.to?.upiId) return;
-                  const text = `UPI ID: ${s.to.upiId} | Name: ${s.to.name} | Amount: ₹${parseFloat(s.amount).toFixed(2)}`;
-                  navigator.clipboard?.writeText(text).then(() => alert('Copied! Open your UPI app and paste.'));
+                  const text = `Pay ₹${parseFloat(s.amount).toFixed(2)} to ${s.to.name}\nUPI: ${s.to.upiId}`;
+                  navigator.clipboard?.writeText(text).then(() => {
+                    setSettleToast('Copied! Open your UPI app and paste.');
+                    setTimeout(() => setSettleToast(null), 3000);
+                  });
                 }}
                 className="w-full flex items-center justify-center gap-2 py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition border dark:border-gray-700 rounded-lg"
               >
                 <FiCopy size={13} /> Copy UPI details
               </button>
+            )}
+
+            {/* Toast notification */}
+            {settleToast && (
+              <div className="px-3 py-2.5 rounded-xl text-xs text-center font-medium"
+                style={{ background: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.1)', color: isDark ? '#a5b4fc' : '#4f46e5', border: '1px solid rgba(99,102,241,0.3)' }}>
+                {settleToast}
+              </div>
             )}
 
             <button onClick={() => setSettleStep("pick")} className="w-full py-2 text-xs text-gray-400 hover:text-gray-600 transition">← Back to settlements</button>
@@ -1188,13 +1261,13 @@ export default function ScanReceipt({
                 style={{ borderColor: theme.gradFrom }}
               >
                 <FiCamera className="text-3xl" style={{ color: theme.gradFrom }} />
-                <span className="font-semibold text-gray-800 dark:text-white text-sm">📷 Scan Bill</span>
+                <span className="font-semibold text-gray-800 dark:text-white text-sm">Scan Bill</span>
                 <span className="text-xs text-gray-500 dark:text-gray-400 text-center">Use phone camera</span>
               </button>
 
               <label className="p-5 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-2 cursor-pointer" style={{ borderColor: theme.gradTo }}>
                 <FiUpload className="text-3xl" style={{ color: theme.gradTo }} />
-                <span className="font-semibold text-gray-800 dark:text-white text-sm">📁 Upload Image</span>
+                <span className="font-semibold text-gray-800 dark:text-white text-sm">Upload Image</span>
                 <span className="text-xs text-gray-500 dark:text-gray-400 text-center">Select from gallery</span>
                 <input
                   ref={fileInputRef}
@@ -1211,7 +1284,7 @@ export default function ScanReceipt({
                 className="p-5 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-2"
                 style={{ borderColor: "#8b5cf6" }}
               >
-                <span className="text-3xl">🔲</span>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
                 <span className="font-semibold text-gray-800 dark:text-white text-sm">Scan QR</span>
                 <span className="text-xs text-gray-500 dark:text-gray-400 text-center">UPI / Friend QR</span>
               </button>
@@ -1236,7 +1309,6 @@ export default function ScanReceipt({
                     ? (isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)")
                     : "#ef4444",
                 }}>
-                <span>📸</span>
                 <span>
                   {premiumStatus.ocrUsage.remaining > 0
                     ? `${premiumStatus.ocrUsage.remaining}/${premiumStatus.ocrUsage.limit} free AI scans remaining today`
@@ -1250,7 +1322,7 @@ export default function ScanReceipt({
             {premiumStatus?.isPremium && (
               <div className="flex items-center justify-center gap-1.5 text-xs px-3 py-2 rounded-xl"
                 style={{ background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)", color: theme.gradFrom }}>
-                ✨ Premium — unlimited AI scans
+                Premium — unlimited AI scans
               </div>
             )}
           </div>
@@ -1390,7 +1462,7 @@ export default function ScanReceipt({
                             ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
                             : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                         }`}>
-                          {aiScanSource === 'gemini' ? '✨ Gemini AI' : '🔍 Tesseract'}
+                          {aiScanSource === 'gemini' ? 'Gemini AI' : 'Tesseract'}
                         </span>
                         {!premiumStatus?.isPremium && premiumStatus?.ocrUsage && (
                           <span className="text-xs text-gray-400 dark:text-gray-500">
@@ -1440,7 +1512,7 @@ export default function ScanReceipt({
                         const cat = getCategoryInfo(formData.category);
                         return (
                           <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
-                            <span className="text-blue-400 dark:text-blue-300 text-xs font-semibold">✨ AI suggests:</span>
+                            <span className="text-blue-400 dark:text-blue-300 text-xs font-semibold">AI suggests:</span>
                             <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${cat.badge}`}>{cat.icon} {cat.label}</span>
                             <span className="ml-auto text-[10px] text-blue-300 dark:text-blue-400">tap below to change</span>
                           </div>
@@ -1638,7 +1710,7 @@ export default function ScanReceipt({
             backdropFilter: "blur(20px)",
           }}
         >
-          <div className="text-4xl mb-3">{scanLimitError === 'limit_reached' ? '📸' : '✨'}</div>
+          <FiCamera className="mx-auto mb-3" size={40} style={{ color: theme.gradFrom }} />
           <h3 className="text-lg font-semibold mb-2" style={{ color: isDark ? "#fff" : "#1a1a2e" }}>
             {scanLimitError === 'limit_reached'
               ? `Daily Scan Limit Reached (${premiumStatus?.ocrUsage?.limit || 5}/${premiumStatus?.ocrUsage?.limit || 5})`

@@ -39,10 +39,10 @@ export default function Balances() {
   const upiOpenedRef = useRef(false);
 
   const UPI_APPS = [
-    { id: 'gpay', label: 'Google Pay', scheme: 'gpay://', intentUrl: 'intent://upi#Intent;scheme=gpay;package=com.google.android.apps.nbu.paisa.user;end' },
-    { id: 'phonepe', label: 'PhonePe', scheme: 'phonepe://' },
-    { id: 'paytm', label: 'Paytm', scheme: 'paytm://' },
-    { id: 'other', label: 'Other / Manual', scheme: null },
+    { id: 'gpay', label: 'Google Pay', scheme: 'gpay://', intentUrl: 'intent://upi#Intent;scheme=gpay;package=com.google.android.apps.nbu.paisa.user;end', logo: (<svg width="20" height="20" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="white"/><path d="M24 9.5c3.04 0 5.78 1.14 7.9 3l5.88-5.88C33.86 3.02 29.22 1 24 1 14.6 1 6.6 6.76 3.1 14.88l6.82 5.3C11.46 14.26 17.2 9.5 24 9.5z" fill="#EA4335"/><path d="M46.1 24.5c0-1.68-.15-3.3-.43-4.88H24v9.24h12.42a10.63 10.63 0 01-4.6 6.98l7.02 5.46C43.02 37.56 46.1 31.5 46.1 24.5z" fill="#4285F4"/><path d="M9.92 28.18A14.37 14.37 0 019 24c0-1.46.25-2.86.7-4.18L2.88 14.5A23.36 23.36 0 001 24c0 3.8.9 7.4 2.52 10.58l7.4-6.4z" fill="#FBBC05"/><path d="M24 47c6.48 0 11.92-2.14 15.9-5.82l-7.56-5.86c-2.1 1.42-4.78 2.26-8.34 2.26-6.42 0-11.86-4.34-13.8-10.18l-7.36 5.68C6.6 41.24 14.6 47 24 47z" fill="#34A853"/></svg>) },
+    { id: 'phonepe', label: 'PhonePe', scheme: 'phonepe://', logo: (<svg width="20" height="20" viewBox="0 0 28 28"><rect width="28" height="28" rx="7" fill="#5f259f"/><path d="M9 21V7h6a5 5 0 0 1 0 10h-3v4H9z" fill="white"/><path d="M12 10v4h3a2 2 0 1 0 0-4h-3z" fill="#5f259f"/></svg>) },
+    { id: 'paytm', label: 'Paytm', scheme: 'paytm://', logo: (<svg width="20" height="20" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#00BAF2"/><circle cx="12" cy="12" r="8.5" stroke="white" strokeWidth="1.2" fill="none"/><text x="12" y="13.8" textAnchor="middle" fill="white" fontSize="6" fontWeight="bold" fontFamily="Arial,sans-serif">paytm</text></svg>) },
+    { id: 'other', label: 'Other / Manual', scheme: null, logo: (<svg width="20" height="20" viewBox="0 0 28 28"><rect width="28" height="28" rx="7" fill="#6b7280"/><text x="14" y="19" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">U</text></svg>) },
   ];
 
   const handleUpiPay = (appId) => {
@@ -389,7 +389,7 @@ export default function Balances() {
               ? { background: "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(20px)" }
               : { background: "rgba(255,255,255,0.92)", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 2px 16px rgba(0,0,0,0.05)" }}
           >
-            <p className="text-5xl mb-4">🎉</p>
+            <FiCheck className="mx-auto mb-4 text-green-500" size={48} />
             <p className="text-xl font-black mb-1" style={{ color: isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.85)" }}>All settled up!</p>
             <p className="text-sm" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.45)" }}>No outstanding balances across any of your groups</p>
           </div>
@@ -636,7 +636,7 @@ export default function Balances() {
               </>
             ) : (
               <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl px-4 py-3 mb-4 text-left">
-                <span className="text-amber-500 text-base mt-0.5">⚠️</span>
+                <FiZap className="text-amber-500 text-base mt-0.5 flex-shrink-0" size={16} />
                 <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
                   <strong>{upiModal.toName}</strong> hasn&apos;t set a UPI ID yet.<br />
                   Ask them to add it in <strong>Profile → UPI ID</strong> field so you can pay directly.
@@ -676,12 +676,13 @@ export default function Balances() {
                     <button
                       key={app.id}
                       onClick={() => handleUpiPay(app.id)}
-                      className="px-3 py-2 rounded-lg text-xs font-medium transition"
+                      className="px-3 py-2.5 rounded-lg text-xs font-medium transition flex items-center gap-2"
                       style={{
                         background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
                         color: isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)',
                       }}
                     >
+                      <span className="w-5 h-5 flex-shrink-0">{app.logo}</span>
                       {app.label}
                     </button>
                   ))}
@@ -733,7 +734,7 @@ export default function Balances() {
                 <button onClick={() => proofInputRef.current?.click()}
                   className="w-full py-2 rounded-xl text-xs font-medium transition flex items-center justify-center gap-1.5"
                   style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)" }}>
-                  📸 Attach payment screenshot (optional)
+                  Attach payment screenshot (optional)
                 </button>
               )}
             </div>

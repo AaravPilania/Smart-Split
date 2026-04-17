@@ -154,11 +154,11 @@ export default function BottomNav() {
                 >
                   {tab.label}
                 </span>
-                {/* Active dot */}
+                {/* Active highlight bar */}
                 {active && (
                   <span
-                    className="absolute bottom-1.5 w-1 h-1 rounded-full"
-                    style={{ background: theme.gradFrom }}
+                    className="absolute -top-0.5 w-5 h-[3px] rounded-full"
+                    style={{ background: `linear-gradient(90deg, ${theme.gradFrom}, ${theme.gradTo})` }}
                   />
                 )}
               </Link>
@@ -177,7 +177,7 @@ export default function BottomNav() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
-              className="fixed inset-0 z-50 bg-black/55 backdrop-blur-sm md:hidden"
+              className="fixed inset-0 z-[9991] bg-black/55 backdrop-blur-sm md:hidden"
               onClick={() => setShowSheet(false)}
             />
             <motion.div
@@ -186,7 +186,7 @@ export default function BottomNav() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed bottom-0 inset-x-0 z-50 rounded-t-3xl md:hidden"
+              className="fixed bottom-0 inset-x-0 z-[9992] rounded-t-3xl md:hidden"
               style={{
                 background: isDark ? "rgba(11,11,21,0.97)" : "#ffffff",
                 backdropFilter: "blur(32px)",

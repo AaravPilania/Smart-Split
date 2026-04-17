@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, select: false },
   googleId: { type: String, sparse: true },
   username: { type: String, unique: true, sparse: true, trim: true, lowercase: true },
+  phone: { type: String, default: '', trim: true },
   pfp: { type: String, default: '' },
   upiId: { type: String, default: '' },
   monthlyBudget: { type: Number, default: 0 }, // 0 = no budget set
@@ -168,6 +169,7 @@ module.exports = {
     if (updates.username !== undefined) setFields.username = updates.username.toLowerCase().trim();
     if (updates.pfp !== undefined) setFields.pfp = updates.pfp;
     if (updates.upiId !== undefined) setFields.upiId = updates.upiId.trim();
+    if (updates.phone !== undefined) setFields.phone = updates.phone.replace(/[^0-9+\-\s]/g, '').trim();
     if (updates.monthlyBudget !== undefined) setFields.monthlyBudget = Math.max(0, Number(updates.monthlyBudget) || 0);
     if (updates.googleId !== undefined) setFields.googleId = updates.googleId;
     if (updates.refreshTokenHash !== undefined) setFields.refreshTokenHash = updates.refreshTokenHash;
@@ -183,6 +185,12 @@ module.exports = {
 
   async findByUsername(username) {
     return doc2obj(await UserModel.findOne({ username: username.toLowerCase().trim() }).select('-password'));
+  },
+
+  async findByPhone(phone) {
+    if (!phone) return null;
+    const cleaned = phone.replace(/[^0-9+]/g, '');
+    return doc2obj(await UserModel.findOne({ phone: { $regex: cleaned.replace(/^\+/, '\\+') + '$' } }).select('-password'));
   },
 
   async comparePassword(candidatePassword, hashedPassword) {

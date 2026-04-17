@@ -89,14 +89,33 @@ exports.googleAuth = async (req, res) => {
     const { access_token } = req.body;
     if (!access_token) return res.status(400).json({ message: 'No access token provided' });
 
-    // Verify with Google and get user profile
-    const googleRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${access_token}` },
-    });
-    if (!googleRes.ok) return res.status(401).json({ message: 'Invalid Google token' });
+    // Verify with Google and get user profile (retry once on network failure)
+    let googleRes;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        googleRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${access_token}` },
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        if (googleRes.ok) break;
+      } catch (fetchErr) {
+        if (attempt === 1) throw fetchErr;
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
+    if (!googleRes || !googleRes.ok) {
+      const status = googleRes?.status;
+      const msg = status === 401 ? 'Google token expired. Please try again.'
+        : status >= 500 ? 'Google servers are temporarily unavailable. Try again.'
+        : 'Could not verify Google token. Please try again.';
+      return res.status(401).json({ message: msg });
+    }
 
     const { sub: googleId, email, name, picture } = await googleRes.json();
-    if (!email) return res.status(401).json({ message: 'Google did not return an email' });
+    if (!email) return res.status(401).json({ message: 'Google did not return an email. Check your Google account permissions.' });
 
     // 1. Look up by googleId
     let user = await User.findByGoogleId(googleId);
@@ -128,8 +147,13 @@ exports.googleAuth = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Google auth error:', error.message);
-    res.status(401).json({ message: 'Google sign-in failed' });
+    console.error('Google auth error:', error.message, error.stack);
+    const msg = error.name === 'AbortError'
+      ? 'Google verification timed out. Check your connection and try again.'
+      : error.message?.includes('fetch')
+      ? 'Network error during Google sign-in. Check your connection.'
+      : 'Google sign-in failed. Please try again.';
+    res.status(401).json({ message: msg });
   }
 };
 
@@ -285,7 +309,7 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.params.userId;
-    const { name, email, password, username, pfp, upiId, monthlyBudget, currentPassword } = req.body;
+    const { name, email, password, username, pfp, upiId, phone, monthlyBudget, currentPassword } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -320,7 +344,7 @@ exports.updateProfile = async (req, res) => {
       }
     }
 
-    const updatedUser = await User.updateById(userId, { name, email, password, username, pfp, upiId, monthlyBudget });
+    const updatedUser = await User.updateById(userId, { name, email, password, username, pfp, upiId, phone, monthlyBudget });
 
     res.json({
       message: 'Profile updated successfully',
@@ -331,6 +355,7 @@ exports.updateProfile = async (req, res) => {
         username: updatedUser.username,
         pfp: updatedUser.pfp || '',
         upiId: updatedUser.upiId || '',
+        phone: updatedUser.phone || '',
       }
     });
   } catch (error) {
@@ -384,6 +409,103 @@ exports.logout = async (req, res) => {
     console.error('Logout error:', err.message);
     _clearRefreshCookie(res);
     res.status(500).json({ message: 'Logout failed' });
+  }
+};
+
+// POST /api/auth/phone/send-otp — send OTP to the email associated with a phone number
+exports.sendPhoneOtp = async (req, res) => {
+  const { phone } = req.body;
+  try {
+    if (!phone || phone.replace(/[^0-9]/g, '').length < 10) {
+      return res.status(400).json({ message: 'A valid phone number is required.' });
+    }
+
+    const user = await User.findByPhone(phone);
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with this phone number. Please sign up first and add your phone in Profile.' });
+    }
+
+    // Reuse the same OTP store with phone as key
+    const key = `phone:${phone.replace(/[^0-9+]/g, '')}`;
+    const prev = otpStore.get(key);
+    if (prev && Date.now() < prev.sentAt + 60_000) {
+      const wait = Math.ceil((prev.sentAt + 60_000 - Date.now()) / 1000);
+      return res.status(429).json({ message: `Please wait ${wait}s before requesting another code.` });
+    }
+
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    if (otpStore.size >= OTP_MAX_ENTRIES) {
+      const now = Date.now();
+      for (const [k, v] of otpStore) { if (now > v.expiresAt) otpStore.delete(k); }
+    }
+    otpStore.set(key, { otp, expiresAt: Date.now() + 10 * 60_000, sentAt: Date.now(), attempts: 0, userId: user._id || user.id });
+
+    // Send OTP to the user's email
+    await sendOtpEmail(user.email, otp);
+
+    // Mask email for privacy
+    const parts = user.email.split('@');
+    const masked = parts[0].slice(0, 2) + '***@' + parts[1];
+
+    res.json({ message: `Verification code sent to ${masked}`, maskedEmail: masked });
+  } catch (error) {
+    console.error('sendPhoneOtp error:', error.message);
+    res.status(500).json({ message: 'Failed to send verification code.' });
+  }
+};
+
+// POST /api/auth/phone/verify — verify phone OTP and login
+exports.verifyPhoneOtp = async (req, res) => {
+  const { phone, otp } = req.body;
+  try {
+    if (!phone || !otp) {
+      return res.status(400).json({ message: 'Phone and verification code are required.' });
+    }
+
+    const key = `phone:${phone.replace(/[^0-9+]/g, '')}`;
+    const stored = otpStore.get(key);
+
+    if (!stored) {
+      return res.status(400).json({ message: 'No code found. Please request a new one.' });
+    }
+    if (Date.now() > stored.expiresAt) {
+      otpStore.delete(key);
+      return res.status(400).json({ message: 'Code expired. Please request a new one.' });
+    }
+    stored.attempts += 1;
+    if (stored.attempts > 5) {
+      otpStore.delete(key);
+      return res.status(429).json({ message: 'Too many failed attempts. Please request a new code.' });
+    }
+    if (stored.otp !== String(otp)) {
+      return res.status(400).json({ message: 'Incorrect code. Please try again.' });
+    }
+
+    otpStore.delete(key);
+
+    const user = await User.findById(stored.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    const token = await _issueTokens(res, user._id || user.id);
+    res.json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: user._id || user.id,
+        email: user.email,
+        name: user.name,
+        username: user.username,
+        pfp: user.pfp || '',
+        upiId: user.upiId || '',
+        phone: user.phone || '',
+        monthlyBudget: user.monthlyBudget || 0,
+      },
+    });
+  } catch (error) {
+    console.error('verifyPhoneOtp error:', error.message);
+    res.status(500).json({ message: 'Login failed.' });
   }
 };
 

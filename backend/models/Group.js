@@ -7,13 +7,23 @@ const groupSchema = new mongoose.Schema({
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   admins: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   pfp: { type: String, default: '' },
+  // Group type
+  type: { type: String, enum: ['regular', 'trip', 'home', 'couple'], default: 'regular' },
   // Trip group fields
-  type: { type: String, enum: ['regular', 'trip'], default: 'regular' },
   startDate: { type: Date },
   endDate: { type: Date },
   archived: { type: Boolean, default: false },
   budget: { type: Number, default: 0 },
   budgetCurrency: { type: String, default: 'INR' },
+  // Home group recurring bills
+  recurringBills: [{
+    name: { type: String, required: true, trim: true },
+    amount: { type: Number, required: true },
+    billingDay: { type: Number, min: 1, max: 28, required: true },
+    category: { type: String, default: 'utilities' },
+    active: { type: Boolean, default: true },
+    lastGeneratedMonth: { type: String, default: '' },
+  }],
   // Multi-currency
   defaultCurrency: { type: String, default: 'INR' },
 }, { timestamps: true });

@@ -353,6 +353,16 @@ export default function Friends() {
             {/* Add tab */}
             {activeTab === "add" && (
               <div>
+                {/* Search hint popup */}
+                <div className="mb-3 px-3.5 py-2.5 rounded-xl text-xs flex items-start gap-2"
+                  style={{
+                    background: isDark ? "rgba(99,102,241,0.08)" : "rgba(99,102,241,0.06)",
+                    border: isDark ? "1px solid rgba(99,102,241,0.15)" : "1px solid rgba(99,102,241,0.12)",
+                    color: isDark ? "rgba(167,139,250,0.9)" : "#6366f1",
+                  }}>
+                  <FiSearch size={13} className="mt-0.5 flex-shrink-0 opacity-70" />
+                  <span>Search by <strong>email</strong> to find friends, or type <strong>@username</strong> to search by username.</span>
+                </div>
                 <form onSubmit={handleSearch} className="flex gap-2 mb-4">
                   <input
                     type="text"

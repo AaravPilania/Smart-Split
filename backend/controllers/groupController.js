@@ -1,9 +1,9 @@
 const Group = require('../models/Group');
 
-// Create group (regular or trip)
+// Create group (regular, trip, home, or couple)
 exports.createGroup = async (req, res) => {
   try {
-    const { name, description, createdBy, type, startDate, endDate, budget, budgetCurrency, defaultCurrency } = req.body;
+    const { name, description, createdBy, type, startDate, endDate, budget, budgetCurrency, defaultCurrency, recurringBills } = req.body;
 
     if (!createdBy) {
       return res.status(400).json({ message: 'createdBy is required' });
@@ -11,7 +11,9 @@ exports.createGroup = async (req, res) => {
 
     const group = await Group.createGroup(name, description, createdBy);
 
-    // If it's a trip, update the extra fields
+    const mongoose = require('mongoose');
+    const updateFields = {};
+
     if (type === 'trip') {
       if (!startDate || !endDate) {
         return res.status(400).json({ message: 'Trip groups require start and end dates' });
@@ -19,18 +21,31 @@ exports.createGroup = async (req, res) => {
       if (new Date(startDate) >= new Date(endDate)) {
         return res.status(400).json({ message: 'Start date must be before end date' });
       }
-      const mongoose = require('mongoose');
-      await mongoose.model('Group').findByIdAndUpdate(group.id, {
-        type: 'trip',
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        budget: budget || 0,
-        budgetCurrency: budgetCurrency || 'INR',
-        defaultCurrency: defaultCurrency || 'INR',
-      });
-    } else if (defaultCurrency) {
-      const mongoose = require('mongoose');
-      await mongoose.model('Group').findByIdAndUpdate(group.id, { defaultCurrency });
+      updateFields.type = 'trip';
+      updateFields.startDate = new Date(startDate);
+      updateFields.endDate = new Date(endDate);
+      updateFields.budget = budget || 0;
+      updateFields.budgetCurrency = budgetCurrency || 'INR';
+    } else if (type === 'home') {
+      updateFields.type = 'home';
+      if (Array.isArray(recurringBills) && recurringBills.length > 0) {
+        updateFields.recurringBills = recurringBills.map(b => ({
+          name: b.name?.trim() || 'Bill',
+          amount: Number(b.amount) || 0,
+          billingDay: Math.min(28, Math.max(1, Number(b.billingDay) || 1)),
+          category: b.category || 'utilities',
+          active: b.active !== false,
+          lastGeneratedMonth: '',
+        }));
+      }
+    } else if (type === 'couple') {
+      updateFields.type = 'couple';
+    }
+
+    if (defaultCurrency) updateFields.defaultCurrency = defaultCurrency;
+
+    if (Object.keys(updateFields).length > 0) {
+      await mongoose.model('Group').findByIdAndUpdate(group.id, updateFields);
     }
 
     const updatedGroup = await Group.findByIdPopulated(group.id);
@@ -163,6 +178,83 @@ exports.archiveGroup = async (req, res) => {
 
     const archived = await Group.archiveGroup(req.params.id);
     res.json({ message: 'Group archived', group: archived });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Add a recurring bill to a home group
+exports.addRecurringBill = async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const group = await Group.findById(req.params.id);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+    if (group.type !== 'home') return res.status(400).json({ message: 'Recurring bills are only for home groups' });
+
+    const isAdmin = await Group.isAdmin(req.params.id, req.user.id);
+    if (!isAdmin) return res.status(403).json({ message: 'Only admins can manage recurring bills' });
+
+    const { name, amount, billingDay, category } = req.body;
+    const bill = {
+      name: (name || 'Bill').trim(),
+      amount: Number(amount) || 0,
+      billingDay: Math.min(28, Math.max(1, Number(billingDay) || 1)),
+      category: category || 'utilities',
+      active: true,
+      lastGeneratedMonth: '',
+    };
+
+    await mongoose.model('Group').findByIdAndUpdate(req.params.id, {
+      $push: { recurringBills: bill }
+    });
+
+    const updated = await Group.findByIdPopulated(req.params.id);
+    res.json({ message: 'Recurring bill added', group: updated });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Remove a recurring bill
+exports.removeRecurringBill = async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const group = await Group.findById(req.params.id);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+
+    const isAdmin = await Group.isAdmin(req.params.id, req.user.id);
+    if (!isAdmin) return res.status(403).json({ message: 'Only admins can manage recurring bills' });
+
+    await mongoose.model('Group').findByIdAndUpdate(req.params.id, {
+      $pull: { recurringBills: { _id: req.params.billId } }
+    });
+
+    const updated = await Group.findByIdPopulated(req.params.id);
+    res.json({ message: 'Recurring bill removed', group: updated });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Toggle a recurring bill active/inactive
+exports.toggleRecurringBill = async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const GroupModel = mongoose.model('Group');
+    const group = await GroupModel.findById(req.params.id);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+
+    const isAdmin = await Group.isAdmin(req.params.id, req.user.id);
+    if (!isAdmin) return res.status(403).json({ message: 'Only admins can manage recurring bills' });
+
+    const bill = group.recurringBills.id(req.params.billId);
+    if (!bill) return res.status(404).json({ message: 'Bill not found' });
+
+    bill.active = !bill.active;
+    await group.save();
+
+    const updated = await Group.findByIdPopulated(req.params.id);
+    res.json({ message: 'Recurring bill toggled', group: updated });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

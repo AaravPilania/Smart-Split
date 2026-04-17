@@ -330,6 +330,18 @@ export const authAPI = {
       method: 'POST',
       body: JSON.stringify({ access_token }),
     }),
+
+  sendPhoneOtp: (phone) =>
+    apiCall('/auth/phone/send-otp', {
+      method: 'POST',
+      body: JSON.stringify({ phone }),
+    }),
+
+  verifyPhoneOtp: (phone, otp) =>
+    apiCall('/auth/phone/verify', {
+      method: 'POST',
+      body: JSON.stringify({ phone, otp }),
+    }),
 };
 
 // Group APIs

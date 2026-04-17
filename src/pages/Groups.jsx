@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import DesktopLayout from "../components/DesktopLayout";
 import DesktopPageHeader from "../components/DesktopPageHeader";
-import { FiUsers, FiPlus, FiX, FiUserPlus, FiLink, FiZap, FiHeart, FiClock, FiTrash2, FiCamera, FiArchive, FiCalendar, FiLock } from "react-icons/fi";
+import { FiUsers, FiPlus, FiX, FiUserPlus, FiLink, FiZap, FiHeart, FiClock, FiTrash2, FiCamera, FiArchive, FiCalendar, FiLock, FiHome, FiGlobe, FiRepeat, FiDollarSign } from "react-icons/fi";
 import { API_URL, apiFetch, getUserId, cachedApiFetch, invalidateCache } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 import { simplifyDebts } from "../utils/debts";
@@ -45,11 +45,21 @@ export default function Groups() {
     endDate: "",
     budget: "",
     defaultCurrency: "INR",
+    recurringBills: [],
   });
 
   const [addMemberForm, setAddMemberForm] = useState({
     memberEmail: "",
   });
+
+  const getGroupColor = (group) => {
+    switch (group.type) {
+      case 'trip': return '#3b82f6';
+      case 'home': return '#f59e0b';
+      case 'couple': return '#ec4899';
+      default: return theme.gradFrom;
+    }
+  };
 
   useEffect(() => {
     const userIdStr = getUserId();
@@ -288,6 +298,9 @@ export default function Groups() {
         payload.endDate = createForm.endDate;
         if (createForm.budget) payload.budget = Number(createForm.budget);
       }
+      if (createForm.type === "home" && createForm.recurringBills.length > 0) {
+        payload.recurringBills = createForm.recurringBills;
+      }
       const response = await apiFetch(`${API_URL}/groups`, {
         method: "POST",
         body: JSON.stringify(payload),
@@ -296,7 +309,7 @@ export default function Groups() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Failed to create group");
 
-      setCreateForm({ name: "", description: "", type: "regular", startDate: "", endDate: "", budget: "", defaultCurrency: "INR" });
+      setCreateForm({ name: "", description: "", type: "regular", startDate: "", endDate: "", budget: "", defaultCurrency: "INR", recurringBills: [] });
       setShowCreateModal(false);
       invalidateCache(`groups_${userId}`, 'dashboard_summary');
       fetchGroups(userId);
@@ -417,7 +430,7 @@ export default function Groups() {
         {fetchError ? (
           <div className="flex flex-col items-center justify-center py-20 gap-5">
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-8 max-w-sm w-full text-center shadow">
-              <div className="text-4xl mb-3">⚠️</div>
+              <FiX className="mx-auto mb-3 text-red-400" size={40} />
               <h3 className="text-lg font-bold text-red-700 dark:text-red-400 mb-2">Server Unreachable</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
                 Your groups are <span className="font-semibold text-green-600 dark:text-green-400">safe in the cloud</span> — the server is temporarily offline. Usually resolves in 30–60 seconds.
@@ -453,7 +466,7 @@ export default function Groups() {
                   transition={{ type: "spring", stiffness: 280, damping: 26, delay: gIdx * 0.05 }}>
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm text-white font-bold" style={{ background: "#6b7280" }}>
-                      {group.type === 'trip' ? '✈️' : group.name?.[0]?.toUpperCase() || "G"}
+                      {group.type === 'trip' ? <FiGlobe size={18} /> : group.type === 'home' ? <FiHome size={18} /> : group.type === 'couple' ? <FiHeart size={18} /> : group.name?.[0]?.toUpperCase() || "G"}
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-[15px] font-bold truncate" style={{ color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.6)" }}>{group.name}</h3>
@@ -501,7 +514,7 @@ export default function Groups() {
                 {/* Subtle top-right glow */}
                 <div
                   className="absolute top-0 right-0 w-24 h-24 pointer-events-none rounded-2xl"
-                  style={{ background: `radial-gradient(circle at 100% 0%, ${group.type === 'trip' ? '#3b82f6' : theme.gradFrom}16 0%, transparent 60%)` }}
+                  style={{ background: `radial-gradient(circle at 100% 0%, ${getGroupColor(group)}16 0%, transparent 60%)` }}
                 />
 
                 {/* Trip badge + dates */}
@@ -509,7 +522,7 @@ export default function Groups() {
                   <div className="flex items-center gap-2 mb-2.5">
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1"
                       style={{ background: tripStatus.bg, color: tripStatus.color }}>
-                      ✈️ {tripStatus.label}
+                      {tripStatus.label}
                     </span>
                     {group.startDate && group.endDate && (
                       <span className="text-[10px] flex items-center gap-1" style={{ color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)" }}>
@@ -645,7 +658,7 @@ export default function Groups() {
 
                   {/* Creator-only actions */}
                   {group.createdBy?.id === userId && (
-                    <div className={`grid ${group.type === 'trip' ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
+                    <div className={`grid ${group.type === 'trip' || group.type === 'home' ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
                       <button
                         onClick={() => setShowAddMemberModal(group.id)}
                         className={`min-h-[38px] bg-white dark:bg-gray-700 border ${theme.border} ${theme.text} px-3 py-2 rounded-lg text-xs font-semibold ${theme.bgHover} active:scale-95 transition flex items-center justify-center gap-1.5`}
@@ -698,7 +711,7 @@ export default function Groups() {
                 <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${theme.spinner} mx-auto`}></div>
               </div>
             ) : simplifiedDebts.length === 0 ? (
-              <div className="text-center py-8 text-green-600 font-semibold">✅ All settled up!</div>
+              <div className="text-center py-8 text-green-600 font-semibold">All settled up!</div>
             ) : (
               <div className="space-y-3">
                 {simplifiedDebts.map((t, i) => (
@@ -777,19 +790,25 @@ export default function Groups() {
             </div>
 
             <form onSubmit={handleCreateGroup}>
-              {/* Type selector: Regular vs Trip */}
-              <div className="mb-4 flex gap-2">
-                {["regular", "trip"].map(t => (
-                  <button key={t} type="button"
-                    onClick={() => setCreateForm({ ...createForm, type: t })}
-                    className="flex-1 py-2 rounded-xl text-sm font-bold transition"
+              {/* Type selector */}
+              <div className="mb-4 grid grid-cols-4 gap-2">
+                {[
+                  { key: "regular", label: "Regular", Icon: FiUsers },
+                  { key: "trip", label: "Trip", Icon: FiGlobe },
+                  { key: "home", label: "Home", Icon: FiHome },
+                  { key: "couple", label: "Couple", Icon: FiHeart },
+                ].map(({ key, label, Icon }) => (
+                  <button key={key} type="button"
+                    onClick={() => setCreateForm({ ...createForm, type: key })}
+                    className="flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-bold transition"
                     style={{
-                      background: createForm.type === t
+                      background: createForm.type === key
                         ? `linear-gradient(135deg, ${theme.gradFrom}, ${theme.gradTo})`
                         : isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)",
-                      color: createForm.type === t ? "#fff" : isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)",
+                      color: createForm.type === key ? "#fff" : isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)",
                     }}>
-                    {t === "regular" ? "Regular" : "✈️ Trip"}
+                    <Icon size={16} />
+                    {label}
                   </button>
                 ))}
               </div>
@@ -805,7 +824,7 @@ export default function Groups() {
                     setCreateForm({ ...createForm, name: e.target.value })
                   }
                   className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder={createForm.type === "trip" ? "e.g., Goa Trip 2026" : "e.g., Roommates, Office lunch"}
+                  placeholder={createForm.type === "trip" ? "e.g., Goa Trip 2026" : createForm.type === "home" ? "e.g., Flat 302, Our Apartment" : createForm.type === "couple" ? "e.g., Us, Our Expenses" : "e.g., Roommates, Office lunch"}
                   required
                 />
               </div>
@@ -853,6 +872,71 @@ export default function Groups() {
                       className="w-full px-3 py-2 rounded-lg text-sm bg-white dark:bg-gray-700 border dark:border-gray-600 text-gray-900 dark:text-white" />
                   </div>
                 </>
+              )}
+
+              {/* Home-specific: recurring bills */}
+              {createForm.type === "home" && (
+                <div className="mb-4">
+                  <label className="flex items-center gap-1.5 text-xs font-semibold mb-2" style={{ color: isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.6)" }}>
+                    <FiRepeat size={12} /> Recurring Bills
+                  </label>
+                  <div className="space-y-2 mb-2">
+                    {createForm.recurringBills.map((bill, i) => (
+                      <div key={i} className="flex items-center gap-2 p-2.5 rounded-xl" style={{ background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}` }}>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold truncate" style={{ color: isDark ? "#fff" : "#111" }}>{bill.name}</p>
+                          <p className="text-[10px]" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)" }}>
+                            {createForm.defaultCurrency} {bill.amount} · Day {bill.billingDay}
+                          </p>
+                        </div>
+                        <button type="button" onClick={() => {
+                          const updated = [...createForm.recurringBills];
+                          updated.splice(i, 1);
+                          setCreateForm({ ...createForm, recurringBills: updated });
+                        }} className="p-1 rounded-lg hover:bg-red-500/10">
+                          <FiX size={14} className="text-red-400" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Quick-add common bills */}
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {[
+                      { name: "Rent", amount: 0, category: "rent", billingDay: 1 },
+                      { name: "Electricity", amount: 0, category: "utilities", billingDay: 5 },
+                      { name: "WiFi", amount: 0, category: "utilities", billingDay: 10 },
+                      { name: "Water", amount: 0, category: "utilities", billingDay: 5 },
+                      { name: "Gas", amount: 0, category: "utilities", billingDay: 15 },
+                      { name: "Maintenance", amount: 0, category: "maintenance", billingDay: 1 },
+                      { name: "Groceries", amount: 0, category: "groceries", billingDay: 1 },
+                      { name: "Cleaning", amount: 0, category: "services", billingDay: 15 },
+                    ].filter(preset => !createForm.recurringBills.some(b => b.name === preset.name))
+                     .map(preset => (
+                      <button key={preset.name} type="button"
+                        onClick={() => {
+                          const amt = prompt(`Enter monthly amount for ${preset.name}:`);
+                          if (!amt || isNaN(Number(amt)) || Number(amt) <= 0) return;
+                          const day = prompt(`Billing day of month (1-28):`, String(preset.billingDay));
+                          if (!day || isNaN(Number(day)) || Number(day) < 1 || Number(day) > 28) return;
+                          setCreateForm({
+                            ...createForm,
+                            recurringBills: [...createForm.recurringBills, { ...preset, amount: Number(amt), billingDay: Number(day) }],
+                          });
+                        }}
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-semibold transition"
+                        style={{
+                          background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                          color: isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.5)",
+                          border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}`,
+                        }}>
+                        + {preset.name}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px]" style={{ color: isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.3)" }}>
+                    Bills are auto-split among members each month on the billing day
+                  </p>
+                </div>
               )}
 
               {/* Currency selector */}
@@ -1015,7 +1099,7 @@ export default function Groups() {
               backdropFilter: "blur(20px)",
             }}
           >
-            <div className="text-4xl mb-3">✨</div>
+            <FiZap className="mx-auto mb-3" size={40} style={{ color: theme.gradFrom }} />
             <h3 className="text-lg font-semibold mb-2" style={{ color: isDark ? "#fff" : "#1a1a2e" }}>
               Trip Groups are a Premium Feature
             </h3>
@@ -1023,8 +1107,8 @@ export default function Groups() {
               Plan group trips with:
             </p>
             <ul className="text-sm opacity-50 mb-4 space-y-1" style={{ color: isDark ? "#fff" : "#333" }}>
-              <li>✈️ Start &amp; end dates</li>
-              <li>💰 Trip budgets</li>
+              <li>Start &amp; end dates</li>
+              <li>Trip budgets</li>
               <li>🌍 Multi-currency support</li>
             </ul>
             <p className="text-xs opacity-40 mb-4" style={{ color: isDark ? "#fff" : "#333" }}>

@@ -30,7 +30,6 @@ html, body {
 body {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Segoe UI Symbol';
-  padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);

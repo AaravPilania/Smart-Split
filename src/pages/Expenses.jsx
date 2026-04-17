@@ -604,7 +604,7 @@ export default function Expenses() {
                   const cat = getCategoryInfo(createForm.category);
                   return (
                     <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
-                      <span className="text-blue-400 dark:text-blue-300 text-xs font-semibold">✨ AI suggests:</span>
+                      <span className="text-blue-400 dark:text-blue-300 text-xs font-semibold">AI suggests:</span>
                       <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${cat.badge}`}>{cat.icon} {cat.label}</span>
                       <span className="ml-auto text-[10px] text-blue-300 dark:text-blue-400">tap below to change</span>
                     </div>
@@ -813,7 +813,7 @@ export default function Expenses() {
                         }}
                         className={`text-xs px-2 py-1 rounded-lg border ${theme.border} ${theme.text} transition`}
                       >
-                        ✨ Even Split
+                        Even Split
                       </button>
                       <button type="button" onClick={addSplitRow} className={`text-sm ${theme.text} flex items-center gap-1`}>
                         <FiPlus /> Add

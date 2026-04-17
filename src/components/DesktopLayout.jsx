@@ -61,7 +61,7 @@ export default function DesktopLayout({ children, hideBottomNav = false }) {
   return (
     <div className="min-h-screen" style={getPageBgStyle(theme, isDark)}>
       <Navbar />
-      <div className="h-16" />
+      <div style={{ height: "calc(4rem + env(safe-area-inset-top, 0px))" }} />
       {children}
     </div>
   );

@@ -7,6 +7,7 @@ import {
   FiCopy, FiChevronRight,
   FiSun, FiMoon, FiLogOut, FiCamera, FiLock, FiArrowLeft, FiUsers,
   FiTarget, FiRepeat, FiPlus, FiTrash2, FiCalendar, FiStar, FiZap,
+  FiCpu, FiGlobe, FiTrendingUp, FiActivity, FiShield, FiDatabase, FiHeart, FiPhone,
 } from "react-icons/fi";
 import { QRCodeSVG } from "qrcode.react";
 import { API_URL, apiFetch, getUserId, clearAuth, cachedApiFetch, invalidateCache } from "../utils/api";
@@ -57,8 +58,8 @@ const PRESET_SUBSCRIPTIONS = [
   { name: "Prime Video",   label: "Prime",    logo: "https://cdn.simpleicons.org/primevideo/00A8E1",   color: "#00a8e1", category: "entertainment" },
   { name: "Disney+ Hotstar", label: "Hotstar", logo: "/logos/hotstar.jpg", color: "#113ccf", category: "entertainment" },
   { name: "ChatGPT Plus",  label: "ChatGPT",  logo: "/logos/chatgpt.png", color: "#10a37f", category: "utilities"    },
-  { name: "Gym / Fitness", label: "Gym",      logo: null, emoji: "🏋️‍♂️",                               color: "#6b7280", category: "health"       },
-  { name: "Custom",        label: "Custom",   logo: null, emoji: "✏️",                               color: "#6b7280", category: "subscription" },
+  { name: "Gym / Fitness", label: "Gym",      logo: null, emoji: null, fallbackIcon: "gym",        color: "#6b7280", category: "health"       },
+  { name: "Custom",        label: "Custom",   logo: null, emoji: null, fallbackIcon: "custom",     color: "#6b7280", category: "subscription" },
 ];
 
 export default function Profile() {
@@ -70,7 +71,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
-    name: "", email: "", username: "", upiId: "", password: "", currentPassword: "", monthlyBudget: "",
+    name: "", email: "", username: "", upiId: "", phone: "", password: "", currentPassword: "", monthlyBudget: "",
   });
   const [avatar, setAvatar] = useState(localStorage.getItem("selectedAvatar") || "");
   const { theme, isDark } = useTheme();
@@ -214,13 +215,13 @@ export default function Profile() {
         `profile_${uid}`,
         (d) => {
           setUser(d.user);
-          setForm({ name: d.user.name||"", email: d.user.email||"", username: d.user.username||"", upiId: d.user.upiId||"", monthlyBudget: d.user.monthlyBudget || "", password: "", currentPassword: "" });
+          setForm({ name: d.user.name||"", email: d.user.email||"", username: d.user.username||"", upiId: d.user.upiId||"", phone: d.user.phone||"", monthlyBudget: d.user.monthlyBudget || "", password: "", currentPassword: "" });
         }
       );
       if (!res.ok) throw new Error();
       const d = await res.json();
       setUser(d.user);
-      setForm({ name: d.user.name||"", email: d.user.email||"", username: d.user.username||"", upiId: d.user.upiId||"", monthlyBudget: d.user.monthlyBudget || "", password: "", currentPassword: "" });
+      setForm({ name: d.user.name||"", email: d.user.email||"", username: d.user.username||"", upiId: d.user.upiId||"", phone: d.user.phone||"", monthlyBudget: d.user.monthlyBudget || "", password: "", currentPassword: "" });
       const saved = localStorage.getItem("selectedAvatar");
       if (saved) setAvatar(saved);
       else if (d.user.pfp) { setAvatar(d.user.pfp); localStorage.setItem("selectedAvatar", d.user.pfp); }
@@ -440,6 +441,7 @@ export default function Profile() {
       if (form.email !== user.email) updates.email = form.email;
       if (form.username && form.username !== user.username) updates.username = form.username;
       if (form.upiId !== (user.upiId || "")) updates.upiId = form.upiId;
+      if (form.phone !== (user.phone || "")) updates.phone = form.phone;
       if (Number(form.monthlyBudget || 0) !== (user.monthlyBudget || 0)) updates.monthlyBudget = Number(form.monthlyBudget) || 0;
       if (form.password) { updates.password = form.password; updates.currentPassword = form.currentPassword; }
       if (!Object.keys(updates).length) { setEditing(false); return; }
@@ -545,7 +547,7 @@ export default function Profile() {
             WebkitBackdropFilter: "blur(20px)",
           }}>
           <button
-            onClick={() => { setEditing(false); setForm({ name: user.name, email: user.email, username: user.username||"", upiId: user.upiId||"", monthlyBudget: user.monthlyBudget || "", password: "", currentPassword: "" }); }}
+            onClick={() => { setEditing(false); setForm({ name: user.name, email: user.email, username: user.username||"", upiId: user.upiId||"", phone: user.phone||"", monthlyBudget: user.monthlyBudget || "", password: "", currentPassword: "" }); }}
             className="h-9 w-9 rounded-xl flex items-center justify-center active:scale-90 transition"
             style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", color: textClr }}
           >
@@ -636,12 +638,21 @@ export default function Profile() {
                     placeholder="name@upi" />
                 </div>
               </div>
+              <div className="flex items-center px-4 py-3.5" style={sep}>
+                <FiPhone className="mr-3 flex-shrink-0" size={14} style={{ color: subClr }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: labelClr }}>Phone Number</p>
+                  <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/[^0-9+\-\s]/g, '') })}
+                    className={`w-full text-[14px] font-semibold bg-transparent outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                    placeholder="+91 9876543210" />
+                </div>
+              </div>
             </div>
 
             <p className="text-[11px] font-bold uppercase tracking-[0.15em] mt-5 mb-2 px-1" style={{ color: labelClr }}>Budget</p>
             <div className="rounded-2xl overflow-hidden" style={ss}>
               <div className="flex items-center px-4 py-3.5">
-                <span className="mr-3 flex-shrink-0 text-sm" style={{ color: subClr }}>📊</span>
+                <FiActivity className="mr-3 flex-shrink-0" size={16} style={{ color: subClr }} />
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: labelClr }}>Monthly Budget</p>
                   <input type="number" min="0" step="100" value={form.monthlyBudget} onChange={(e) => setForm({ ...form, monthlyBudget: e.target.value })}
@@ -716,17 +727,23 @@ export default function Profile() {
                 </div>
               </div>
             </div>
-            <h1 className="text-xl font-black tracking-tight flex items-center justify-center" style={{ color: textClr }}>
+            <h1 className="text-xl font-black tracking-tight flex items-center justify-center gap-2" style={{ color: textClr }}>
               {user.name}
               {premiumStatus?.isPremium && (
-                <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
-                  style={getGradientStyle(theme)}>
-                  ✨ Premium
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide"
+                  style={{
+                    background: `linear-gradient(135deg, ${theme.gradFrom}18, ${theme.gradTo}18)`,
+                    border: `1px solid ${theme.gradFrom}30`,
+                    color: theme.gradFrom,
+                  }}>
+                  <FiZap size={9} />
+                  PRO
                 </span>
               )}
             </h1>
             {user.username && <p className="text-sm mt-0.5" style={{ color: subClr }}>@{user.username}</p>}
             {user.upiId && <p className="text-xs mt-0.5" style={{ color: subClr }}>{user.upiId}</p>}
+            {user.phone && <p className="text-xs mt-0.5 flex items-center justify-center gap-1" style={{ color: subClr }}><FiPhone size={10} />{user.phone}</p>}
 
             {/* Stats row */}
             <div className="flex items-center gap-6 mt-4 mb-5">
@@ -743,7 +760,7 @@ export default function Profile() {
               </div>
               <div className="h-8 w-px" style={{ background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)" }} />
               <div className="text-center">
-                <p className="text-lg font-black">{categoryData.length > 0 ? (categoryData[0].icon || "💰") : "✦"}</p>
+                <p className="text-lg font-black"><FiTrendingUp size={18} style={{ color: theme.gradFrom, display: "inline" }} /></p>
                 <p className="text-[10px] font-bold uppercase tracking-widest mt-0.5" style={{ color: subClr }}>Top Spend</p>
               </div>
             </div>
@@ -866,7 +883,7 @@ export default function Profile() {
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <p className="text-xs font-semibold" style={{ color: isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.85)" }}>
-                        {premiumStatus?.isPremium ? "Premium Plan ✨" : "Free Plan"}
+                        {premiumStatus?.isPremium ? "Pro Plan" : "Free Plan"}
                       </p>
                       {premiumStatus?.isPremium && premiumStatus?.premiumExpiry && (
                         <p className="text-[10px] mt-0.5" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)" }}>
@@ -879,13 +896,13 @@ export default function Profile() {
                   {/* Features list */}
                   <div className="space-y-2 mb-4">
                     {[
-                      { label: "OCR Bill Scanning", free: "5/day", premium: "Unlimited", icon: "📸" },
-                      { label: "Aaru AI Assistant", free: "Locked", premium: "Full Access", icon: "🤖" },
-                      { label: "Trip Groups", free: "Locked", premium: "Full Access", icon: "✈️" },
+                      { label: "OCR Bill Scanning", free: "5/day", premium: "Unlimited", Icon: FiCamera },
+                      { label: "Aaru AI Assistant", free: "Locked", premium: "Full Access", Icon: FiCpu },
+                      { label: "Trip Groups", free: "Locked", premium: "Full Access", Icon: FiGlobe },
                     ].map((f, i) => (
                       <div key={i} className="flex items-center justify-between py-1.5">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm">{f.icon}</span>
+                          <f.Icon size={14} style={{ color: theme.gradFrom }} />
                           <span className="text-xs" style={{ color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.7)" }}>{f.label}</span>
                         </div>
                         <span className="text-[10px] font-semibold" style={{
@@ -928,7 +945,7 @@ export default function Profile() {
                       : { ...getGradientStyle(theme), color: "#fff" }
                     }
                   >
-                    {premiumToggling ? "Processing..." : premiumStatus?.isPremium ? "Cancel Subscription" : "Upgrade to Premium ✨"}
+                    {premiumToggling ? "Processing..." : premiumStatus?.isPremium ? "Cancel Subscription" : "Upgrade to Pro"}
                   </button>
                 </>
               )}
@@ -970,29 +987,42 @@ export default function Profile() {
             {/* ── Admin Dashboard (admin only) ──────────────── */}
             {user?.email === 'aarav@gmail.com' && (
               <div className="rounded-2xl p-5 mb-4" style={sectionSty(isDark)}>
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-lg">👑</span>
-                  <span className="text-sm font-bold" style={{ color: isDark ? "#fff" : "#111" }}>Admin Dashboard</span>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${theme.gradFrom}15` }}>
+                      <FiShield size={14} style={{ color: theme.gradFrom }} />
+                    </div>
+                    <span className="text-sm font-bold tracking-tight" style={{ color: isDark ? "#fff" : "#111" }}>Admin</span>
+                  </div>
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+                    style={{ background: isDark ? "rgba(16,185,129,0.1)" : "rgba(16,185,129,0.08)", color: "#10b981" }}>
+                    Live
+                  </span>
                 </div>
 
                 {adminStats ? (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
                     {[
-                      { label: "Total Users", value: adminStats.totalUsers, icon: "👥", color: theme.gradFrom },
-                      { label: "Active Users", value: adminStats.activeUsers, icon: "🟢", color: "#10b981" },
-                      { label: "New This Month", value: adminStats.newThisMonth, icon: "📈", color: "#f59e0b" },
-                      { label: "Premium Users", value: adminStats.premiumUsers, icon: "✨", color: "#8b5cf6" },
+                      { label: "Total Users", value: adminStats.totalUsers, Icon: FiUsers, color: theme.gradFrom },
+                      { label: "Active Users", value: adminStats.activeUsers, Icon: FiActivity, color: "#10b981" },
+                      { label: "New This Month", value: adminStats.newThisMonth, Icon: FiTrendingUp, color: "#f59e0b" },
+                      { label: "Premium Users", value: adminStats.premiumUsers, Icon: FiZap, color: "#8b5cf6" },
                     ].map((stat, i) => (
-                      <div key={i} className="rounded-xl p-3 text-center"
+                      <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
                         style={{
-                          background: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)",
-                          border: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.05)",
+                          background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
                         }}>
-                        <span className="text-xl block mb-1">{stat.icon}</span>
-                        <p className="text-xl font-black" style={{ color: stat.color }}>{stat.value}</p>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider mt-0.5"
-                          style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)" }}>
-                          {stat.label}
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                          style={{ background: `${stat.color}12` }}>
+                          <stat.Icon size={15} style={{ color: stat.color }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-medium" style={{ color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)" }}>
+                            {stat.label}
+                          </p>
+                        </div>
+                        <p className="text-base font-black tabular-nums" style={{ color: isDark ? "#fff" : "#111" }}>
+                          {stat.value?.toLocaleString?.() ?? stat.value}
                         </p>
                       </div>
                     ))}
@@ -1021,7 +1051,7 @@ export default function Profile() {
               </span>
               <div className="flex-1 min-w-0">
                 <p className="text-[14px] font-semibold" style={{ color: textClr }}>Send Feedback</p>
-                <p className="text-xs mt-0.5" style={{ color: subClr }}>Suggestions, bugs, or just a hi 👋</p>
+                <p className="text-xs mt-0.5" style={{ color: subClr }}>Suggestions, bugs, or just say hi</p>
               </div>
               <FiChevronRight size={15} style={{ color: chevClr, flexShrink: 0 }} />
             </a>
@@ -1034,8 +1064,8 @@ export default function Profile() {
               className="flex items-center gap-3 px-4 py-3.5 rounded-2xl w-full text-left transition active:opacity-60 mt-2"
               style={ss}
             >
-              <span className="flex-shrink-0 w-[30px] h-[30px] rounded-xl flex items-center justify-center text-lg">
-                ❤️
+              <span className="flex-shrink-0 w-[30px] h-[30px] rounded-xl flex items-center justify-center">
+                <FiHeart size={16} style={{ color: "#ef4444" }} />
               </span>
               <div className="flex-1 min-w-0">
                 <p className="text-[14px] font-semibold" style={{ color: textClr }}>Support Us</p>

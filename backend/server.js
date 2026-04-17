@@ -203,6 +203,9 @@ connectDB()
 
       // Start trip auto-archive processor
       require('./jobs/processTripGroups').start();
+
+      // Start recurring bills processor for home groups
+      require('./jobs/processRecurringBills').start();
       
       // Keep-alive ping every 4 minutes — prevents Render free tier sleep
       const SELF_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;

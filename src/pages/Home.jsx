@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { FiMail, FiLock, FiUser, FiEye, FiEyeOff, FiArrowRight, FiZap, FiCheck } from "react-icons/fi";
+import { FiMail, FiLock, FiUser, FiEye, FiEyeOff, FiArrowRight, FiZap, FiCheck, FiPhone } from "react-icons/fi";
 import PhoneMockup from "../components/PhoneMockup";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate, useInView, useScroll } from "framer-motion";
 import { useGoogleLogin } from "@react-oauth/google";
@@ -206,6 +206,11 @@ function MobileLogin({ onSuccess, onGuest }) {
   const [otp, setOtp] = useState("");
   const [resendTimer, setResendTimer] = useState(0);
   const resendIntervalRef = React.useRef(null);
+  const [loginMethod, setLoginMethod] = useState("email");
+  const [phone, setPhone] = useState("");
+  const [phoneOtpStep, setPhoneOtpStep] = useState(false);
+  const [phoneOtp, setPhoneOtp] = useState("");
+  const [phoneOtpMasked, setPhoneOtpMasked] = useState("");
 
   const handleGoogleSuccess = async (tokenResponse) => {
     setGoogleLoading(true); setError("");
@@ -215,7 +220,8 @@ function MobileLogin({ onSuccess, onGuest }) {
       if (data.user.pfp) localStorage.setItem("selectedAvatar", data.user.pfp);
       onSuccess();
     } catch (err) {
-      setError(err.message || "Google sign-in failed.");
+      const msg = err.message || "Google sign-in failed.";
+      setError(msg.includes("fetch") ? "Network error. Check your connection and try again." : msg);
     } finally { setGoogleLoading(false); }
   };
 
@@ -227,7 +233,9 @@ function MobileLogin({ onSuccess, onGuest }) {
       const msg = code === "popup_closed_by_user"
         ? "Google sign-in was cancelled."
         : code === "popup_failed_to_open"
-        ? "Pop-up blocked. Please allow pop-ups for this site."
+        ? "Pop-up was blocked. Tap again or allow pop-ups in browser settings."
+        : code === "access_denied"
+        ? "Access denied. Please grant permission and try again."
         : "Google sign-in failed. Please try again.";
       setError(msg);
       setGoogleLoading(false);
@@ -239,11 +247,29 @@ function MobileLogin({ onSuccess, onGuest }) {
     e.preventDefault(); setError(""); setLoading(true);
     try {
       if (isLogin) {
-        // ── Login ──────────────────────────────────────────────────
-        const data = await authAPI.login(email, password);
-        setAuthData(data.token, data.user, data.user.id, rememberMe);
-        if (data.user.pfp) localStorage.setItem("selectedAvatar", data.user.pfp);
-        onSuccess();
+        if (loginMethod === "phone") {
+          if (!phoneOtpStep) {
+            const data = await authAPI.sendPhoneOtp(phone);
+            setPhoneOtpMasked(data.maskedEmail || "your email");
+            setPhoneOtpStep(true);
+            setPhoneOtp("");
+            setResendTimer(60);
+            resendIntervalRef.current = setInterval(() => {
+              setResendTimer(t => { if (t <= 1) { clearInterval(resendIntervalRef.current); return 0; } return t - 1; });
+            }, 1000);
+          } else {
+            if (!phoneOtp || phoneOtp.length !== 6) throw new Error("Enter the 6-digit code");
+            const data = await authAPI.verifyPhoneOtp(phone, phoneOtp);
+            setAuthData(data.token, data.user, data.user.id, rememberMe);
+            if (data.user.pfp) localStorage.setItem("selectedAvatar", data.user.pfp);
+            onSuccess();
+          }
+        } else {
+          const data = await authAPI.login(email, password);
+          setAuthData(data.token, data.user, data.user.id, rememberMe);
+          if (data.user.pfp) localStorage.setItem("selectedAvatar", data.user.pfp);
+          onSuccess();
+        }
       } else if (!otpStep) {
         // ── Signup step 1: send OTP ────────────────────────────────
         if (!name.trim()) throw new Error("Name is required");
@@ -350,7 +376,11 @@ function MobileLogin({ onSuccess, onGuest }) {
           transition={{ delay: 0.08 }}
           className="text-2xl font-black text-white text-center tracking-tight mb-8"
         >
-          {isLogin ? "Log in to Smart Split" : otpStep ? "Verify your email" : "Create your account"}
+          {isLogin
+            ? (loginMethod === "phone"
+              ? (phoneOtpStep ? "Verify your identity" : "Log in with phone")
+              : "Log in to Smart Split")
+            : otpStep ? "Verify your email" : "Create your account"}
         </motion.h1>
 
         {/* Error */}
@@ -370,7 +400,7 @@ function MobileLogin({ onSuccess, onGuest }) {
         {/* Form */}
         <AnimatePresence mode="wait">
           <motion.form
-            key={isLogin ? "login" : otpStep ? "otp" : "signup"}
+            key={isLogin ? (loginMethod === "phone" ? (phoneOtpStep ? "phone-otp" : "phone") : "login") : otpStep ? "otp" : "signup"}
             initial={{ opacity: 0, x: isLogin ? -16 : 16 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0 }}
@@ -423,6 +453,65 @@ function MobileLogin({ onSuccess, onGuest }) {
                   </button>
                 </div>
               </>
+            ) : isLogin && loginMethod === "phone" ? (
+              phoneOtpStep ? (
+                <>
+                  <div className="flex flex-col items-center gap-1 mb-2">
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-1" style={{ background: "rgba(236,72,153,0.15)", border: "1px solid rgba(236,72,153,0.3)" }}>
+                      <FiPhone size={24} className="text-pink-400" />
+                    </div>
+                    <p className="text-sm text-white/60 text-center">Code sent to {phoneOtpMasked}</p>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-white/60 tracking-wide uppercase">Verification Code</label>
+                    <input
+                      type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6}
+                      placeholder="000000" value={phoneOtp}
+                      onChange={e => setPhoneOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      autoFocus required
+                      className="w-full px-4 py-4 rounded-xl text-2xl font-black text-white text-center outline-none tracking-[0.4em] transition-all"
+                      style={{ background: "#1e1e24", border: "2px solid #2e2e38", letterSpacing: "0.4em" }}
+                      onFocus={e => { e.target.style.borderColor = "#ec4899"; }}
+                      onBlur={e => { e.target.style.borderColor = "#2e2e38"; }}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <button type="button" onClick={() => { setPhoneOtpStep(false); setPhoneOtp(""); setError(""); clearInterval(resendIntervalRef.current); }}
+                      className="text-xs text-white/40 hover:text-white/70 transition-colors">
+                      ← Change phone
+                    </button>
+                    <button type="button" disabled={resendTimer > 0 || loading}
+                      onClick={async () => {
+                        if (resendTimer > 0) return; setError(""); setLoading(true);
+                        try { await authAPI.sendPhoneOtp(phone); setResendTimer(60); resendIntervalRef.current = setInterval(() => setResendTimer(t => { if (t <= 1) { clearInterval(resendIntervalRef.current); return 0; } return t - 1; }), 1000); }
+                        catch (err) { setError(err.message || "Failed to resend."); }
+                        finally { setLoading(false); }
+                      }}
+                      className="text-xs font-semibold transition-colors disabled:opacity-40"
+                      style={{ color: resendTimer > 0 ? "rgba(255,255,255,0.35)" : "#ec4899" }}>
+                      {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend code"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-white/60 tracking-wide uppercase">Phone number</label>
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      placeholder="+91 9876543210"
+                      value={phone}
+                      onChange={e => setPhone(e.target.value.replace(/[^0-9+\-\s]/g, ''))}
+                      required
+                      className="w-full px-4 py-3.5 rounded-xl text-sm text-white outline-none transition-all"
+                      style={{ background: "#1e1e24", border: "2px solid #2e2e38" }}
+                      onFocus={e => { e.target.style.borderColor = "#ec4899"; }}
+                      onBlur={e => { e.target.style.borderColor = "#2e2e38"; }}
+                    />
+                  </div>
+                </>
+              )
             ) : (
               <>
                 {/* Name field (signup only) */}
@@ -492,6 +581,22 @@ function MobileLogin({ onSuccess, onGuest }) {
               </>
             )}
 
+            {/* Phone/Email toggle */}
+            {isLogin && !phoneOtpStep && (
+              <button type="button" onClick={() => {
+                setLoginMethod(m => m === "email" ? "phone" : "email");
+                setError("");
+                setPhoneOtpStep(false);
+                setPhoneOtp("");
+              }} className="text-xs text-center mt-1" style={{ color: "rgba(255,255,255,0.4)" }}>
+                {loginMethod === "email" ? (
+                  <><FiPhone size={11} className="inline mr-1" />Log in with phone instead</>
+                ) : (
+                  <><FiMail size={11} className="inline mr-1" />Log in with email instead</>
+                )}
+              </button>
+            )}
+
             {/* Submit */}
             <motion.button
               type="submit" disabled={loading} whileTap={{ scale: 0.97 }}
@@ -506,8 +611,8 @@ function MobileLogin({ onSuccess, onGuest }) {
               />
               <span className="relative z-10 flex items-center justify-center gap-2">
                 {loading
-                  ? <><svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>{isLogin ? "Logging in…" : otpStep ? "Verifying…" : "Sending code…"}</>
-                  : isLogin ? "Log In" : otpStep ? "Verify & Create Account" : "Send Verification Code"
+                  ? <><svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>{isLogin ? (loginMethod === "phone" ? (phoneOtpStep ? "Verifying…" : "Sending code…") : "Logging in…") : otpStep ? "Verifying…" : "Sending code…"}</>
+                  : isLogin ? (loginMethod === "phone" ? (phoneOtpStep ? "Verify & Log In" : "Send Verification Code") : "Log In") : otpStep ? "Verify & Create Account" : "Send Verification Code"
                 }
               </span>
             </motion.button>
@@ -563,7 +668,7 @@ function MobileLogin({ onSuccess, onGuest }) {
         <p className="mt-8 text-sm text-center" style={{ color: "rgba(255,255,255,0.40)" }}>
           {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
           <button
-            onClick={() => { setIsLogin(v => !v); setError(""); setOtpStep(false); setOtp(""); }}
+            onClick={() => { setIsLogin(v => !v); setError(""); setOtpStep(false); setOtp(""); setLoginMethod("email"); setPhoneOtpStep(false); setPhoneOtp(""); }}
             className="font-bold underline underline-offset-2"
             style={{ color: "white" }}
           >
@@ -1690,6 +1795,11 @@ function DesktopLogin({ onSuccess, onGuest }) {
   const [otpStep,setOtpStep]=useState(false);const [otp,setOtp]=useState("");
   const [resendTimer,setResendTimer]=useState(0);const resendRef=React.useRef(null);
   const [googleLoading,setGoogleLoading]=useState(false);
+  const [loginMethod,setLoginMethod]=useState("email");
+  const [phone,setPhone]=useState("");
+  const [phoneOtpStep,setPhoneOtpStep]=useState(false);
+  const [phoneOtp,setPhoneOtp]=useState("");
+  const [phoneOtpMasked,setPhoneOtpMasked]=useState("");
 
   const loginWithGoogle = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -1701,7 +1811,8 @@ function DesktopLogin({ onSuccess, onGuest }) {
         onSuccess();
       } catch (err) {
         console.error("Google auth API error:", err);
-        setError(err.message || "Google sign-in failed. Please try again.");
+        const msg = err.message || "Google sign-in failed. Please try again.";
+        setError(msg.includes("fetch") ? "Network error. Check your connection and try again." : msg);
       } finally { setGoogleLoading(false); }
     },
     onError: (error) => {
@@ -1710,7 +1821,9 @@ function DesktopLogin({ onSuccess, onGuest }) {
       const msg = code === "popup_closed_by_user"
         ? "Google sign-in was cancelled."
         : code === "popup_failed_to_open"
-        ? "Pop-up blocked. Please allow pop-ups for this site."
+        ? "Pop-up was blocked. Tap again or allow pop-ups in browser settings."
+        : code === "access_denied"
+        ? "Access denied. Please grant permission and try again."
         : "Google sign-in failed. Please try again.";
       setError(msg);
       setGoogleLoading(false);
@@ -1722,10 +1835,26 @@ function DesktopLogin({ onSuccess, onGuest }) {
     e.preventDefault();setError("");setLoading(true);
     try{
       if(isLogin){
-        const data=await authAPI.login(email,password);
-        setAuthData(data.token,data.user,data.user.id,rememberMe);
-        if(data.user.pfp)localStorage.setItem("selectedAvatar",data.user.pfp);
-        onSuccess();
+        if(loginMethod==="phone"){
+          if(!phoneOtpStep){
+            const data=await authAPI.sendPhoneOtp(phone);
+            setPhoneOtpMasked(data.maskedEmail||"your email");
+            setPhoneOtpStep(true);setPhoneOtp("");
+            setResendTimer(60);
+            resendRef.current=setInterval(()=>setResendTimer(t=>{if(t<=1){clearInterval(resendRef.current);return 0;}return t-1;}),1000);
+          }else{
+            if(!phoneOtp||phoneOtp.length!==6)throw new Error("Enter the 6-digit code");
+            const data=await authAPI.verifyPhoneOtp(phone,phoneOtp);
+            setAuthData(data.token,data.user,data.user.id,rememberMe);
+            if(data.user.pfp)localStorage.setItem("selectedAvatar",data.user.pfp);
+            onSuccess();
+          }
+        }else{
+          const data=await authAPI.login(email,password);
+          setAuthData(data.token,data.user,data.user.id,rememberMe);
+          if(data.user.pfp)localStorage.setItem("selectedAvatar",data.user.pfp);
+          onSuccess();
+        }
       }else if(!otpStep){
         if(!name.trim())throw new Error("Name is required");
         await authAPI.sendOtp(email);
@@ -1796,11 +1925,11 @@ function DesktopLogin({ onSuccess, onGuest }) {
         <div className="rounded-3xl overflow-hidden shadow-2xl shadow-black/70" style={CARD_STYLE}>
           <div className="h-[3px]" style={{ background:"linear-gradient(90deg,#ec4899,#f97316)" }}/>
           <div className="p-7">
-            <h2 className="text-xl font-bold text-white">{isLogin?"Welcome back":otpStep?"Verify your email":"Create account"}</h2>
-            <p className="text-xs text-white/55 mt-1 mb-4">{isLogin?"Sign in to your Smart Split account":otpStep?`We sent a 6-digit code to ${email}`:"Join Smart Split — it's free forever"}</p>
-            {!otpStep&&<div className="flex p-1 mb-4 gap-1 rounded-2xl" style={{ background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)" }}>
+            <h2 className="text-xl font-bold text-white">{isLogin?(loginMethod==="phone"?(phoneOtpStep?"Verify your identity":"Log in with phone"):"Welcome back"):otpStep?"Verify your email":"Create account"}</h2>
+            <p className="text-xs text-white/55 mt-1 mb-4">{isLogin?(loginMethod==="phone"?(phoneOtpStep?`Code sent to ${phoneOtpMasked}`:"Enter your phone number"):"Sign in to your Smart Split account"):otpStep?`We sent a 6-digit code to ${email}`:"Join Smart Split — it's free forever"}</p>
+            {!otpStep&&!phoneOtpStep&&<div className="flex p-1 mb-4 gap-1 rounded-2xl" style={{ background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)" }}>
               {[["Sign In",true],["Register",false]].map(([label,val])=>(
-                <button key={label} onClick={()=>{setIsLogin(val);setError("");setOtpStep(false);setOtp("");}} className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${isLogin===val?"bg-white text-gray-900 shadow-sm":"text-white/55 hover:text-white/80"}`}>{label}</button>
+                <button key={label} onClick={()=>{setIsLogin(val);setError("");setOtpStep(false);setOtp("");setLoginMethod("email");setPhoneOtpStep(false);setPhoneOtp("");}} className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${isLogin===val?"bg-white text-gray-900 shadow-sm":"text-white/55 hover:text-white/80"}`}>{label}</button>
               ))}
             </div>}
             {error&&<div className="mb-3 px-3 py-2.5 rounded-xl text-xs text-red-300 flex items-start gap-2" style={{ background:"rgba(239,68,68,0.12)",border:"1px solid rgba(239,68,68,0.22)" }}><span className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1 flex-shrink-0"/>{error}</div>}
@@ -1837,6 +1966,49 @@ function DesktopLogin({ onSuccess, onGuest }) {
                     </div>
                   </div>
                 </>
+              ):isLogin&&loginMethod==="phone"?(
+                phoneOtpStep?(
+                  <>
+                    <div className="flex flex-col items-center gap-3 py-2">
+                      <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{background:"rgba(236,72,153,0.15)",border:"1px solid rgba(236,72,153,0.3)"}}>
+                        <FiPhone size={20} className="text-pink-400"/>
+                      </div>
+                      <p className="text-xs text-white/60 text-center">Code sent to {phoneOtpMasked}</p>
+                    </div>
+                    <div className="flex gap-2 justify-center w-full">
+                      {[0,1,2,3,4,5].map(i=>(
+                        <input
+                          key={i} id={`dpotp-${i}`}
+                          type="text" inputMode="numeric" maxLength={1}
+                          value={phoneOtp[i]||""}
+                          autoFocus={i===0}
+                          onChange={e=>{
+                            const v=e.target.value.replace(/\D/g,"").slice(-1);
+                            const arr=Array.from({length:6},(_,j)=>phoneOtp[j]||"");
+                            arr[i]=v;
+                            setPhoneOtp(arr.join(""));
+                            if(v&&i<5)document.getElementById(`dpotp-${i+1}`)?.focus();
+                          }}
+                          onKeyDown={e=>{
+                            if(e.key==="Backspace"&&!phoneOtp[i]&&i>0)document.getElementById(`dpotp-${i-1}`)?.focus();
+                          }}
+                          onPaste={e=>{e.preventDefault();const p=e.clipboardData.getData("text").replace(/\D/g,"").slice(0,6);setPhoneOtp(p);document.getElementById(`dpotp-${Math.min(p.length,5)}`)?.focus();}}
+                          className="w-11 h-14 text-center text-xl font-black rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-400/30 transition caret-pink-400"
+                        />
+                      ))}
+                    </div>
+                    <div className="flex w-full items-center justify-between">
+                      <button type="button" onClick={()=>{setPhoneOtpStep(false);setPhoneOtp("");setError("");clearInterval(resendRef.current);}} className="text-xs text-white/50 hover:text-white/80 transition flex items-center gap-1"><FiArrowRight size={12} className="rotate-180"/>Change phone</button>
+                      <button type="button" disabled={resendTimer>0||loading}
+                        onClick={async()=>{if(resendTimer>0)return;setError("");setLoading(true);try{await authAPI.sendPhoneOtp(phone);setResendTimer(60);resendRef.current=setInterval(()=>setResendTimer(t=>{if(t<=1){clearInterval(resendRef.current);return 0;}return t-1;}),1000);}catch(err){setError(err.message||"Failed to resend.");}finally{setLoading(false);}}}
+                        className="text-xs font-semibold transition disabled:cursor-not-allowed" style={{color:resendTimer>0?"rgba(255,255,255,0.3)":"#f97316"}}>{resendTimer>0?`Resend in ${resendTimer}s`:"Resend code"}</button>
+                    </div>
+                  </>
+                ):(
+                  <>
+                    <AuthInputDark icon={<FiPhone size={15}/>} type="tel" inputMode="tel" placeholder="+91 9876543210" value={phone} onChange={e=>setPhone(e.target.value.replace(/[^0-9+\-\s]/g,''))} required/>
+                  </>
+                )
               ):(
                 <>
                   {!isLogin&&<AuthInputDark icon={<FiUser size={15}/>} type="text" placeholder="Full name" value={name} onChange={e=>setName(e.target.value)} required/>}
@@ -1847,18 +2019,19 @@ function DesktopLogin({ onSuccess, onGuest }) {
                   {isLogin&&<label className="flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" checked={rememberMe} onChange={e=>setRememberMe(e.target.checked)} className="w-3.5 h-3.5 rounded accent-pink-500"/><span className="text-xs text-white/55">Keep me signed in</span></label>}
                 </>
               )}
+              {isLogin&&!phoneOtpStep&&<button type="button" onClick={()=>{setLoginMethod(m=>m==="email"?"phone":"email");setError("");setPhoneOtpStep(false);setPhoneOtp("");}} className="text-xs text-center mt-1 w-full" style={{color:"rgba(255,255,255,0.4)"}}>{loginMethod==="email"?<><FiPhone size={11} className="inline mr-1"/>Log in with phone instead</>:<><FiMail size={11} className="inline mr-1"/>Log in with email instead</>}</button>}
               <button type="submit" disabled={loading} className="w-full py-3 text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-50" style={{ background:"linear-gradient(135deg,#ec4899 0%,#f97316 100%)" }}>
-                {loading?"Please wait…":<>{isLogin?"Sign In":otpStep?"Verify & Create Account":"Send Verification Code"}<FiArrowRight size={16}/></>}
+                {loading?"Please wait…":<>{isLogin?(loginMethod==="phone"?(phoneOtpStep?"Verify & Log In":"Send Verification Code"):"Sign In"):otpStep?"Verify & Create Account":"Send Verification Code"}<FiArrowRight size={16}/></>}
               </button>
             </form>
-            {!otpStep&&<>
+            {!otpStep&&!phoneOtpStep&&<>
               <div className="flex items-center gap-3 my-3"><div className="flex-1 h-px opacity-20 bg-white"/><span className="text-xs text-white/30">or</span><div className="flex-1 h-px opacity-20 bg-white"/></div>
               <button onClick={()=>loginWithGoogle()} disabled={googleLoading} className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-3 transition-all disabled:opacity-50" style={{ background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",color:googleLoading?"rgba(255,255,255,0.35)":"rgba(255,255,255,0.85)" }}>
                 {googleLoading?<svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>:<svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332Z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.166 6.656 3.58 9 3.58Z"/></svg>}
                 {googleLoading?"Signing in…":"Continue with Google"}
               </button>
               <button onClick={onGuest} className="w-full py-2.5 rounded-xl text-xs font-semibold text-white/50 hover:text-white/80 transition mt-2" style={{ background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)" }}>Continue as Guest 👀</button>
-              <p className="mt-4 text-center text-xs text-white/50">{isLogin?"New to Smart Split?":"Already have an account?"}{" "}<button onClick={()=>{setIsLogin(v=>!v);setError("");setOtpStep(false);setOtp("");}} className="text-white font-semibold hover:text-pink-300 transition-colors">{isLogin?"Create an account":"Sign in instead"}</button></p>
+              <p className="mt-4 text-center text-xs text-white/50">{isLogin?"New to Smart Split?":"Already have an account?"}{" "}<button onClick={()=>{setIsLogin(v=>!v);setError("");setOtpStep(false);setOtp("");setLoginMethod("email");setPhoneOtpStep(false);setPhoneOtp("");}} className="text-white font-semibold hover:text-pink-300 transition-colors">{isLogin?"Create an account":"Sign in instead"}</button></p>
             </>}
           </div>
         </div>
@@ -1895,7 +2068,8 @@ export default function Home() {
       },450);
     } catch (err) {
       console.error("Google auth API error (intro):", err);
-      setIntroError(err.message || "Google sign-in failed. Please try again.");
+      const msg = err.message || "Google sign-in failed. Please try again.";
+      setIntroError(msg.includes("fetch") ? "Network error. Check your connection and try again." : msg);
     } finally { setIntroGoogleLoading(false); }
   };
   const googleSignIn = useGoogleLogin({
@@ -1906,7 +2080,9 @@ export default function Home() {
       const msg = code === "popup_closed_by_user"
         ? "Google sign-in was cancelled."
         : code === "popup_failed_to_open"
-        ? "Pop-up blocked. Please allow pop-ups for this site."
+        ? "Pop-up was blocked. Tap again or allow pop-ups in browser settings."
+        : code === "access_denied"
+        ? "Access denied. Please grant permission and try again."
         : "Google sign-in failed. Please try again.";
       setIntroError(msg);
       setIntroGoogleLoading(false);

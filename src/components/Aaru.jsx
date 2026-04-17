@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { FiX, FiSend, FiCheck, FiMic } from "react-icons/fi";
+import { FiX, FiSend, FiCheck, FiMic, FiZap } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiFetch, API_URL } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
@@ -257,7 +257,7 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
   const [messages, setMessages] = useState([
     {
       role: "bot",
-      text: "Hi! I'm Aaru ✨\n\nTell me about an expense and I'll sort it out — or ask me anything about your spending.",
+      text: "Hi! I'm Aaru\n\nTell me about an expense and I'll sort it out — or ask me anything about your spending.",
     },
   ]);
   const [input, setInput] = useState("");
@@ -542,7 +542,7 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
                     border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.06)",
                   }}
                 >
-                  <div className="text-4xl mb-3">✨</div>
+                  <FiZap className="mx-auto mb-3" size={40} style={{ color: theme?.gradFrom || "#8b5cf6" }} />
                   <h3 className="text-lg font-semibold mb-2" style={{ color: isDark ? "#fff" : "#1a1a2e" }}>
                     Aaru AI is a Premium Feature
                   </h3>
@@ -551,7 +551,7 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
                   </p>
                   <ul className="text-sm opacity-50 mb-4 space-y-1" style={{ color: isDark ? "#fff" : "#333" }}>
                     <li>💬 Parse expenses from natural language</li>
-                    <li>📊 Answer spending questions</li>
+                    <li>Answer spending questions</li>
                     <li>🎤 Accept voice input</li>
                   </ul>
                   <button

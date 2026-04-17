@@ -246,7 +246,7 @@ export default function OnboardingGuide({ onFinish }) {
                   cursor: "pointer", fontFamily: "inherit",
                 }}
               >
-                {step < TIPS.length - 1 ? "Next →" : "Got it! 🎉"}
+                {step < TIPS.length - 1 ? "Next →" : "Got it!"}
               </button>
             </div>
           </div>
