@@ -15,13 +15,15 @@ import {
   FiX,
 } from "react-icons/fi";
 import { QRCodeSVG } from "qrcode.react";
-import { API_URL, apiFetch, getUserId, cachedApiFetch, invalidateCache } from "../utils/api";
+import { API_URL, apiFetch, getUserId, cachedApiFetch, invalidateCache, getCached } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 import { simplifyDebts } from "../utils/debts";
 
 export default function Balances() {
+  const _uid = getUserId();
+  const _cachedGroups = _uid ? getCached(`groups_${_uid}`) : null;
   const [groupBalances, setGroupBalances] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!_cachedGroups);
   const [expandedGroups, setExpandedGroups] = useState({});
   const [settling, setSettling] = useState(null);
   const [reminderSent, setReminderSent] = useState(null);
@@ -114,7 +116,7 @@ export default function Balances() {
   }, [navigate]);
 
   const fetchAllBalances = async () => {
-    setLoading(true);
+    if (!groupBalances.length) setLoading(true);
     try {
       const groupsRes = await cachedApiFetch(
         `${API_URL}/groups?userId=${userId}`,

@@ -14,15 +14,17 @@ import {
   FiTrash2,
   FiEdit2,
 } from "react-icons/fi";
-import { API_URL, apiFetch, getUserId, cachedApiFetch, invalidateCache } from "../utils/api";
+import { API_URL, apiFetch, getUserId, cachedApiFetch, invalidateCache, getCached } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 import { CATEGORIES, detectCategory, getCategoryInfo } from "../utils/categories";
 import { downloadExpensesCSV } from "../utils/export";
 
 export default function Expenses() {
+  const _uid = getUserId();
+  const _cachedGroups = _uid ? getCached(`groups_${_uid}`) : null;
   const [expenses, setExpenses] = useState([]);
-  const [groups, setGroups] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [groups, setGroups] = useState(_cachedGroups?.groups || []);
+  const [loading, setLoading] = useState(!_cachedGroups);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [userId, setUserId] = useState(null);
   const [deletingExpense, setDeletingExpense] = useState(null);
@@ -153,7 +155,7 @@ export default function Expenses() {
 
   const fetchExpenses = async (groupId) => {
     try {
-      setLoading(true);
+      if (!expenses.length) setLoading(true);
       const response = await cachedApiFetch(
         `${API_URL}/expenses/group/${groupId}`,
         `expenses_${groupId}`,

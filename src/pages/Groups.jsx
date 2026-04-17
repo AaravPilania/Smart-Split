@@ -4,13 +4,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import DesktopLayout from "../components/DesktopLayout";
 import DesktopPageHeader from "../components/DesktopPageHeader";
 import { FiUsers, FiPlus, FiX, FiUserPlus, FiLink, FiZap, FiHeart, FiClock, FiTrash2, FiCamera, FiArchive, FiCalendar, FiLock, FiHome, FiGlobe, FiRepeat, FiDollarSign } from "react-icons/fi";
-import { API_URL, apiFetch, getUserId, cachedApiFetch, invalidateCache } from "../utils/api";
+import { API_URL, apiFetch, getUserId, cachedApiFetch, invalidateCache, getCached } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 import { simplifyDebts } from "../utils/debts";
 
 export default function Groups() {
-  const [groups, setGroups] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const _uid = getUserId();
+  const _cached = _uid ? getCached(`groups_${_uid}`) : null;
+  const [groups, setGroups] = useState(_cached?.groups || []);
+  const [loading, setLoading] = useState(!_cached);
   const [fetchError, setFetchError] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(null);
@@ -162,7 +164,7 @@ export default function Groups() {
 
   const fetchGroups = async (userId) => {
     try {
-      setLoading(true);
+      if (!groups.length) setLoading(true);
       const response = await cachedApiFetch(
         `${API_URL}/groups?userId=${userId}`,
         `groups_${userId}`,

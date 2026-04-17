@@ -7,7 +7,7 @@ import {
   FiCheck, FiX, FiTrash2, FiMail, FiGrid,
 } from "react-icons/fi";
 import { QRCodeSVG } from "qrcode.react";
-import { API_URL, apiFetch, getUserId, cachedApiFetch, invalidateCache } from "../utils/api";
+import { API_URL, apiFetch, getUserId, cachedApiFetch, invalidateCache, getCached } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 
 const APP_URL = import.meta.env.VITE_APP_URL || "https://thesmartsplit.pages.dev";
@@ -15,14 +15,16 @@ const APP_URL = import.meta.env.VITE_APP_URL || "https://thesmartsplit.pages.dev
 export default function Friends() {
   const { theme, isDark } = useTheme();
   const userId = getUserId();
-  const [friends, setFriends] = useState([]);
-  const [requests, setRequests] = useState([]);
+  const _cachedFriends = userId ? getCached(`friends_${userId}`) : null;
+  const _cachedRequests = userId ? getCached(`friend_requests_${userId}`) : null;
+  const [friends, setFriends] = useState(_cachedFriends?.friends || []);
+  const [requests, setRequests] = useState(_cachedRequests?.requests || []);
   const [searchEmail, setSearchEmail] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [searchWasUsername, setSearchWasUsername] = useState(false);
   const [activeTab, setActiveTab] = useState("friends"); // friends | requests | add
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!_cachedFriends);
   const [showMyQR, setShowMyQR] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
   const debounceRef = useRef(null);
@@ -46,7 +48,7 @@ export default function Friends() {
   }, [searchEmail]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchAll = async () => {
-    setLoading(true);
+    if (!friends.length) setLoading(true);
     await Promise.all([fetchFriends(), fetchRequests()]);
     setLoading(false);
   };

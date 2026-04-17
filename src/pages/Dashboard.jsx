@@ -7,7 +7,7 @@ import DashboardSidebar from "../components/DashboardSidebar";
 import DashboardRightPanel from "../components/DashboardRightPanel";
 import InsightsPanel from "../components/InsightsPanel";
 import { FiArrowRight, FiX, FiTrendingUp, FiTrendingDown, FiDollarSign, FiUsers, FiBarChart2, FiPlus, FiMoreHorizontal, FiZap } from "react-icons/fi";
-import { API_URL, apiFetch, getUser, getUserId, cachedApiFetch, setCache } from "../utils/api";
+import { API_URL, apiFetch, getUser, getUserId, cachedApiFetch, setCache, getCached } from "../utils/api";
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 import { detectCategory, getCategoryInfo } from "../utils/categories";
 import { computeInsights } from "../utils/insights";
@@ -76,15 +76,20 @@ function CurrencyCountUp({ amount }) {
 
 // ─── Main component ───────────────────────────────────────────────────────
 export default function Dashboard() {
+  // Hydrate from cache synchronously to avoid skeleton flash
+  const _cached = getCached('dashboard_summary');
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!_cached);
   const [fetchError, setFetchError] = useState(false);
   const [retryIn, setRetryIn] = useState(null);
-  const [stats, setStats] = useState({ totalExpenses: 0, youOwe: 0, owedToYou: 0 });
-  const [recentExpenses, setRecentExpenses] = useState([]);
-  const [settlements, setSettlements] = useState([]);
-  const [groups, setGroups] = useState([]);
-  const [groupSpending, setGroupSpending] = useState([]);
+  const [stats, setStats] = useState(
+    _cached ? { totalExpenses: _cached.stats?.totalExpenses || 0, youOwe: _cached.stats?.youOwe || 0, owedToYou: _cached.stats?.owedToYou || 0 }
+            : { totalExpenses: 0, youOwe: 0, owedToYou: 0 }
+  );
+  const [recentExpenses, setRecentExpenses] = useState(_cached?.allExpenses?.slice(0, 2) || []);
+  const [settlements, setSettlements] = useState(_cached?.userSettlements?.slice(0, 2) || []);
+  const [groups, setGroups] = useState(_cached?.groups || []);
+  const [groupSpending, setGroupSpending] = useState(_cached?.perGroupSpending?.slice(0, 6) || []);
   const [avatar, setAvatar] = useState(localStorage.getItem("selectedAvatar") || "");
   // Insights modal state
   const [showInsights, setShowInsights] = useState(false);
@@ -94,7 +99,7 @@ export default function Dashboard() {
   const [monthlyData, setMonthlyData] = useState([]);
   const [insights, setInsights] = useState([]);
   const [goals, setGoals] = useState([]);
-  const [allExpensesRaw, setAllExpensesRaw] = useState([]);
+  const [allExpensesRaw, setAllExpensesRaw] = useState(_cached?.allExpenses || []);
   const navigate = useNavigate();
   const { theme, isDark } = useTheme();
   const isRealDesktop = () =>
@@ -163,7 +168,8 @@ export default function Dashboard() {
   const fetchDashboardData = async (userId) => {
     setRetryIn(null);
     try {
-      setLoading(true);
+      // Only show skeleton if we have no cached data already in state
+      if (!groups.length && !recentExpenses.length) setLoading(true);
 
       const summaryRes = await cachedApiFetch(`${API_URL}/auth/dashboard/summary`, 'dashboard_summary');
       if (summaryRes.ok) {

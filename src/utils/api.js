@@ -27,6 +27,8 @@ export function setAuthData(token, user, userId, remember) {
   ['user', 'userId'].forEach(k => drop.removeItem(k));
   keep.setItem('user', JSON.stringify(user));
   keep.setItem('userId', userId);
+  // Pre-fetch all critical data so first page load is instant
+  warmCache(userId).catch(() => {});
   // Notify App so BottomNav and other auth-dependent UI re-renders
   window.dispatchEvent(new Event('auth:login'));
 }
@@ -125,8 +127,11 @@ const IDB_NAME = 'smartsplit_cache';
 const IDB_STORE = 'data';
 const IDB_VERSION = 1;
 
+// Keep a singleton connection — opening IDB each call added 20-80ms per request
+let _idbPromise = null;
 function openIDB() {
-  return new Promise((resolve, reject) => {
+  if (_idbPromise) return _idbPromise;
+  _idbPromise = new Promise((resolve, reject) => {
     const req = indexedDB.open(IDB_NAME, IDB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
@@ -135,9 +140,12 @@ function openIDB() {
       }
     };
     req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onerror = () => { _idbPromise = null; reject(req.error); };
   });
+  return _idbPromise;
 }
+// Pre-warm on module load so IDB is ready before first page navigates
+openIDB().catch(() => {});
 
 export async function getIDBCached(key) {
   try {
@@ -174,18 +182,30 @@ export async function setIDBCache(key, data) {
 export function invalidateCache(...keys) {
   try {
     const allKeys = Object.keys(localStorage).filter(k => k.startsWith(CACHE_PREFIX));
+    const matchedRawKeys = [];
     keys.forEach(key => {
       const full = CACHE_PREFIX + key;
       allKeys.forEach(k => {
-        if (k === full || k.startsWith(full)) localStorage.removeItem(k);
+        if (k === full || k.startsWith(full)) {
+          localStorage.removeItem(k);
+          matchedRawKeys.push(k.slice(CACHE_PREFIX.length));
+        }
       });
     });
+    // Also purge from IDB so stale data can't resurface
+    if (matchedRawKeys.length) {
+      openIDB().then(db => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        const store = tx.objectStore(IDB_STORE);
+        matchedRawKeys.forEach(k => store.delete(k));
+      }).catch(() => {});
+    }
   } catch { /* ignore */ }
 }
 
 /**
  * Fetch with cache-first strategy.
- * - Returns cached data immediately if fresh (< 5 min old).
+ * - Returns cached data immediately if fresh.
  * - Always fires a background network request to refresh the cache.
  * - When fresh data arrives, calls onFresh(data) so the UI can update.
  *
@@ -195,17 +215,14 @@ export function invalidateCache(...keys) {
  * @returns {Promise<Response>} Resolves with cached Response immediately, or network Response if no cache
  */
 export async function cachedApiFetch(url, cacheKey, onFresh) {
+  // Fire network immediately (don't wait for cache check)
   const networkPromise = apiFetch(url);
   
-  // Try localStorage first (fast sync)
-  let cached = getCached(cacheKey);
-  
-  // If no localStorage cache, try IndexedDB (async but still faster than network)
-  if (!cached) {
-    cached = await getIDBCached(cacheKey);
-  }
+  // Try localStorage first — synchronous, ~0ms
+  const cached = getCached(cacheKey);
 
   if (cached) {
+    // Cache hit — return instantly, refresh in background
     networkPromise.then(async (res) => {
       if (res.ok) {
         const data = await res.clone().json();
@@ -217,6 +234,39 @@ export async function cachedApiFetch(url, cacheKey, onFresh) {
     return new Response(JSON.stringify(cached), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }
 
+  // localStorage miss — race IDB vs network (whichever is faster wins)
+  const idbPromise = getIDBCached(cacheKey);
+  const winner = await Promise.race([
+    idbPromise.then(d => d ? { source: 'idb', data: d } : null),
+    networkPromise.then(async r => {
+      if (!r.ok) return null;
+      const d = await r.clone().json();
+      return { source: 'net', data: d, res: r };
+    }).catch(() => null),
+  ]);
+
+  if (winner?.source === 'idb') {
+    // IDB won — use cached data, background-refresh from network
+    setCache(cacheKey, winner.data);
+    networkPromise.then(async (res) => {
+      if (res.ok) {
+        const data = await res.clone().json();
+        setCache(cacheKey, data);
+        setIDBCache(cacheKey, data).catch(() => {});
+        if (onFresh) onFresh(data);
+      }
+    }).catch(() => {});
+    return new Response(JSON.stringify(winner.data), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  if (winner?.source === 'net') {
+    // Network won before IDB — use network data, cache it
+    setCache(cacheKey, winner.data);
+    setIDBCache(cacheKey, winner.data).catch(() => {});
+    return winner.res;
+  }
+
+  // Both returned null from race — await network as final fallback
   const res = await networkPromise;
   if (res.ok) {
     const data = await res.clone().json();
@@ -259,13 +309,16 @@ export async function wakeUpServer() {
 /**
  * Pre-fetch and cache all critical data after login.
  * Fires all requests in parallel for maximum speed.
+ * Called automatically from setAuthData — pages that load after login
+ * will hit warm localStorage cache instead of waiting for network.
  */
 export async function warmCache(userId) {
   if (!userId) return;
   const endpoints = [
-    { url: `${API_URL}/auth/dashboard/summary`, key: `dashboard_summary_${userId}` },
+    { url: `${API_URL}/auth/dashboard/summary`, key: 'dashboard_summary' },
     { url: `${API_URL}/groups?userId=${userId}`, key: `groups_${userId}` },
     { url: `${API_URL}/friends`, key: `friends_${userId}` },
+    { url: `${API_URL}/friends/requests`, key: `friend_requests_${userId}` },
     { url: `${API_URL}/goals`, key: `goals_${userId}` },
     { url: `${API_URL}/subscriptions`, key: `subscriptions_${userId}` },
     { url: `${API_URL}/notifications`, key: `notifications_${userId}` },
