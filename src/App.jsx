@@ -26,7 +26,7 @@ function ProtectedRoute({ element }) {
 // Full-screen loader shown while silentRefresh is in-flight for returning "keep me logged in" users
 function AuthLoadingScreen() {
   return (
-    <div className="fixed inset-0 flex items-center justify-center" style={{ background: '#0c0e1a' }}>
+    <div className="fixed inset-0 flex items-center justify-center" style={{ background: '#030712' }}>
       <div className="flex flex-col items-center gap-5">
         <img src="/icon.png" alt="Smart Split" className="h-14 w-14 rounded-2xl shadow-xl" style={{ boxShadow: '0 8px 32px rgba(236,72,153,0.30)' }} />
         <div className="w-6 h-6 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(236,72,153,0.3)', borderTopColor: '#ec4899' }} />
@@ -139,17 +139,34 @@ function OfflineBanner() {
 }
 
 function App() {
-  const [authReady, setAuthReady] = useState(false);
+  // If we restored a cached token, auth is ready immediately (no waiting for silentRefresh)
+  const [authReady, setAuthReady] = useState(!!getToken());
   const [isLoggedIn, setIsLoggedIn] = useState(!!getToken());
 
-  // Kick off a health check immediately so cold-start happens ASAP.
-  // Also attempt a silent refresh to restore the session from the httpOnly cookie.
   useEffect(() => {
+    // Kick off server health check (fire-and-forget)
     wakeUpServer();
-    silentRefresh().finally(() => {
+
+    // If we already have a token from cache, just refresh in background
+    if (getToken()) {
       setAuthReady(true);
-      setIsLoggedIn(!!getToken());
-    });
+      setIsLoggedIn(true);
+      silentRefresh().then(newToken => {
+        if (!newToken && !getToken()) {
+          // Refresh failed and no valid token — force logout
+          clearAuth();
+          setIsLoggedIn(false);
+          setAuthReady(true);
+        }
+      });
+    } else {
+      // No cached token — race silentRefresh against a 4-second timeout
+      const timeout = new Promise(resolve => setTimeout(() => resolve('timeout'), 4000));
+      Promise.race([silentRefresh(), timeout]).then((result) => {
+        setAuthReady(true);
+        setIsLoggedIn(!!getToken());
+      });
+    }
 
     // Re-render App when login/logout happens so BottomNav appears/disappears
     const handleLogin = () => setIsLoggedIn(true);

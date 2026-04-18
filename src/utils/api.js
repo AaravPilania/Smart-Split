@@ -1,12 +1,27 @@
 export const API_URL = import.meta.env.VITE_API_URL || '/api';
 
-// ── In-memory access token (never written to localStorage) ──────────────
+// ── In-memory access token ──────────────────────────────────
 let _accessToken = null;
 let _refreshing = null; // deduplicates concurrent refresh calls
 
+// Restore cached token on module load for instant iOS PWA startup
+try {
+  const cached = localStorage.getItem('_at');
+  if (cached) _accessToken = cached;
+} catch {}
+
 export function getToken() { return _accessToken; }
-export function setToken(token) { _accessToken = token || null; }
-export function clearToken() { _accessToken = null; }
+export function setToken(token) {
+  _accessToken = token || null;
+  try {
+    if (token) localStorage.setItem('_at', token);
+    else localStorage.removeItem('_at');
+  } catch {}
+}
+export function clearToken() {
+  _accessToken = null;
+  try { localStorage.removeItem('_at'); } catch {}
+}
 
 // Storage helpers for user/userId (NOT for the access token)
 export function getUserId() {

@@ -266,6 +266,14 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    // Google-only users have no password — guide them to use Google Sign-In
+    if (!user.password && user.googleId) {
+      return res.status(401).json({
+        message: 'This account uses Google Sign-In. Please tap "Continue with Google" to log in.',
+        code: 'GOOGLE_ACCOUNT',
+      });
+    }
+
     const isMatch = await User.comparePassword(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials' });
