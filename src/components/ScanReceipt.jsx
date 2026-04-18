@@ -523,88 +523,119 @@ export default function ScanReceipt({
     return { title, amount: amount || 0, rawText: text };
   };
 
+  // Downscale image for Tesseract to max dimension, reducing memory usage on mobile
+  const downscaleForOCR = (imageFile, maxDim = 2000) => new Promise((resolve) => {
+    if (!(imageFile instanceof Blob)) { resolve(imageFile); return; }
+    const img = new Image();
+    let objUrl = null;
+    img.onload = () => {
+      try {
+        let { width: w, height: h } = img;
+        if (w <= maxDim && h <= maxDim) { if (objUrl) URL.revokeObjectURL(objUrl); resolve(imageFile); return; }
+        const scale = maxDim / Math.max(w, h);
+        w = Math.round(w * scale);
+        h = Math.round(h * scale);
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        c.getContext("2d").drawImage(img, 0, 0, w, h);
+        c.toBlob((blob) => { if (objUrl) URL.revokeObjectURL(objUrl); resolve(blob || imageFile); }, "image/jpeg", 0.85);
+      } catch { if (objUrl) URL.revokeObjectURL(objUrl); resolve(imageFile); }
+    };
+    img.onerror = () => { if (objUrl) URL.revokeObjectURL(objUrl); resolve(imageFile); };
+    objUrl = URL.createObjectURL(imageFile);
+    img.src = objUrl;
+  });
+
   // Preprocess image for better OCR: grayscale → contrast stretch → adaptive binarize → upscale
   const preprocessImage = (imageSource) => {
     return new Promise((resolve) => {
       const img = new Image();
+      let objUrl = null;
       img.onload = () => {
-        // Upscale small images for better OCR
-        let targetWidth = img.width;
-        let targetHeight = img.height;
-        if (targetWidth < 1500) {
-          const scale = 1500 / targetWidth;
-          targetWidth = 1500;
-          targetHeight = Math.round(img.height * scale);
-        }
-        // Downscale very large images to avoid memory issues
-        const MAX_DIM = 4000;
-        if (targetWidth > MAX_DIM || targetHeight > MAX_DIM) {
-          const scale = MAX_DIM / Math.max(targetWidth, targetHeight);
-          targetWidth = Math.round(targetWidth * scale);
-          targetHeight = Math.round(targetHeight * scale);
-        }
-
-        const canvas = document.createElement("canvas");
-        canvas.width = targetWidth;
-        canvas.height = targetHeight;
-        const ctx = canvas.getContext("2d");
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const d = imageData.data;
-        const w = canvas.width;
-        const h = canvas.height;
-
-        // Pass 1: Convert to grayscale
-        const gray = new Uint8Array(w * h);
-        for (let i = 0; i < d.length; i += 4) {
-          const g = Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
-          gray[i >> 2] = g;
-          d[i] = d[i + 1] = d[i + 2] = g;
-        }
-
-        // Pass 2: Adaptive threshold using integral image for local mean
-        const blockSize = Math.max(15, Math.round(Math.min(w, h) / 40) | 1);
-        const halfBlock = blockSize >> 1;
-        const C = 10; // bias constant
-
-        // Build integral image
-        const integral = new Float64Array(w * h);
-        for (let y = 0; y < h; y++) {
-          let rowSum = 0;
-          for (let x = 0; x < w; x++) {
-            rowSum += gray[y * w + x];
-            integral[y * w + x] = rowSum + (y > 0 ? integral[(y - 1) * w + x] : 0);
+        try {
+          // Upscale small images for better OCR
+          let targetWidth = img.width;
+          let targetHeight = img.height;
+          if (targetWidth < 1500) {
+            const scale = 1500 / targetWidth;
+            targetWidth = 1500;
+            targetHeight = Math.round(img.height * scale);
           }
-        }
-
-        // Apply adaptive threshold
-        for (let y = 0; y < h; y++) {
-          for (let x = 0; x < w; x++) {
-            const x1 = Math.max(0, x - halfBlock);
-            const y1 = Math.max(0, y - halfBlock);
-            const x2 = Math.min(w - 1, x + halfBlock);
-            const y2 = Math.min(h - 1, y + halfBlock);
-            const count = (x2 - x1 + 1) * (y2 - y1 + 1);
-            let sum = integral[y2 * w + x2];
-            if (x1 > 0) sum -= integral[y2 * w + (x1 - 1)];
-            if (y1 > 0) sum -= integral[(y1 - 1) * w + x2];
-            if (x1 > 0 && y1 > 0) sum += integral[(y1 - 1) * w + (x1 - 1)];
-            const mean = sum / count;
-            const idx = (y * w + x) * 4;
-            const val = gray[y * w + x] > mean - C ? 255 : 0;
-            d[idx] = d[idx + 1] = d[idx + 2] = val;
+          // Downscale very large images to avoid memory issues
+          const MAX_DIM = 4000;
+          if (targetWidth > MAX_DIM || targetHeight > MAX_DIM) {
+            const scale = MAX_DIM / Math.max(targetWidth, targetHeight);
+            targetWidth = Math.round(targetWidth * scale);
+            targetHeight = Math.round(targetHeight * scale);
           }
-        }
 
-        ctx.putImageData(imageData, 0, 0);
-        canvas.toBlob((blob) => resolve(blob || imageSource), "image/png");
+          const canvas = document.createElement("canvas");
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const d = imageData.data;
+          const w = canvas.width;
+          const h = canvas.height;
+
+          // Pass 1: Convert to grayscale
+          const gray = new Uint8Array(w * h);
+          for (let i = 0; i < d.length; i += 4) {
+            const g = Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
+            gray[i >> 2] = g;
+            d[i] = d[i + 1] = d[i + 2] = g;
+          }
+
+          // Pass 2: Adaptive threshold using integral image for local mean
+          const blockSize = Math.max(15, Math.round(Math.min(w, h) / 40) | 1);
+          const halfBlock = blockSize >> 1;
+          const C = 10; // bias constant
+
+          // Build integral image
+          const integral = new Float64Array(w * h);
+          for (let y = 0; y < h; y++) {
+            let rowSum = 0;
+            for (let x = 0; x < w; x++) {
+              rowSum += gray[y * w + x];
+              integral[y * w + x] = rowSum + (y > 0 ? integral[(y - 1) * w + x] : 0);
+            }
+          }
+
+          // Apply adaptive threshold
+          for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+              const x1 = Math.max(0, x - halfBlock);
+              const y1 = Math.max(0, y - halfBlock);
+              const x2 = Math.min(w - 1, x + halfBlock);
+              const y2 = Math.min(h - 1, y + halfBlock);
+              const count = (x2 - x1 + 1) * (y2 - y1 + 1);
+              let sum = integral[y2 * w + x2];
+              if (x1 > 0) sum -= integral[y2 * w + (x1 - 1)];
+              if (y1 > 0) sum -= integral[(y1 - 1) * w + x2];
+              if (x1 > 0 && y1 > 0) sum += integral[(y1 - 1) * w + (x1 - 1)];
+              const mean = sum / count;
+              const idx = (y * w + x) * 4;
+              const val = gray[y * w + x] > mean - C ? 255 : 0;
+              d[idx] = d[idx + 1] = d[idx + 2] = val;
+            }
+          }
+
+          ctx.putImageData(imageData, 0, 0);
+          canvas.toBlob((blob) => { if (objUrl) URL.revokeObjectURL(objUrl); resolve(blob || imageSource); }, "image/png");
+        } catch {
+          // If any canvas operation fails, return the original image
+          if (objUrl) URL.revokeObjectURL(objUrl);
+          resolve(imageSource);
+        }
       };
-      img.onerror = () => resolve(imageSource);
+      img.onerror = () => { if (objUrl) URL.revokeObjectURL(objUrl); resolve(imageSource); };
       if (imageSource instanceof Blob) {
-        img.src = URL.createObjectURL(imageSource);
+        objUrl = URL.createObjectURL(imageSource);
+        img.src = objUrl;
       } else {
         img.src = imageSource;
       }
@@ -613,23 +644,27 @@ export default function ScanReceipt({
 
   // Compress image for upload (resize to max 1280px, JPEG 80%)
   const compressForUpload = (file) => new Promise((resolve) => {
-    if (file.size <= 500_000) { resolve(file); return; } // skip if already small
+    if (file.size <= 500_000) { resolve(file); return; }
     const img = new Image();
+    let objUrl = null;
     img.onload = () => {
-      const MAX = 1280;
-      let { width: w, height: h } = img;
-      if (w > MAX || h > MAX) {
-        const s = MAX / Math.max(w, h);
-        w = Math.round(w * s);
-        h = Math.round(h * s);
-      }
-      const c = document.createElement("canvas");
-      c.width = w; c.height = h;
-      c.getContext("2d").drawImage(img, 0, 0, w, h);
-      c.toBlob((blob) => resolve(blob || file), "image/jpeg", 0.8);
+      try {
+        const MAX = 1280;
+        let { width: w, height: h } = img;
+        if (w > MAX || h > MAX) {
+          const s = MAX / Math.max(w, h);
+          w = Math.round(w * s);
+          h = Math.round(h * s);
+        }
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        c.getContext("2d").drawImage(img, 0, 0, w, h);
+        c.toBlob((blob) => { if (objUrl) URL.revokeObjectURL(objUrl); resolve(blob || file); }, "image/jpeg", 0.8);
+      } catch { if (objUrl) URL.revokeObjectURL(objUrl); resolve(file); }
     };
-    img.onerror = () => resolve(file);
-    img.src = URL.createObjectURL(file);
+    img.onerror = () => { if (objUrl) URL.revokeObjectURL(objUrl); resolve(file); };
+    objUrl = URL.createObjectURL(file);
+    img.src = objUrl;
   });
 
   // Helper: call Gemini backend and apply result to form
@@ -719,19 +754,34 @@ export default function ScanReceipt({
       } else {
         // ── Free: Tesseract first ──
         setScanMessage('Scanning with Tesseract (free)…');
-        const processedImage = await preprocessImage(image);
-        const { data } = await Tesseract.recognize(processedImage, "eng", { logger: () => {} });
-        const extracted = extractExpenseData(data.text);
+        let tesseractOk = false;
+        let extracted = null;
+        let rawText = '';
+        try {
+          const downscaled = await downscaleForOCR(image);
+          const processedImage = await preprocessImage(downscaled);
+          // Tesseract with 30-second timeout
+          const tesseractPromise = Tesseract.recognize(processedImage, "eng", { logger: () => {} });
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('TESSERACT_TIMEOUT')), 30000)
+          );
+          const { data } = await Promise.race([tesseractPromise, timeoutPromise]);
+          extracted = extractExpenseData(data.text);
+          rawText = data.text;
+          tesseractOk = extracted.amount > 0 && (extracted.title && extracted.title !== 'Receipt Expense');
+        } catch (tessErr) {
+          console.warn('Tesseract failed or timed out:', tessErr.message);
+          extracted = { title: '', amount: 0, rawText: '' };
+          rawText = '';
+        }
 
-        const hasGoodResult = extracted.amount > 0 && (extracted.title && extracted.title !== 'Receipt Expense');
-
-        if (hasGoodResult) {
+        if (tesseractOk) {
           // Tesseract result is good enough
-          applyTesseractResult(extracted, data.text);
+          applyTesseractResult(extracted, rawText);
           setScanMessage('Scanned with Tesseract (free)');
         } else if (status.ocrUsage?.remaining > 0) {
           // Fallback to Gemini
-          setScanMessage('Tesseract quality low — trying Gemini AI…');
+          setScanMessage(tesseractOk === false && !rawText ? 'Tesseract failed — trying Gemini AI…' : 'Tesseract quality low — trying Gemini AI…');
           try {
             const { title, amount, category, items } = await callGeminiBackend(image);
             const splits = [];
@@ -749,13 +799,21 @@ export default function ScanReceipt({
             setScanMessage(`Scanned with Gemini AI (${newRemaining} of ${status.ocrUsage.limit} daily scans left)`);
           } catch (_) {
             // Gemini failed too — use whatever Tesseract got
-            applyTesseractResult(extracted, data.text);
-            setScanMessage('Scanned with Tesseract (free) — Gemini unavailable');
+            if (rawText) {
+              applyTesseractResult(extracted, rawText);
+              setScanMessage('Scanned with Tesseract (free) — Gemini unavailable');
+            } else {
+              throw new Error('Both Tesseract and Gemini failed. Please try again or enter manually.');
+            }
           }
         } else {
           // No Gemini scans left — use partial Tesseract data
-          applyTesseractResult(extracted, data.text);
-          setScanMessage('Scanned with Tesseract (free) — daily Gemini limit reached');
+          if (rawText) {
+            applyTesseractResult(extracted, rawText);
+            setScanMessage('Scanned with Tesseract (free) — daily Gemini limit reached');
+          } else {
+            throw new Error('OCR failed and daily Gemini limit reached. Please enter details manually.');
+          }
         }
       }
     } catch (error) {
@@ -768,7 +826,7 @@ export default function ScanReceipt({
         return;
       }
       console.error("OCR Error:", error);
-      alert("Failed to scan receipt. Please try again or enter manually.");
+      alert(error.message || "Failed to scan receipt. Please try again or enter manually.");
     } finally {
       setScanning(false);
     }
@@ -928,9 +986,9 @@ export default function ScanReceipt({
       )}
       </AnimatePresence>
 
-    <motion.div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto"
+    <motion.div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
-      <motion.div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-3xl w-full p-4 sm:p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto"
+      <motion.div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-3xl w-full p-4 sm:p-6 pb-6 max-h-[95dvh] overflow-y-auto"
         initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 340, damping: 28 }}>
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-2xl font-bold text-gray-800 dark:text-white">
@@ -1418,7 +1476,7 @@ export default function ScanReceipt({
 
                 {/* Extracted Data Form */}
                 {extractedData && (
-                  <form onSubmit={handleCreateExpense} className="space-y-4">
+                  <form onSubmit={handleCreateExpense} className="space-y-5">
                     <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
                       {aiScanSource === 'gemini' ? (
                         <>

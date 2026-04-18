@@ -472,7 +472,7 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
             transition={{ type: "spring", damping: 32, stiffness: 320 }}
             className="relative flex flex-col rounded-t-3xl z-10 overflow-hidden"
             style={{
-              height: "78vh",
+              height: "85dvh",
               maxHeight: "calc(100vh - var(--aaru-kb-offset, 0px))",
               transform: "translateY(calc(-1 * var(--aaru-kb-offset, 0px)))",
               transition: "transform 0.15s ease, max-height 0.15s ease",
@@ -570,7 +570,7 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
             ) : (
               <>
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 min-h-0">
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0">
               {messages.map((msg, i) => (
                 <div
                   key={i}

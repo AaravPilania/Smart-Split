@@ -912,7 +912,7 @@ export default function Dashboard() {
                 className="fixed inset-x-0 bottom-0 z-50 rounded-t-[28px] overflow-hidden"
                 style={{
                   background: isDark ? "rgba(11,11,22,0.98)" : "#ffffff",
-                  maxHeight: "90vh",
+                  maxHeight: "92dvh",
                   paddingBottom: "env(safe-area-inset-bottom)",
                 }}
               >
@@ -932,7 +932,7 @@ export default function Dashboard() {
                     <FiX size={14} style={{ color: isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)" }} />
                   </button>
                 </div>
-                <div className="overflow-y-auto px-5 pb-8" style={{ maxHeight: "calc(90vh - 90px)" }}>
+                <div className="overflow-y-auto px-5 pb-8" style={{ maxHeight: "calc(92dvh - 90px)" }}>
                   {insightsLoading ? (
                     <div className="space-y-3 pt-2">
                       {[72, 56, 88, 72, 56].map((h, i) => (
@@ -1412,7 +1412,7 @@ export default function Dashboard() {
               className="fixed inset-x-0 bottom-0 z-50 rounded-t-[28px] overflow-hidden"
               style={{
                 background: isDark ? "rgba(11,11,22,0.98)" : "#ffffff",
-                maxHeight: "90vh",
+                maxHeight: "92dvh",
                 paddingBottom: "env(safe-area-inset-bottom)",
               }}
             >
@@ -1436,7 +1436,7 @@ export default function Dashboard() {
               </div>
 
               {/* Scrollable content */}
-              <div className="overflow-y-auto px-5 pb-8" style={{ maxHeight: "calc(90vh - 90px)" }}>
+              <div className="overflow-y-auto px-5 pb-8" style={{ maxHeight: "calc(92dvh - 90px)" }}>
                 {insightsLoading ? (
                   <div className="space-y-3 pt-2">
                     {[72, 56, 88, 72, 56].map((h, i) => (
