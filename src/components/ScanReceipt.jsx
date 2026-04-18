@@ -524,7 +524,7 @@ export default function ScanReceipt({
   };
 
   // Downscale image for Tesseract to max dimension, reducing memory usage on mobile
-  const downscaleForOCR = (imageFile, maxDim = 2000) => new Promise((resolve) => {
+  const downscaleForOCR = (imageFile, maxDim = 1500) => new Promise((resolve) => {
     if (!(imageFile instanceof Blob)) { resolve(imageFile); return; }
     const img = new Image();
     let objUrl = null;
@@ -546,23 +546,23 @@ export default function ScanReceipt({
     img.src = objUrl;
   });
 
-  // Preprocess image for better OCR: grayscale → contrast stretch → adaptive binarize → upscale
+  // Preprocess image for better OCR: grayscale → Otsu binarize (memory efficient)
   const preprocessImage = (imageSource) => {
     return new Promise((resolve) => {
       const img = new Image();
       let objUrl = null;
       img.onload = () => {
         try {
-          // Upscale small images for better OCR
           let targetWidth = img.width;
           let targetHeight = img.height;
-          if (targetWidth < 1500) {
-            const scale = 1500 / targetWidth;
-            targetWidth = 1500;
+          // Upscale very small images for better OCR
+          if (targetWidth < 800) {
+            const scale = 800 / targetWidth;
+            targetWidth = Math.round(targetWidth * scale);
             targetHeight = Math.round(img.height * scale);
           }
-          // Downscale very large images to avoid memory issues
-          const MAX_DIM = 4000;
+          // Cap at 1200px to stay within mobile memory budget
+          const MAX_DIM = 1200;
           if (targetWidth > MAX_DIM || targetHeight > MAX_DIM) {
             const scale = MAX_DIM / Math.max(targetWidth, targetHeight);
             targetWidth = Math.round(targetWidth * scale);
@@ -579,55 +579,44 @@ export default function ScanReceipt({
 
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const d = imageData.data;
-          const w = canvas.width;
-          const h = canvas.height;
 
-          // Pass 1: Convert to grayscale
-          const gray = new Uint8Array(w * h);
+          // Grayscale + Otsu threshold (uses only a 256-entry histogram, not a full integral image)
+          const histogram = new Uint32Array(256);
           for (let i = 0; i < d.length; i += 4) {
             const g = Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
-            gray[i >> 2] = g;
             d[i] = d[i + 1] = d[i + 2] = g;
+            histogram[g]++;
           }
 
-          // Pass 2: Adaptive threshold using integral image for local mean
-          const blockSize = Math.max(15, Math.round(Math.min(w, h) / 40) | 1);
-          const halfBlock = blockSize >> 1;
-          const C = 10; // bias constant
-
-          // Build integral image
-          const integral = new Float64Array(w * h);
-          for (let y = 0; y < h; y++) {
-            let rowSum = 0;
-            for (let x = 0; x < w; x++) {
-              rowSum += gray[y * w + x];
-              integral[y * w + x] = rowSum + (y > 0 ? integral[(y - 1) * w + x] : 0);
-            }
+          // Otsu's method to find optimal threshold
+          const totalPixels = (d.length / 4);
+          let sum = 0;
+          for (let i = 0; i < 256; i++) sum += i * histogram[i];
+          let sumB = 0, wB = 0, maxVariance = 0, threshold = 128;
+          for (let t = 0; t < 256; t++) {
+            wB += histogram[t];
+            if (wB === 0) continue;
+            const wF = totalPixels - wB;
+            if (wF === 0) break;
+            sumB += t * histogram[t];
+            const mB = sumB / wB;
+            const mF = (sum - sumB) / wF;
+            const variance = wB * wF * (mB - mF) * (mB - mF);
+            if (variance > maxVariance) { maxVariance = variance; threshold = t; }
           }
 
-          // Apply adaptive threshold
-          for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-              const x1 = Math.max(0, x - halfBlock);
-              const y1 = Math.max(0, y - halfBlock);
-              const x2 = Math.min(w - 1, x + halfBlock);
-              const y2 = Math.min(h - 1, y + halfBlock);
-              const count = (x2 - x1 + 1) * (y2 - y1 + 1);
-              let sum = integral[y2 * w + x2];
-              if (x1 > 0) sum -= integral[y2 * w + (x1 - 1)];
-              if (y1 > 0) sum -= integral[(y1 - 1) * w + x2];
-              if (x1 > 0 && y1 > 0) sum += integral[(y1 - 1) * w + (x1 - 1)];
-              const mean = sum / count;
-              const idx = (y * w + x) * 4;
-              const val = gray[y * w + x] > mean - C ? 255 : 0;
-              d[idx] = d[idx + 1] = d[idx + 2] = val;
-            }
+          // Apply threshold
+          for (let i = 0; i < d.length; i += 4) {
+            const v = d[i] >= threshold ? 255 : 0;
+            d[i] = d[i + 1] = d[i + 2] = v;
           }
 
           ctx.putImageData(imageData, 0, 0);
-          canvas.toBlob((blob) => { if (objUrl) URL.revokeObjectURL(objUrl); resolve(blob || imageSource); }, "image/png");
+          canvas.toBlob(
+            (blob) => { if (objUrl) URL.revokeObjectURL(objUrl); resolve(blob || imageSource); },
+            "image/png"
+          );
         } catch {
-          // If any canvas operation fails, return the original image
           if (objUrl) URL.revokeObjectURL(objUrl);
           resolve(imageSource);
         }
@@ -986,9 +975,9 @@ export default function ScanReceipt({
       )}
       </AnimatePresence>
 
-    <motion.div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto"
+    <motion.div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 overflow-y-auto"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
-      <motion.div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-3xl w-full p-4 sm:p-6 pb-6 max-h-[95dvh] overflow-y-auto"
+      <motion.div className="bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-2xl max-w-3xl w-full p-4 sm:p-6 pb-8 max-h-[90dvh] sm:max-h-[95dvh] overflow-y-auto"
         initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 340, damping: 28 }}>
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-2xl font-bold text-gray-800 dark:text-white">
@@ -1312,19 +1301,19 @@ export default function ScanReceipt({
               onChange={handleFileUpload}
               className="hidden"
             />
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <button
                 onClick={() => cameraInputRef.current?.click()}
-                className="p-5 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-2"
+                className="p-3 sm:p-5 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-2"
                 style={{ borderColor: theme.gradFrom }}
               >
-                <FiCamera className="text-3xl" style={{ color: theme.gradFrom }} />
+                <FiCamera className="text-2xl sm:text-3xl" style={{ color: theme.gradFrom }} />
                 <span className="font-semibold text-gray-800 dark:text-white text-sm">Scan Bill</span>
                 <span className="text-xs text-gray-500 dark:text-gray-400 text-center">Use phone camera</span>
               </button>
 
-              <label className="p-5 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-2 cursor-pointer" style={{ borderColor: theme.gradTo }}>
-                <FiUpload className="text-3xl" style={{ color: theme.gradTo }} />
+              <label className="p-3 sm:p-5 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-2 cursor-pointer" style={{ borderColor: theme.gradTo }}>
+                <FiUpload className="text-2xl sm:text-3xl" style={{ color: theme.gradTo }} />
                 <span className="font-semibold text-gray-800 dark:text-white text-sm">Upload Image</span>
                 <span className="text-xs text-gray-500 dark:text-gray-400 text-center">Select from gallery</span>
                 <input
@@ -1339,7 +1328,7 @@ export default function ScanReceipt({
 
               <button
                 onClick={startQRScan}
-                className="p-5 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-2"
+                className="p-3 sm:p-5 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-2"
                 style={{ borderColor: "#8b5cf6" }}
               >
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
@@ -1349,10 +1338,10 @@ export default function ScanReceipt({
 
               <button
                 onClick={startSettleFlow}
-                className="p-5 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-2"
+                className="p-3 sm:p-5 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-2"
                 style={{ borderColor: "#22c55e" }}
               >
-                <FiCreditCard className="text-3xl" style={{ color: "#22c55e" }} />
+                <FiCreditCard className="text-2xl sm:text-3xl" style={{ color: "#22c55e" }} />
                 <span className="font-semibold text-gray-800 dark:text-white text-sm">Settle Payment</span>
                 <span className="text-xs text-gray-500 dark:text-gray-400 text-center">Pay via UPI</span>
               </button>

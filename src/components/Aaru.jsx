@@ -473,9 +473,8 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
             className="relative flex flex-col rounded-t-3xl z-10 overflow-hidden"
             style={{
               height: "85dvh",
-              maxHeight: "calc(100vh - var(--aaru-kb-offset, 0px))",
-              transform: "translateY(calc(-1 * var(--aaru-kb-offset, 0px)))",
-              transition: "transform 0.15s ease, max-height 0.15s ease",
+              maxHeight: "calc(100dvh - var(--aaru-kb-offset, 0px))",
+              transition: "max-height 0.15s ease",
               background: isDark ? "rgba(11,11,20,0.98)" : "#ffffff",
               backdropFilter: "blur(32px)",
               borderTop: isDark

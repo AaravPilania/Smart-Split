@@ -138,7 +138,7 @@ async function analyzeReceiptImage(imageBuffer, mimeType) {
             { text: prompt },
           ],
         }],
-        generationConfig: { temperature: 0, maxOutputTokens: 128 },
+        generationConfig: { temperature: 0.1, maxOutputTokens: 1024 },
       }),
       signal: controller.signal,
     });
