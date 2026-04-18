@@ -449,7 +449,7 @@ export default function Groups() {
         ) : showArchived ? (
           /* ── Archived Groups View ── */
           archivedGroups.length === 0 ? (
-            <div className="rounded-2xl p-10 sm:p-14 flex flex-col items-center justify-center"
+            <div className="rounded-[22px] p-10 sm:p-14 flex flex-col items-center justify-center"
               style={isDark
                 ? { background: "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)", border: "1px solid rgba(255,255,255,0.08)" }
                 : { background: "rgba(255,255,255,0.92)", border: "1px solid rgba(0,0,0,0.06)" }}>
@@ -460,7 +460,7 @@ export default function Groups() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {archivedGroups.map((group, gIdx) => (
-                <motion.div key={group.id} className="rounded-2xl p-5 flex flex-col relative overflow-hidden opacity-75"
+                <motion.div key={group.id} className="rounded-[22px] p-5 flex flex-col relative overflow-hidden opacity-75"
                   style={isDark
                     ? { background: "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)", border: "1px solid rgba(255,255,255,0.06)" }
                     : { background: "rgba(255,255,255,0.8)", border: "1px solid rgba(0,0,0,0.05)" }}
@@ -487,7 +487,7 @@ export default function Groups() {
           )
         ) : groups.length === 0 ? (
           <div
-            className="rounded-2xl p-10 sm:p-14 flex flex-col items-center justify-center"
+            className="rounded-[22px] p-10 sm:p-14 flex flex-col items-center justify-center"
             style={isDark
               ? { background: "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(20px)" }
               : { background: "rgba(255,255,255,0.92)", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 2px 16px rgba(0,0,0,0.05)" }}
@@ -505,7 +505,7 @@ export default function Groups() {
               return (
               <motion.div
                 key={group.id}
-                className="rounded-2xl p-5 flex flex-col premium-list-card card-grid-item relative overflow-hidden"
+                className="rounded-[22px] p-5 flex flex-col premium-list-card card-grid-item relative overflow-hidden"
                 style={isDark
                   ? { background: "linear-gradient(135deg, rgba(255,255,255,0.065) 0%, rgba(255,255,255,0.025) 100%)", border: `1px solid ${group.type === 'trip' ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.09)'}`, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }
                   : { background: "rgba(255,255,255,0.9)", border: `1px solid ${group.type === 'trip' ? 'rgba(59,130,246,0.15)' : 'rgba(0,0,0,0.07)'}`, boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}

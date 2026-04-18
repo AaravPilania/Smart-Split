@@ -7,6 +7,22 @@ import { apiFetch, getToken, API_URL } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
 import { CATEGORIES, detectCategory, detectCategoryFromText, getCategoryInfo } from "../utils/categories";
 
+const openUpiApp = (url) => {
+  const isStandalone = window.navigator.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+  if (isStandalone) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => document.body.removeChild(a), 100);
+  } else {
+    window.location.href = url;
+  }
+};
+
 export default function ScanReceipt({ 
   groups, 
   userId, 
@@ -362,9 +378,10 @@ export default function ScanReceipt({
     }
 
     // Open app homepage (not payment screen) using app-specific scheme
-    const schemeUrl = app.intentUrl || app.scheme;
+    const isAndroid = /android/i.test(navigator.userAgent);
+    const schemeUrl = (isAndroid && app.intentUrl) ? app.intentUrl : app.scheme;
     const openedAt = Date.now();
-    window.location.href = schemeUrl;
+    openUpiApp(schemeUrl);
 
     // Fallback: if page is still visible after 2s, app likely didn't open
     setTimeout(() => {
@@ -977,7 +994,7 @@ export default function ScanReceipt({
 
     <motion.div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 overflow-y-auto"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
-      <motion.div className="bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-2xl max-w-3xl w-full p-4 sm:p-6 pb-8 max-h-[90dvh] sm:max-h-[95dvh] overflow-y-auto"
+      <motion.div className="bg-white dark:bg-gray-900 rounded-t-[22px] sm:rounded-[22px] shadow-2xl max-w-3xl w-full p-4 sm:p-6 pb-8 max-h-[90dvh] sm:max-h-[95dvh] overflow-y-auto"
         initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 340, damping: 28 }}>
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-2xl font-bold text-gray-800 dark:text-white">
@@ -994,7 +1011,7 @@ export default function ScanReceipt({
         {/* ── Friend QR Result ── */}
         {friendQrResult && !qrResult && (
           <div className="space-y-4">
-            <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-xl p-4 flex items-center gap-3">
+            <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-[18px] p-4 flex items-center gap-3">
               <FiUserPlus className="text-purple-500 text-xl flex-shrink-0" />
               <div>
                 <p className="font-semibold text-purple-800 dark:text-purple-300 text-sm">Friend QR Detected!</p>
@@ -1002,7 +1019,7 @@ export default function ScanReceipt({
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-5 flex flex-col items-center gap-3">
+            <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-[18px] p-5 flex flex-col items-center gap-3">
               <div className="h-16 w-16 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg" style={getGradientStyle(theme)}>
                 {friendQrResult.name?.[0]?.toUpperCase() || "?"}
               </div>
@@ -1044,7 +1061,7 @@ export default function ScanReceipt({
         {/* ── QR Result Confirmation ── */}
         {qrResult && (
           <div className="space-y-4">
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl p-4 flex items-center gap-3">
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-[18px] p-4 flex items-center gap-3">
               <FiCheck className="text-green-500 text-xl flex-shrink-0" />
               <div>
                 <p className="font-semibold text-green-800 dark:text-green-300 text-sm">QR Code Detected!</p>
@@ -1052,7 +1069,7 @@ export default function ScanReceipt({
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-4 space-y-3">
+            <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-[18px] p-4 space-y-3">
               {qrResult.pn && (
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-500 dark:text-gray-400">Paying to</span>
@@ -1092,13 +1109,8 @@ export default function ScanReceipt({
               style={getGradientStyle(theme)}
               onClick={(e) => {
                 if (!qrPayAmount || parseFloat(qrPayAmount) <= 0) { e.preventDefault(); return; }
-                if (isNative()) {
-                  e.preventDefault();
-                  getNativeApp().then((App) => {
-                    if (App) App.openUrl({ url: e.currentTarget.href }).catch(() => {});
-                    else window.open(e.currentTarget.href, "_blank");
-                  });
-                }
+                e.preventDefault();
+                openUpiApp(e.currentTarget.href);
               }}
             >
               <FiCreditCard size={16} /> Open UPI App &amp; Pay
@@ -1171,7 +1183,7 @@ export default function ScanReceipt({
         {settleStep === "appPicker" && selectedSettle && (
           <div className="space-y-4">
             {/* Payment summary */}
-            <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-4">
+            <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-[18px] p-4">
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">Paying</p>

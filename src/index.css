@@ -26,6 +26,8 @@ html, body {
   max-width: 100%;
   /* Ensure nothing causes a horizontal scrollbar on iOS Safari */
   position: relative;
+  overscroll-behavior-y: none;
+  -webkit-overscroll-behavior-y: none;
 }
 body {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif,

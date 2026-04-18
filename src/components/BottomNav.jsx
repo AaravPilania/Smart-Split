@@ -71,6 +71,8 @@ export default function BottomNav() {
             ? "1px solid rgba(255,255,255,0.07)"
             : `1px solid ${theme.gradFrom}18`,
           paddingBottom: "env(safe-area-inset-bottom)",
+          WebkitTransform: "translateZ(0)",
+          transform: "translateZ(0)",
         }}
       >
         <div
@@ -219,7 +221,7 @@ export default function BottomNav() {
                 {/* Scan Receipt */}
                 <button
                   onClick={handleScanReceipt}
-                  className="flex flex-col items-center gap-3 p-5 rounded-2xl transition-all active:scale-95"
+                  className="flex flex-col items-center gap-3 p-5 rounded-[22px] transition-all active:scale-95"
                   style={{
                     background: isDark
                       ? "rgba(255,255,255,0.05)"
@@ -248,7 +250,7 @@ export default function BottomNav() {
                 {/* Ask Aaru */}
                 <button
                   onClick={handleAskAaru}
-                  className="flex flex-col items-center gap-3 p-5 rounded-2xl transition-all active:scale-95"
+                  className="flex flex-col items-center gap-3 p-5 rounded-[22px] transition-all active:scale-95"
                   style={{
                     background: isDark
                       ? "rgba(255,255,255,0.05)"

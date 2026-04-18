@@ -19,6 +19,22 @@ import { API_URL, apiFetch, getUserId, cachedApiFetch, invalidateCache, getCache
 import { useTheme, getGradientStyle, getPageBgStyle } from "../utils/theme";
 import { simplifyDebts } from "../utils/debts";
 
+const openUpiApp = (url) => {
+  const isStandalone = window.navigator.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+  if (isStandalone) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => document.body.removeChild(a), 100);
+  } else {
+    window.location.href = url;
+  }
+};
+
 export default function Balances() {
   const _uid = getUserId();
   const _cachedGroups = _uid ? getCached(`groups_${_uid}`) : null;
@@ -76,9 +92,10 @@ export default function Balances() {
 
     // Try opening the app homepage (not payment intent)
     upiOpenedRef.current = true;
-    const schemeUrl = app.intentUrl || app.scheme;
+    const isAndroid = /android/i.test(navigator.userAgent);
+    const schemeUrl = (isAndroid && app.intentUrl) ? app.intentUrl : app.scheme;
     const openedAt = Date.now();
-    window.location.href = schemeUrl;
+    openUpiApp(schemeUrl);
 
     // Fallback: if page is still visible after 2s, the app likely didn't open
     setTimeout(() => {
@@ -319,7 +336,7 @@ export default function Balances() {
         {(totalOwed > 0 || totalOwedToYou > 0) && (
           <div className="grid grid-cols-2 gap-4 mb-6">
             <motion.div
-              className="rounded-2xl p-5 relative overflow-hidden"
+              className="rounded-[22px] p-5 relative overflow-hidden"
               style={isDark ? { background: "linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(239,68,68,0.05) 100%)", border: "1px solid rgba(239,68,68,0.2)", backdropFilter: "blur(20px)" } : { background: "rgba(255,241,241,0.9)", border: "1px solid rgba(239,68,68,0.15)" }}
               initial={{ opacity: 0, y: 20, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -330,7 +347,7 @@ export default function Balances() {
               <p className="text-2xl font-black" style={{ color: "#ef4444" }}>{formatCurrency(totalOwed)}</p>
             </motion.div>
             <motion.div
-              className="rounded-2xl p-5 relative overflow-hidden"
+              className="rounded-[22px] p-5 relative overflow-hidden"
               style={isDark ? { background: "linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 100%)", border: "1px solid rgba(16,185,129,0.2)", backdropFilter: "blur(20px)" } : { background: "rgba(240,253,249,0.9)", border: "1px solid rgba(16,185,129,0.15)" }}
               initial={{ opacity: 0, y: 20, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -386,7 +403,7 @@ export default function Balances() {
           </div>
         ) : groupBalances.length === 0 ? (
           <div
-            className="rounded-2xl p-16 text-center"
+            className="rounded-[22px] p-16 text-center"
             style={isDark
               ? { background: "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(20px)" }
               : { background: "rgba(255,255,255,0.92)", border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 2px 16px rgba(0,0,0,0.05)" }}
@@ -412,7 +429,7 @@ export default function Balances() {
               return (
                 <motion.div
                   key={group.id}
-                  className="rounded-2xl overflow-hidden premium-list-card"
+                  className="rounded-[22px] overflow-hidden premium-list-card"
                   style={isDark
                     ? { background: "linear-gradient(135deg, rgba(255,255,255,0.065) 0%, rgba(255,255,255,0.02) 100%)", border: "1px solid rgba(255,255,255,0.09)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }
                     : { background: "rgba(255,255,255,0.9)", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}
@@ -598,7 +615,7 @@ export default function Balances() {
       <AnimatePresence>
       {upiModal && (
         <motion.div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-          <motion.div className="rounded-2xl p-6 w-full max-w-xs text-center"
+          <motion.div className="rounded-[22px] p-6 w-full max-w-xs text-center"
             style={{ background: isDark ? "#111827" : "#fff", boxShadow: "0 24px 64px rgba(0,0,0,0.5)" }}
             initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.97 }} transition={{ type: "spring", stiffness: 340, damping: 28 }}>
             <div className="flex justify-between items-center mb-4">

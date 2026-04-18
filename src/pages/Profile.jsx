@@ -604,7 +604,7 @@ export default function Profile() {
           {/* Form */}
           <form id="edit-profile-form" onSubmit={handleUpdate} className="space-y-3">
             <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Basic Info</p>
-            <div className="rounded-2xl overflow-hidden" style={ss}>
+            <div className="rounded-[22px] overflow-hidden" style={ss}>
               {[
                 { key: "name", label: "Name", type: "text", icon: <FiUser size={13} /> },
                 { key: "email", label: "Email", type: "email", icon: <FiMail size={13} /> },
@@ -650,7 +650,7 @@ export default function Profile() {
             </div>
 
             <p className="text-[11px] font-bold uppercase tracking-[0.15em] mt-5 mb-2 px-1" style={{ color: labelClr }}>Budget</p>
-            <div className="rounded-2xl overflow-hidden" style={ss}>
+            <div className="rounded-[22px] overflow-hidden" style={ss}>
               <div className="flex items-center px-4 py-3.5">
                 <FiActivity className="mr-3 flex-shrink-0" size={16} style={{ color: subClr }} />
                 <div className="flex-1 min-w-0">
@@ -663,7 +663,7 @@ export default function Profile() {
             </div>
 
             <p className="text-[11px] font-bold uppercase tracking-[0.15em] mt-5 mb-2 px-1" style={{ color: labelClr }}>Security</p>
-            <div className="rounded-2xl overflow-hidden" style={ss}>
+            <div className="rounded-[22px] overflow-hidden" style={ss}>
               <div className="flex items-center px-4 py-3.5">
                 <span className="mr-3 flex-shrink-0" style={{ color: subClr }}><FiLock size={13} /></span>
                 <div className="flex-1 min-w-0">
@@ -783,7 +783,7 @@ export default function Profile() {
         </div>
 
         {/* ── TAB BAR ─────────────────────────────────────── */}
-        <div className="flex rounded-2xl overflow-hidden mb-5" style={ss}>
+        <div className="flex rounded-[22px] overflow-hidden mb-5" style={ss}>
           {[
             { key: "account", label: "Account", icon: <FiUser size={13} /> },
             { key: "goals", label: "Goals", icon: <FiTarget size={13} /> },
@@ -810,7 +810,7 @@ export default function Profile() {
         {profileTab === "account" && (
           <>
             <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Account</p>
-            <div className="rounded-2xl overflow-hidden mb-5" style={ss}>
+            <div className="rounded-[22px] overflow-hidden mb-5" style={ss}>
               <SettingsRow first icon={<FiEdit2 size={13} />} label="Edit Profile"
                 sub="Name, username, UPI, password"
                 onClick={() => { setEditing(true); }} />
@@ -833,7 +833,7 @@ export default function Profile() {
                   Friend Requests
                   <span className="px-1.5 py-0.5 rounded-full text-white text-[9px] font-black" style={getGradientStyle(theme)}>{friendRequests.length}</span>
                 </p>
-                <div className="rounded-2xl overflow-hidden mb-5" style={ss}>
+                <div className="rounded-[22px] overflow-hidden mb-5" style={ss}>
                   {frLoading ? (
                     <div className="flex justify-center py-6">
                       <div className={`animate-spin rounded-full h-5 w-5 border-b-2 ${theme.spinner}`} />
@@ -867,7 +867,7 @@ export default function Profile() {
             )}
 
             {/* Premium Subscription */}
-            <div className="rounded-2xl p-5 mb-4" style={sectionSty(isDark)}>
+            <div className="rounded-[22px] p-5 mb-4" style={sectionSty(isDark)}>
               <div className="flex items-center gap-2 mb-3">
                 <FiStar className="w-4 h-4" style={{ color: theme.gradFrom }} />
                 <span className="text-sm font-bold" style={{ color: isDark ? "#fff" : "#111" }}>Subscription</span>
@@ -952,7 +952,7 @@ export default function Profile() {
             </div>
 
             <p className="text-[11px] font-bold uppercase tracking-[0.15em] mb-2 px-1" style={{ color: labelClr }}>Preferences</p>
-            <div className="rounded-2xl overflow-hidden mb-5" style={ss}>
+            <div className="rounded-[22px] overflow-hidden mb-5" style={ss}>
               <SettingsRow first
                 icon={isDark ? <FiMoon size={13} style={{ color: "white" }} /> : <FiSun size={13} style={{ color: "white" }} />}
                 label={isDark ? "Dark Mode" : "Light Mode"}
@@ -986,7 +986,7 @@ export default function Profile() {
 
             {/* ── Admin Dashboard (admin only) ──────────────── */}
             {user?.email === 'aarav@gmail.com' && (
-              <div className="rounded-2xl p-5 mb-4" style={sectionSty(isDark)}>
+              <div className="rounded-[22px] p-5 mb-4" style={sectionSty(isDark)}>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${theme.gradFrom}15` }}>
@@ -1035,7 +1035,7 @@ export default function Profile() {
               </div>
             )}
 
-            <div className="rounded-2xl overflow-hidden mb-2"
+            <div className="rounded-[22px] overflow-hidden mb-2"
               style={{ ...ss, border: isDark ? "1px solid rgba(239,68,68,0.18)" : "1px solid rgba(239,68,68,0.15)" }}>
               <SettingsRow first danger icon={<FiLogOut size={13} />} label="Sign Out" onClick={() => setShowLogoutConfirm(true)} right={null} />
             </div>

@@ -191,7 +191,7 @@ export default function Friends() {
         <AnimatePresence>
           {showMyQR && userId && (
             <motion.div
-              className="mb-5 rounded-2xl p-5"
+              className="mb-5 rounded-[22px] p-5"
               style={isDark
                 ? { background: "linear-gradient(135deg, rgba(255,255,255,0.065) 0%, rgba(255,255,255,0.02) 100%)", border: "1px solid rgba(255,255,255,0.09)", backdropFilter: "blur(20px)" }
                 : { background: "rgba(255,255,255,0.92)", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}
@@ -224,7 +224,7 @@ export default function Friends() {
 
         {/* Tabs */}
         <div
-          className="flex rounded-2xl p-1 mb-5 gap-1"
+          className="flex rounded-[22px] p-1 mb-5 gap-1"
           style={isDark
             ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }
             : { background: "rgba(0,0,0,0.05)", border: "1px solid rgba(0,0,0,0.06)" }}
@@ -277,7 +277,7 @@ export default function Friends() {
                   friends.map((f, fIdx) => (
                     <motion.div
                       key={f.id}
-                      className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-3"
+                      className="bg-white dark:bg-gray-900 rounded-[22px] border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-3"
                       initial={{ opacity: 0, x: -16 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: fIdx * 0.06, type: "spring", stiffness: 300, damping: 26 }}
@@ -315,7 +315,7 @@ export default function Friends() {
                   requests.map((r, rIdx) => (
                     <motion.div
                       key={r._id}
-                      className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-3"
+                      className="bg-white dark:bg-gray-900 rounded-[22px] border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-3"
                       initial={{ opacity: 0, x: -16 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: rIdx * 0.07, type: "spring", stiffness: 300, damping: 26 }}
@@ -388,7 +388,7 @@ export default function Friends() {
                     {searchResults.map((u) => {
                       const uid = u._id || u.id;
                       return (
-                        <div key={uid} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-3">
+                        <div key={uid} className="bg-white dark:bg-gray-900 rounded-[22px] border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-3">
                           <div className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0" style={getGradientStyle(theme)}>
                             {u.name?.[0]?.toUpperCase() || "?"}
                           </div>
@@ -423,7 +423,7 @@ export default function Friends() {
                 )}
 
                 <div
-                  className="mt-6 rounded-2xl p-5 text-center"
+                  className="mt-6 rounded-[22px] p-5 text-center"
                   style={isDark
                     ? { background: "linear-gradient(135deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.02) 100%)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(20px)" }
                     : { background: "rgba(255,255,255,0.92)", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}

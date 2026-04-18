@@ -351,7 +351,7 @@ export default function Dashboard() {
         ref={ref}
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
-        className="rounded-2xl p-5 stat-card-desktop cursor-default"
+        className="rounded-[22px] p-5 stat-card-desktop cursor-default"
         style={{
           ...glass,
           "--card-accent-shadow": `${color}22`,
@@ -440,7 +440,7 @@ export default function Dashboard() {
 
     return (
       <div
-        className="rounded-2xl p-5 relative overflow-hidden flex flex-col h-full"
+        className="rounded-[22px] p-5 relative overflow-hidden flex flex-col h-full"
         style={{
           background: chartBg,
           border: isDark ? `1px solid ${theme.gradFrom}22` : `1px solid ${theme.gradFrom}28`,
@@ -662,7 +662,7 @@ export default function Dashboard() {
 
             {/* ── Error state ── */}
             {fetchError && (
-              <div className="rounded-2xl p-6 mb-6 text-center" style={glass}>
+              <div className="rounded-[22px] p-6 mb-6 text-center" style={glass}>
                 <FiZap className="text-3xl mb-3 mx-auto" style={{ color: theme.gradFrom }} />
                 <p className="font-bold mb-1" style={{ color: isDark ? "#fff" : "#111" }}>Server Warming Up</p>
                 <p className="text-sm mb-3" style={{ color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }}>
@@ -785,7 +785,7 @@ export default function Dashboard() {
                       return (
                         <motion.div
                           key="insights-card"
-                          className="rounded-2xl p-4 relative overflow-hidden flex flex-col cursor-pointer"
+                          className="rounded-[22px] p-4 relative overflow-hidden flex flex-col cursor-pointer"
                           style={{
                             background: `linear-gradient(135deg, ${theme.gradFrom}22 0%, ${theme.gradTo}12 100%)`,
                             border: `1px solid ${theme.gradFrom}44`,
@@ -826,7 +826,7 @@ export default function Dashboard() {
                     return (
                     <motion.div
                       key={label}
-                      className="rounded-2xl p-4 relative overflow-hidden"
+                      className="rounded-[22px] p-4 relative overflow-hidden"
                       style={glass}
                       initial={{ opacity: 0, y: 14, scale: 0.97 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -1062,7 +1062,7 @@ export default function Dashboard() {
         {/* ── Error state ────────────────────────────────────── */}
         {fetchError && (
           <div
-            className="rounded-2xl p-5 mb-5 text-center"
+            className="rounded-[22px] p-5 mb-5 text-center"
             style={glass}
           >
             <FiZap className="text-3xl mb-2 mx-auto" style={{ color: theme.gradFrom }} />
@@ -1116,7 +1116,7 @@ export default function Dashboard() {
                 const end = new Date(trip.endDate);
                 const daysLeft = Math.ceil((end - now) / 86400000);
                 return (
-                  <div key={trip._id || trip.id} className="rounded-2xl p-4 mb-4 flex items-center gap-3 cursor-pointer"
+                  <div key={trip._id || trip.id} className="rounded-[22px] p-4 mb-4 flex items-center gap-3 cursor-pointer"
                     style={{ background: isDark ? "rgba(59,130,246,0.1)" : "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.2)" }}
                     onClick={() => navigate(`/expenses?group=${trip._id || trip.id}`)}>
                     <span className="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style={{ background: "rgba(59,130,246,0.15)", color: "#3b82f6" }}>T</span>
@@ -1461,7 +1461,7 @@ export default function Dashboard() {
                       style={{ color: isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.28)" }}>
                       Top Categories
                     </p>
-                    <div className="mb-5 p-4 rounded-2xl"
+                    <div className="mb-5 p-4 rounded-[22px]"
                       style={{
                         background: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.025)",
                         border: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.05)",
@@ -1534,7 +1534,7 @@ export default function Dashboard() {
                             );
                           };
                           return (
-                            <div className="rounded-2xl mb-5 overflow-hidden"
+                            <div className="rounded-[22px] mb-5 overflow-hidden"
                               style={{
                                 background: isDark
                                   ? `linear-gradient(160deg, ${theme.gradFrom}0d 0%, ${theme.gradFrom}06 50%, ${theme.gradFrom}0d 100%)`
