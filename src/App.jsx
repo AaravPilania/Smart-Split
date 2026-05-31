@@ -13,7 +13,7 @@ const Friends    = lazy(() => import("./pages/Friends"));
 const AddFriend  = lazy(() => import("./pages/AddFriend"));
 const NotFound   = lazy(() => import("./pages/NotFound"));
 
-import { getToken, setToken, clearAuth, silentRefresh, wakeUpServer, getUserId, API_URL, apiFetch } from "./utils/api";
+import { getToken, setToken, clearAuth, silentRefresh, wakeUpServer, pingServer, getUserId, API_URL, apiFetch } from "./utils/api";
 import Aaru from "./components/Aaru";
 import BottomNav from "./components/BottomNav";
 import PWAUpdatePrompt from "./components/PWAUpdatePrompt";
@@ -147,6 +147,16 @@ function App() {
     // Kick off server health check (fire-and-forget)
     wakeUpServer();
 
+    // Keep-alive ping every 14 min so Render free dyno never goes cold
+    // Only runs on deployed site, not localhost, and only when tab is visible
+    let keepAlive;
+    if (!API_URL.includes("localhost")) {
+      const PING_MS = 14 * 60 * 1000;
+      keepAlive = setInterval(() => {
+        if (!document.hidden) pingServer();
+      }, PING_MS);
+    }
+
     // If we already have a token from cache, just refresh in background
     if (getToken()) {
       setAuthReady(true);
@@ -178,6 +188,7 @@ function App() {
     window.addEventListener('auth:login', handleLogin);
     window.addEventListener('auth:logout', handleForceLogout);
     return () => {
+      if (keepAlive) clearInterval(keepAlive);
       window.removeEventListener('auth:login', handleLogin);
       window.removeEventListener('auth:logout', handleForceLogout);
     };

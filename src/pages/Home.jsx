@@ -1136,15 +1136,12 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
         scrollRef.current.style.overflowY = 'auto';
         scrollRef.current.style.scrollSnapType = 'none'; // no snap yet
         slide3LockedRef.current = false;
-        // Re-enable snap after a longer delay to fully absorb residual momentum
+        // Re-enable snap at wherever the user has scrolled — no re-pin
         setTimeout(() => {
           if (scrollRef.current) {
-            // Pin to section 3 top again right before re-enabling snap
-            const s3topNow = sectionRefs[2].current?.offsetTop ?? 0;
-            scrollRef.current.scrollTo({ top: s3topNow, behavior: 'instant' });
             scrollRef.current.style.scrollSnapType = 'y mandatory';
           }
-        }, 600);
+        }, 100);
       }
       /* Start auto-animation after a short pause so it feels deliberate */
       setTimeout(() => {
