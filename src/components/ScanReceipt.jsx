@@ -785,8 +785,8 @@ export default function ScanReceipt({
           setFormData({ title, amount: amount.toString(), paidBy: userId, splits, category });
           setScanMessage('Scanned with Gemini AI');
         } catch (_gemErr) {
-          // Gemini failed — silently fall back to Tesseract
-          setScanMessage('Gemini unavailable — scanning with Tesseract…');
+          // Gemini failed — silently fall back to Tesseract without showing error
+          setScanMessage('Scanning…');
           let extracted = null;
           let rawText = '';
           try {

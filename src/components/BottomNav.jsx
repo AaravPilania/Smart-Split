@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+﻿import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FiHome,
@@ -40,6 +40,9 @@ export default function BottomNav() {
       }
     } catch {}
   };
+
+  // Preload groups on mount so the scan modal opens instantly
+  useEffect(() => { if (userId) fetchGroups(); }, [userId]);
 
   const handleCameraPress = () => {
     fetchGroups();

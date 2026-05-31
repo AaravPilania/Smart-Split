@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 
 const DONUT_COLORS = [
   "#ec4899", "#a855f7", "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#06b6d4", "#8b5cf6",
+  "#f97316", "#14b8a6", "#e11d48", "#7c3aed",
 ];
 
 export default function CategoryDonut({ categoryData = [], formatCurrency, theme, isDark }) {
@@ -13,17 +14,10 @@ export default function CategoryDonut({ categoryData = [], formatCurrency, theme
 
   return (
     <div className="flex flex-col items-center gap-4">
-      {/* SVG Donut */}
+      {/* SVG Donut — all categories, always 100% filled */}
       <div className="relative" style={{ width: SIZE, height: SIZE }}>
         <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} className="-rotate-90">
-          {/* Background track */}
-          <circle
-            cx={SIZE / 2} cy={SIZE / 2} r={R}
-            fill="none"
-            stroke={isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)"}
-            strokeWidth={STROKE}
-          />
-          {categoryData.slice(0, 6).map((cat, i) => {
+          {categoryData.map((cat, i) => {
             const pct = cat.amount / total;
             const dashLen = pct * C;
             const gap = C - dashLen;
@@ -62,9 +56,9 @@ export default function CategoryDonut({ categoryData = [], formatCurrency, theme
         </motion.div>
       </div>
 
-      {/* Legend */}
+      {/* Legend — all categories */}
       <div className="w-full space-y-2">
-        {categoryData.slice(0, 6).map((cat, i) => {
+        {categoryData.map((cat, i) => {
           const pct = Math.round((cat.amount / total) * 100);
           return (
             <motion.div

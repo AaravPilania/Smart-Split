@@ -34,8 +34,11 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
-  /* Prevent any element from causing horizontal scroll on mobile */
-  overflow-x: hidden;
+  /* Prevent any element from causing horizontal scroll on mobile.
+     overflow-x: clip does NOT create a scroll container (unlike hidden),
+     so it avoids the iOS Safari bug where overflow-x: hidden on body
+     prevents vertical scrolling. */
+  overflow-x: clip;
 }
 
 /* Dark mode base background */

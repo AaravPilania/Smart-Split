@@ -62,10 +62,10 @@ function PageTransition({ children }) {
   );
 }
 
-// Hide BottomNav on the landing/login page
+// Hide BottomNav on the landing/login page or when not logged in
 function ConditionalBottomNav() {
   const location = useLocation();
-  if (location.pathname === '/') return null;
+  if (location.pathname === '/' || !getToken()) return null;
   return <BottomNav />;
 }
 

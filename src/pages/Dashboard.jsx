@@ -587,7 +587,7 @@ export default function Dashboard() {
           <DashboardSidebar goals={goals} />
 
           {/* ── Main Content ── */}
-          <main className="flex flex-col overflow-hidden pt-8 pb-8 px-8 page-enter-desktop" style={{ height: "100vh" }}>
+          <main className="flex flex-col overflow-hidden pt-8 pb-8 px-8" style={{ height: "100vh" }}>
 
             {/* ── Page Header ── */}
             <motion.div
@@ -1352,12 +1352,7 @@ export default function Dashboard() {
           <>
             {/* Backdrop */}
             <motion.div
-              key="insights-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.22 }}
-              className="fixed inset-0 z-50"
+              className="fixed inset-0 z-[9995]"
               style={{ backdropFilter: "blur(18px) saturate(150%)", WebkitBackdropFilter: "blur(18px) saturate(150%)", background: isDark ? "rgba(5,5,15,0.82)" : "rgba(0,0,0,0.55)" }}
               onClick={() => setShowInsights(false)}
             />
@@ -1368,7 +1363,7 @@ export default function Dashboard() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 290 }}
-              className="fixed inset-x-0 bottom-0 z-50 rounded-t-[28px] overflow-hidden"
+              className="fixed inset-x-0 bottom-0 z-[9996] rounded-t-[28px] overflow-hidden"
               style={{
                 background: isDark ? "rgba(11,11,22,0.98)" : "#ffffff",
                 maxHeight: "92dvh",
@@ -1476,13 +1471,6 @@ export default function Dashboard() {
                                   strokeDasharray={tLen || 1000}
                                   strokeDashoffset={trendInView ? 0 : (tLen || 1000)}
                                   style={{ transition: "stroke-dashoffset 1s ease-out" }} />
-                                {/* Dots on data points */}
-                                {pts.map((p, i) => (
-                                  <circle key={i} cx={p.x} cy={p.y} r={monthlyData[i].isCurrent ? 4 : 2.5}
-                                    fill={monthlyData[i].isCurrent ? "#fff" : isDark ? theme.gradTo : theme.gradFrom}
-                                    stroke={monthlyData[i].isCurrent ? theme.gradFrom : "none"} strokeWidth={monthlyData[i].isCurrent ? 2 : 0}
-                                    style={{ opacity: trendInView ? 1 : 0, transition: `opacity 0.3s ease ${0.6 + i * 0.08}s` }} />
-                                ))}
                                 {/* Month labels */}
                                 {monthlyData.map((m, i) => (
                                   <text key={`l-${i}`} x={pts[i].x} y={H - 4} textAnchor="middle"

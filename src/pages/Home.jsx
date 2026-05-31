@@ -1109,20 +1109,17 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
     if (!slide3UnlockedRef.current && count >= FEATURE_CARDS.length) {
       slide3UnlockedRef.current = true;
       setSlide3Unlocked(true);
-      /* Re-enable scroll: first restore position, then defer snap re-enable
-         to prevent accumulated scroll momentum from snapping to slide 4 */
+      /* Re-enable scroll and immediately advance to section 4 smoothly */
       if (scrollRef.current) {
-        const s3top = sectionRefs[2].current?.offsetTop ?? 0;
-        scrollRef.current.scrollTo({ top: s3top, behavior: 'instant' });
+        const s4top = sectionRefs[3].current?.offsetTop ?? 0;
         scrollRef.current.style.overflowY = 'auto';
-        scrollRef.current.style.scrollSnapType = 'none'; // no snap yet
+        scrollRef.current.style.scrollSnapType = 'y mandatory';
         slide3LockedRef.current = false;
-        // Re-enable snap after momentum has fully settled — prevents mid-scroll snap jitter
-        setTimeout(() => {
+        requestAnimationFrame(() => {
           if (scrollRef.current) {
-            scrollRef.current.style.scrollSnapType = 'y mandatory';
+            scrollRef.current.scrollTo({ top: s4top, behavior: 'smooth' });
           }
-        }, 500);
+        });
       }
       /* Start auto-animation after a short pause so it feels deliberate */
       setTimeout(() => {
@@ -2110,7 +2107,7 @@ export default function Home() {
   };
 
   return (
-    <div className="home-bg fixed inset-0 overflow-hidden" style={{ touchAction:phase==="intro"?"auto":"none" }}>
+    <div className="home-bg fixed inset-0 overflow-hidden" style={{ touchAction:"auto" }}>
       {/* Background layers */}
       <div className="fixed inset-0 pointer-events-none" aria-hidden>
         <TopoBackground/>
