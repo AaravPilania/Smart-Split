@@ -52,7 +52,7 @@ export default function DesktopLayout({ children, hideBottomNav = false }) {
         {/* 3-column grid sits on top (z-index: 1) */}
         <div className="relative z-[1]" style={{ display: "grid", gridTemplateColumns: "68px 1fr", height: "100vh" }}>
           <DashboardSidebar goals={[]} />
-          <main className="overflow-y-auto page-enter-desktop">{children}</main>
+          <main className="overflow-y-auto">{children}</main>
         </div>
       </div>
     );

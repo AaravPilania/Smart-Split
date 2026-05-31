@@ -52,9 +52,12 @@ export default function DashboardSidebar({ goals = [], onGoalsNeeded }) {
   }, [showNotifications]);
 
   const handleLogout = () => { clearAuth(); localStorage.removeItem("selectedAvatar"); sessionStorage.clear(); navigate("/", { replace: true }); };
-  const handleScanClick = async () => {
-    try { const r = await apiFetch(`${API_URL}/groups?userId=${userId}`); if (r.ok) { const d = await r.json(); setGroups(d.groups || []); } } catch {}
+  const handleScanClick = () => {
     setShowScanModal(true);
+    apiFetch(`${API_URL}/groups?userId=${userId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.groups) setGroups(d.groups); })
+      .catch(() => {});
   };
 
   // Allow the right panel to trigger scan via custom event

@@ -68,10 +68,8 @@ export default function Balances() {
     const name = upiModal.toName;
     const upiId = upiModal.toUpiId;
 
-    // Copy formatted payment details to clipboard
-    const clipText = upiId
-      ? `Pay ₹${amt} to ${name}\nUPI: ${upiId}`
-      : `Pay ₹${amt} to ${name}`;
+    // Copy only the numeric amount to clipboard
+    const clipText = amt;
     try { navigator.clipboard.writeText(clipText); } catch {}
 
     // Save preference

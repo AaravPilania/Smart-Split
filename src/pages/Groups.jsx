@@ -588,8 +588,8 @@ export default function Groups() {
                       <FiUsers size={11} className={theme.text} />
                       <span className="font-medium">{group.members?.length || 0}</span>
                     </div>
-                    <div className="flex flex-wrap justify-end gap-1 max-w-[120px]">
-                      {group.members?.slice(0, 3).map((member) => (
+                    <div className="flex flex-wrap justify-end gap-1 max-w-[160px]">
+                      {group.members?.map((member) => (
                         <span
                           key={member.id}
                           className={`px-2 py-0.5 ${theme.bgActive} ${theme.text} rounded-full text-[11px] font-medium`}
@@ -597,11 +597,6 @@ export default function Groups() {
                           {member.name.split(" ")[0]}
                         </span>
                       ))}
-                      {group.members?.length > 3 && (
-                        <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full text-[11px] font-medium">
-                          +{group.members.length - 3}
-                        </span>
-                      )}
                     </div>
                   </div>
                 </div>

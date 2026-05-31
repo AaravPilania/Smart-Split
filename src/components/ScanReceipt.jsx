@@ -382,8 +382,8 @@ export default function ScanReceipt({
       setDefaultUpiApp(appKey);
     }
 
-    // Copy payment details to clipboard
-    const clipText = `Pay ₹${amt} to ${name}\nUPI: ${upiId}`;
+    // Copy only the numeric amount to clipboard
+    const clipText = amt;
     try { navigator.clipboard.writeText(clipText); } catch {}
 
     if (!app.package) {
@@ -771,18 +771,45 @@ export default function ScanReceipt({
       if (!status) status = { isPremium: false, ocrUsage: { allowed: true, remaining: 5, limit: 5 } };
 
       if (status.isPremium) {
-        // ── Premium: Gemini direct ──
+        // ── Premium: Gemini direct, silent Tesseract fallback on failure ──
         setScanMessage('Scanning with Gemini AI…');
-        const { title, amount, category, items } = await callGeminiBackend(image);
-        const splits = [];
-        if (selectedGroup?.members && amount > 0) {
-          const each = amount / selectedGroup.members.length;
-          selectedGroup.members.forEach(m => splits.push({ userId: m.id, amount: parseFloat(each.toFixed(2)) }));
+        try {
+          const { title, amount, category, items } = await callGeminiBackend(image);
+          const splits = [];
+          if (selectedGroup?.members && amount > 0) {
+            const each = amount / selectedGroup.members.length;
+            selectedGroup.members.forEach(m => splits.push({ userId: m.id, amount: parseFloat(each.toFixed(2)) }));
+          }
+          setExtractedData({ aiScanned: true, items: items || [] });
+          setAiScanSource('gemini');
+          setFormData({ title, amount: amount.toString(), paidBy: userId, splits, category });
+          setScanMessage('Scanned with Gemini AI');
+        } catch (_gemErr) {
+          // Gemini failed — silently fall back to Tesseract
+          setScanMessage('Gemini unavailable — scanning with Tesseract…');
+          let extracted = null;
+          let rawText = '';
+          try {
+            const downscaled = await downscaleForOCR(image);
+            const processedImage = await preprocessImage(downscaled);
+            const tesseractPromise = Tesseract.recognize(processedImage, "eng", { logger: () => {} });
+            const timeoutPromise = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('TESSERACT_TIMEOUT')), 30000)
+            );
+            const { data } = await Promise.race([tesseractPromise, timeoutPromise]);
+            extracted = extractExpenseData(data.text);
+            rawText = data.text;
+          } catch {
+            extracted = { title: '', amount: 0 };
+            rawText = '';
+          }
+          if (extracted && (extracted.amount > 0 || rawText)) {
+            applyTesseractResult(extracted, rawText);
+            setScanMessage('Scanned with Tesseract');
+          } else {
+            throw new Error('OCR failed. Please try again or enter details manually.');
+          }
         }
-        setExtractedData({ aiScanned: true, items: items || [] });
-        setAiScanSource('gemini');
-        setFormData({ title, amount: amount.toString(), paidBy: userId, splits, category });
-        setScanMessage('Scanned with Gemini AI');
       } else {
         // ── Free: Tesseract first ──
         setScanMessage('Scanning with Tesseract (free)…');

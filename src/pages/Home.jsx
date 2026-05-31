@@ -338,27 +338,8 @@ function MobileLogin({ onSuccess, onGuest }) {
       className="h-full w-full overflow-y-auto flex flex-col login-anim-bg"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
     >
-      {/* Floating ambient orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
-        <motion.div
-          className="absolute w-64 h-64 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.22) 0%, transparent 70%)", filter: "blur(44px)", top: "5%", left: "-15%" }}
-          animate={{ x: [0, 30, 0], y: [0, -20, 0] }}
-          transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute w-56 h-56 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(249,115,22,0.20) 0%, transparent 70%)", filter: "blur(40px)", bottom: "12%", right: "-10%" }}
-          animate={{ x: [0, -25, 0], y: [0, 20, 0] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute w-44 h-44 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(236,72,153,0.16) 0%, transparent 70%)", filter: "blur(34px)", top: "42%", right: "8%" }}
-          animate={{ x: [0, 15, 0], y: [0, -15, 0] }}
-          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-        />
-      </div>
+      {/* Static ambient gradient background */}
+      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 0, background: "linear-gradient(135deg, rgba(236,72,153,0.20) 0%, rgba(249,115,22,0.13) 50%, rgba(168,85,247,0.17) 100%)" }} />
 
       <div className="flex flex-col items-center px-8 pt-16 pb-10 w-full max-w-sm mx-auto relative" style={{ zIndex: 1 }}>
 
@@ -1136,12 +1117,12 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
         scrollRef.current.style.overflowY = 'auto';
         scrollRef.current.style.scrollSnapType = 'none'; // no snap yet
         slide3LockedRef.current = false;
-        // Re-enable snap at wherever the user has scrolled — no re-pin
+        // Re-enable snap after momentum has fully settled — prevents mid-scroll snap jitter
         setTimeout(() => {
           if (scrollRef.current) {
             scrollRef.current.style.scrollSnapType = 'y mandatory';
           }
-        }, 100);
+        }, 500);
       }
       /* Start auto-animation after a short pause so it feels deliberate */
       setTimeout(() => {
@@ -1200,7 +1181,7 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
           setTimeout(() => { slide4TransitionLock = false; }, 600);
         }
       },
-      { root: container, threshold: 0.3 }
+      { root: container, threshold: 0.6 }
     );
     if (sectionRefs[3].current) slide4Obs.observe(sectionRefs[3].current);
 

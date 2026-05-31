@@ -392,9 +392,18 @@ export default function Dashboard() {
     const [hoveredIdx, setHoveredIdx] = useState(null);
     const containerRef = useRef(null);
     const [dims, setDims] = useState({ w: 600, h: 240 });
-    const chartInView = useInView(containerRef, { once: true, margin: "-40px" });
+    // Only animate on first visit this session; skip replay on page navigation
+    const alreadySeen = sessionStorage.getItem('_cfSeen');
+    const chartInViewRaw = useInView(containerRef, { once: true, margin: "-40px" });
+    const chartInView = alreadySeen ? true : chartInViewRaw;
     const lineRef = useRef(null);
     const [pathLen, setPathLen] = useState(0);
+
+    useEffect(() => {
+      if (chartInViewRaw && !alreadySeen) {
+        sessionStorage.setItem('_cfSeen', '1');
+      }
+    }, [chartInViewRaw]);
 
     useEffect(() => {
       const el = containerRef.current;
@@ -514,25 +523,6 @@ export default function Dashboard() {
               strokeDasharray={pathLen || 2000}
               strokeDashoffset={chartInView ? 0 : (pathLen || 2000)}
               style={{ transition: "stroke-dashoffset 1.2s ease-out" }} />
-
-            {/* Data point dots */}
-            {pts.map((p, i) => {
-              const cur = monthlyData[i]?.isCurrent;
-              const hov = hoveredIdx === i;
-              return (
-                <circle key={i} cx={p.x} cy={p.y}
-                  r={cur || hov ? 5 : 3}
-                  fill={cur ? "#fff" : theme.gradFrom}
-                  stroke={cur ? theme.gradFrom : "none"} strokeWidth={cur ? 2.5 : 0}
-                  style={{
-                    opacity: chartInView ? 1 : 0,
-                    transform: chartInView ? "scale(1)" : "scale(0)",
-                    transformOrigin: `${p.x}px ${p.y}px`,
-                    transformBox: "fill-box",
-                    transition: `opacity 0.3s ease ${0.8 + i * 0.08}s, transform 0.3s ease ${0.8 + i * 0.08}s`,
-                  }} />
-              );
-            })}
 
             {/* Terminal glowing dot at latest point */}
             <circle cx={last.x} cy={last.y} r="9" fill={theme.gradFrom} opacity="0.22" filter="url(#cfDotGlow)" />
@@ -947,39 +937,8 @@ export default function Dashboard() {
                     </div>
                   ) : (
                     <>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.17em] mb-3 mt-1"
-                        style={{ color: isDark ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.28)" }}>Top Categories</p>
-                      <div className="space-y-2 mb-5">
-                        {categoryData.slice(0, 6).map((cat, i) => {
-                          const total = categoryData.reduce((s, c) => s + c.amount, 0);
-                          const pct = Math.round((cat.amount / total) * 100);
-                          return (
-                            <div key={cat.key} className="flex items-center gap-3 p-4 rounded-2xl"
-                              style={{
-                                background: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
-                                border: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.06)",
-                              }}>
-                              <span className="text-2xl flex-shrink-0 w-9 text-center">{cat.icon || "📦"}</span>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex justify-between items-center mb-1.5">
-                                  <p className="text-sm font-bold truncate" style={{ color: isDark ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.8)" }}>{cat.label || cat.key}</p>
-                                  <p className="text-xs font-black ml-3 flex-shrink-0" style={{ color: theme.gradFrom }}>{formatCurrency(cat.amount)}</p>
-                                </div>
-                                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" }}>
-                                  <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${pct}%` }}
-                                    transition={{ delay: i * 0.05, duration: 0.55, ease: "easeOut" }}
-                                    className="h-full rounded-full"
-                                    style={{ background: `linear-gradient(to right, ${theme.gradFrom}, ${theme.gradTo})` }}
-                                  />
-                                </div>
-                              </div>
-                              <p className="text-xs font-bold flex-shrink-0 w-8 text-right tabular-nums"
-                                style={{ color: isDark ? "rgba(255,255,255,0.32)" : "rgba(0,0,0,0.3)" }}>{pct}%</p>
-                            </div>
-                          );
-                        })}
+                      <div className="flex justify-center py-2 mb-4">
+                        <CategoryDonut categoryData={categoryData} formatCurrency={formatCurrency} theme={theme} isDark={isDark} />
                       </div>
                       {insights.length > 0 && (
                         <>

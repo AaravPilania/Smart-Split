@@ -18,7 +18,7 @@ export default function DesktopPageHeader({ label, title, gradWord, subtitle, ac
   return (
     <motion.div
       className="flex items-start justify-between mb-8"
-      initial={{ opacity: 0, y: -14 }}
+      initial={false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 340, damping: 28 }}
     >

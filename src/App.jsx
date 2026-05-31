@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState, lazy, Suspense } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 
 // Lazy-loaded pages — each becomes its own JS chunk so the initial bundle is ~40KB lighter
 const Dashboard  = lazy(() => import("./pages/Dashboard"));
@@ -48,31 +48,25 @@ function PublicRoute({ element, authReady = true }) {
   return getToken() ? <Navigate to="/dashboard" replace /> : element;
 }
 
-// Smooth page transition — instant exit, clean fade-in (no transform to avoid stacking issues)
-const PAGE_ENTER_ANIMATE = { opacity: 1 };
-const PAGE_EXIT          = { opacity: 0 };
-const PAGE_INIT          = { opacity: 0 };
-const PAGE_ENTER_TRAN    = { duration: 0.18, ease: [0.16, 1, 0.3, 1] };
-const PAGE_EXIT_TRAN     = { duration: 0.08, ease: "easeIn" };
-
+// Page wrapper — fades in once on initial page load only.
+// On subsequent navigations the wrapper stays mounted so no re-animation fires.
 function PageTransition({ children }) {
-  const location = useLocation();
   return (
-    <AnimatePresence initial={false} mode="wait">
-      <motion.div
-        key={location.pathname}
-        initial={PAGE_INIT}
-        animate={{ ...PAGE_ENTER_ANIMATE, transition: PAGE_ENTER_TRAN }}
-        exit={{ ...PAGE_EXIT, transition: PAGE_EXIT_TRAN }}
-        style={{
-          minHeight: "100dvh",
-          width: "100%",
-        }}
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1, transition: { duration: 0.18, ease: [0.16, 1, 0.3, 1] } }}
+      style={{ minHeight: "100dvh", width: "100%" }}
+    >
+      {children}
+    </motion.div>
   );
+}
+
+// Hide BottomNav on the landing/login page
+function ConditionalBottomNav() {
+  const location = useLocation();
+  if (location.pathname === '/') return null;
+  return <BottomNav />;
 }
 
 // Intercepts the hardware/browser back button for authenticated users
@@ -217,7 +211,7 @@ function App() {
           </Routes>
         </Suspense>
       </PageTransition>
-      {authReady && isLoggedIn && <BottomNav />}
+      {authReady && isLoggedIn && <ConditionalBottomNav />}
     </BrowserRouter>
   );
 }
