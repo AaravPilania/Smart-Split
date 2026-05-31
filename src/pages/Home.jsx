@@ -4,7 +4,7 @@ import { FiMail, FiLock, FiUser, FiEye, FiEyeOff, FiArrowRight, FiZap, FiCheck, 
 import PhoneMockup from "../components/PhoneMockup";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate, useInView, useScroll } from "framer-motion";
 import { useGoogleLogin } from "@react-oauth/google";
-import { setAuthData, authAPI, wakeUpServer, API_URL } from "../utils/api";
+import { setAuthData, authAPI, wakeUpServer, pingServer, API_URL } from "../utils/api";
 import MobileOnboarding from "../components/MobileOnboarding";
 import OnboardingGuide from "../components/OnboardingGuide";
 import CardSwap, { Card } from "../components/CardSwap";
@@ -220,8 +220,11 @@ function MobileLogin({ onSuccess, onGuest }) {
       if (data.user.pfp) localStorage.setItem("selectedAvatar", data.user.pfp);
       onSuccess();
     } catch (err) {
-      const msg = err.message || "Google sign-in failed.";
-      setError(msg.includes("fetch") ? "Network error. Check your connection and try again." : msg);
+      const msg = err.message || "";
+      const isNetworkErr = msg.includes("fetch") || msg.includes("Failed to fetch") || msg.includes("Load failed") || msg.includes("Network");
+      setError(isNetworkErr
+        ? (API_URL.includes("localhost") ? "Backend is not running. Start it with: cd backend && npm start" : "Server is warming up (~30s). Please try signing in again in a moment.")
+        : (msg || "Google sign-in failed."));
     } finally { setGoogleLoading(false); }
   };
 
@@ -1792,8 +1795,11 @@ function DesktopLogin({ onSuccess, onGuest }) {
         onSuccess();
       } catch (err) {
         console.error("Google auth API error:", err);
-        const msg = err.message || "Google sign-in failed. Please try again.";
-        setError(msg.includes("fetch") ? "Network error. Check your connection and try again." : msg);
+        const msg = err.message || "";
+        const isNetworkErr = msg.includes("fetch") || msg.includes("Failed to fetch") || msg.includes("Load failed") || msg.includes("Network");
+        setError(isNetworkErr
+          ? (API_URL.includes("localhost") ? "Backend is not running. Start it with: cd backend && npm start" : "Server is warming up (~30s). Please try signing in again in a moment.")
+          : (msg || "Google sign-in failed. Please try again."));
       } finally { setGoogleLoading(false); }
     },
     onError: (error) => {
@@ -2034,6 +2040,24 @@ export default function Home() {
   const [blobOrigin, setBlobOrigin] = useState(null);
   const [introError, setIntroError] = useState("");
   const [introGoogleLoading, setIntroGoogleLoading] = useState(false);
+  const [serverWarmingUp, setServerWarmingUp] = useState(false);
+
+  // Proactively check server on load so user sees "warming up" before attempting sign-in
+  useEffect(() => {
+    if (API_URL.includes("localhost")) return;
+    pingServer().then(alive => {
+      if (!alive) {
+        setServerWarmingUp(true);
+        wakeUpServer().then(() => setServerWarmingUp(false));
+      }
+    });
+  }, []);
+
+  // Helper to build a helpful network-error message
+  const serverErrorMsg = () =>
+    API_URL.includes("localhost")
+      ? "Backend is not running. Start it with: cd backend && npm start"
+      : "Server is warming up (~30s). Please try signing in again in a moment.";
 
   // Google sign-in directly from intro (skip onboarding)
   const handleIntroGoogleSuccess = async (tokenResponse) => {
@@ -2049,8 +2073,9 @@ export default function Home() {
       },450);
     } catch (err) {
       console.error("Google auth API error (intro):", err);
-      const msg = err.message || "Google sign-in failed. Please try again.";
-      setIntroError(msg.includes("fetch") ? "Network error. Check your connection and try again." : msg);
+      const msg = err.message || "";
+      const isNetworkErr = msg.includes("fetch") || msg.includes("Failed to fetch") || msg.includes("Load failed") || msg.includes("Network");
+      setIntroError(isNetworkErr ? serverErrorMsg() : (msg || "Google sign-in failed. Please try again."));
     } finally { setIntroGoogleLoading(false); }
   };
   const googleSignIn = useGoogleLogin({
@@ -2146,6 +2171,16 @@ export default function Home() {
                 <button className="ml-2 opacity-60 hover:opacity-100 text-xs">✕</button>
               </div>
             )}
+            {!introError && serverWarmingUp && (
+              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-xl text-sm font-medium text-white shadow-2xl flex items-center gap-2"
+                style={{ background:"rgba(217,119,6,0.88)", backdropFilter:"blur(12px)", maxWidth:"90vw" }}>
+                <svg className="animate-spin h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+                <span>Server warming up — sign-in will be ready shortly…</span>
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -2166,6 +2201,16 @@ export default function Home() {
             <div className="lg:hidden h-full">
               <MobileLogin onSuccess={handleAuthSuccess} onGuest={handleGuestLogin}/>
             </div>
+            {serverWarmingUp && (
+              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-xl text-sm font-medium text-white shadow-2xl flex items-center gap-2"
+                style={{ background:"rgba(217,119,6,0.88)", backdropFilter:"blur(12px)", maxWidth:"90vw" }}>
+                <svg className="animate-spin h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+                <span>Server warming up — sign-in will be ready shortly…</span>
+              </div>
+            )}
           </motion.div>
         )}
 
