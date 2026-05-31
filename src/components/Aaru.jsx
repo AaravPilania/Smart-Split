@@ -265,8 +265,13 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Premium gate state
-  const [isPremium, setIsPremium] = useState(null); // null = loading
+  // Premium gate state — read cached value from localStorage for instant render
+  const [isPremium, setIsPremium] = useState(() => {
+    try {
+      const cached = localStorage.getItem('aaru_premium');
+      return cached === null ? null : cached === '1';
+    } catch { return null; }
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -275,12 +280,14 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
         const res = await apiFetch(`${API_URL}/auth/premium-status`);
         if (!cancelled && res.ok) {
           const data = await res.json();
-          setIsPremium(!!data.isPremium);
+          const val = !!data.isPremium;
+          setIsPremium(val);
+          try { localStorage.setItem('aaru_premium', val ? '1' : '0'); } catch {}
         } else if (!cancelled) {
-          setIsPremium(false);
+          setIsPremium(prev => prev === null ? false : prev);
         }
       } catch {
-        if (!cancelled) setIsPremium(false);
+        if (!cancelled) setIsPremium(prev => prev === null ? false : prev);
       }
     })();
     return () => { cancelled = true; };
@@ -451,7 +458,7 @@ export default function Aaru({ groups = [], userId, friends = [], onExpenseCreat
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[300] flex flex-col justify-end">
+        <div className="fixed inset-0 z-[9999] flex flex-col justify-end">
           {/* Backdrop */}
           <motion.div
             key="aaru-backdrop"

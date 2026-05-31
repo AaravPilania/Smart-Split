@@ -1094,10 +1094,8 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
   const [guideStep, setGuideStep] = useState(0); // index into GUIDE_STEPS
   const [expandedCard, setExpandedCard] = useState(null);
   const [slide3Unlocked, setSlide3Unlocked] = useState(false);
-  const [slide4Glitch, setSlide4Glitch] = useState(false);
   const slide3UnlockedRef = useRef(false);
   const slide3LockedRef = useRef(false);
-  const slide4GlitchFiredRef = useRef(false);
   const activeSectionRef = useRef(0);
   const cardSwapRef = useRef(null);
   const autoSwapIntervalRef = useRef(null);
@@ -1235,23 +1233,6 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slide3Unlocked]);
 
-  /* Trigger glitch animation when slide 4 first enters view */
-  useEffect(() => {
-    const section = sectionRefs[3].current;
-    if (!section) return;
-    const glitchObs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !slide4GlitchFiredRef.current) {
-          slide4GlitchFiredRef.current = true;
-          setSlide4Glitch(true);
-        }
-      },
-      { root: scrollRef.current, threshold: 0.3 }
-    );
-    glitchObs.observe(section);
-    return () => glitchObs.disconnect();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <div className="h-full w-full relative">
@@ -1523,7 +1504,7 @@ function DesktopIntro({ onGetStarted, onGoogleSignIn }) {
             <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:600,height:600,borderRadius:"50%",background:"radial-gradient(circle,rgba(168,85,247,0.09) 0%,transparent 65%)",filter:"blur(80px)"}}/>
           </div>
 
-          <div className={`relative z-10 max-w-2xl${slide4Glitch ? ' slide4-glitch-push' : ''}`}>
+          <div className={`relative z-10 max-w-2xl`}>
             {/* Big animated number */}
             <motion.div
               initial={{opacity:0,scale:0.8}} whileInView={{opacity:1,scale:1}}

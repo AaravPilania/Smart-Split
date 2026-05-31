@@ -48,12 +48,12 @@ export default function BottomNav() {
 
   const handleScanReceipt = () => {
     setShowSheet(false);
-    setTimeout(() => setShowScan(true), 200);
+    setTimeout(() => setShowScan(true), 50);
   };
 
   const handleAskAaru = () => {
     setShowSheet(false);
-    setTimeout(() => window.dispatchEvent(new CustomEvent("aaru-open")), 200);
+    setTimeout(() => window.dispatchEvent(new CustomEvent("aaru-open")), 50);
   };
 
   return (

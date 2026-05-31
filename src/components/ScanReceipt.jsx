@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FiCamera, FiUpload, FiX, FiCheck, FiPlus, FiRefreshCw, FiCreditCard, FiChevronRight, FiUserPlus, FiCopy } from "react-icons/fi";
 import jsQR from "jsqr";
 import Tesseract from "tesseract.js";
-import { apiFetch, getToken, API_URL } from "../utils/api";
+import { apiFetch, getToken, API_URL, getUserId } from "../utils/api";
 import { useTheme, getGradientStyle } from "../utils/theme";
 import { CATEGORIES, detectCategory, detectCategoryFromText, getCategoryInfo } from "../utils/categories";
 
@@ -25,10 +25,11 @@ const openUpiApp = (url) => {
 
 export default function ScanReceipt({ 
   groups, 
-  userId, 
+  userId: userIdProp, 
   onExpenseCreated,
   onClose 
 }) {
+  const userId = userIdProp || getUserId();
   const { theme, isDark } = useTheme();
   const [mode, setMode] = useState(null); // 'upload' or 'qrscan'
   const [image, setImage] = useState(null);
@@ -46,6 +47,10 @@ export default function ScanReceipt({
   const [friendQrResult, setFriendQrResult] = useState(null); // { id, name, email } when a friend QR is detected
   const [friendQrSending, setFriendQrSending] = useState(false);
   const [friendQrSent, setFriendQrSent] = useState(false);
+  const [localGroups, setLocalGroups] = useState([]);
+
+  // Use prop groups if provided, otherwise fall back to internally fetched groups
+  const effectiveGroups = (groups && groups.length > 0) ? groups : localGroups;
 
   // ── Settle Payment flow state ──
   const [settleStep, setSettleStep] = useState(null); // null | "pick" | "appPicker"
@@ -58,10 +63,10 @@ export default function ScanReceipt({
   const [showAllApps, setShowAllApps] = useState(false);
 
   const UPI_APPS = [
-    { key: "gpay",    label: "Google Pay",  scheme: "gpay://", intentUrl: "intent://#Intent;scheme=gpay;package=com.google.android.apps.nbu.paisa.user;end", logo: (<svg width="24" height="24" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="white"/><path d="M24 9.5c3.04 0 5.78 1.14 7.9 3l5.88-5.88C33.86 3.02 29.22 1 24 1 14.6 1 6.6 6.76 3.1 14.88l6.82 5.3C11.46 14.26 17.2 9.5 24 9.5z" fill="#EA4335"/><path d="M46.1 24.5c0-1.68-.15-3.3-.43-4.88H24v9.24h12.42a10.63 10.63 0 01-4.6 6.98l7.02 5.46C43.02 37.56 46.1 31.5 46.1 24.5z" fill="#4285F4"/><path d="M9.92 28.18A14.37 14.37 0 019 24c0-1.46.25-2.86.7-4.18L2.88 14.5A23.36 23.36 0 001 24c0 3.8.9 7.4 2.52 10.58l7.4-6.4z" fill="#FBBC05"/><path d="M24 47c6.48 0 11.92-2.14 15.9-5.82l-7.56-5.86c-2.1 1.42-4.78 2.26-8.34 2.26-6.42 0-11.86-4.34-13.8-10.18l-7.36 5.68C6.6 41.24 14.6 47 24 47z" fill="#34A853"/></svg>) },
-    { key: "phonepe", label: "PhonePe",     scheme: "phonepe://", intentUrl: "intent://#Intent;scheme=phonepe;package=com.phonepe.app;end", logo: (<svg width="24" height="24" viewBox="0 0 28 28"><rect width="28" height="28" rx="7" fill="#5f259f"/><path d="M9 21V7h6a5 5 0 0 1 0 10h-3v4H9z" fill="white"/><path d="M12 10v4h3a2 2 0 1 0 0-4h-3z" fill="#5f259f"/></svg>) },
-    { key: "paytm",   label: "Paytm",       scheme: "paytm://", intentUrl: "intent://#Intent;scheme=paytm;package=net.one97.paytm;end", logo: (<svg width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#00BAF2"/><circle cx="12" cy="12" r="8.5" stroke="white" strokeWidth="1.2" fill="none"/><text x="12" y="13.8" textAnchor="middle" fill="white" fontSize="6" fontWeight="bold" fontFamily="Arial,sans-serif">paytm</text></svg>) },
-    { key: "generic", label: "Other UPI",   scheme: null, logo: (<svg width="24" height="24" viewBox="0 0 28 28"><rect width="28" height="28" rx="7" fill="#6b7280"/><text x="14" y="19" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">U</text></svg>) },
+    { key: "gpay",    label: "Google Pay",  package: "com.google.android.apps.nbu.paisa.user", logo: (<svg width="24" height="24" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="white"/><path d="M24 9.5c3.04 0 5.78 1.14 7.9 3l5.88-5.88C33.86 3.02 29.22 1 24 1 14.6 1 6.6 6.76 3.1 14.88l6.82 5.3C11.46 14.26 17.2 9.5 24 9.5z" fill="#EA4335"/><path d="M46.1 24.5c0-1.68-.15-3.3-.43-4.88H24v9.24h12.42a10.63 10.63 0 01-4.6 6.98l7.02 5.46C43.02 37.56 46.1 31.5 46.1 24.5z" fill="#4285F4"/><path d="M9.92 28.18A14.37 14.37 0 019 24c0-1.46.25-2.86.7-4.18L2.88 14.5A23.36 23.36 0 001 24c0 3.8.9 7.4 2.52 10.58l7.4-6.4z" fill="#FBBC05"/><path d="M24 47c6.48 0 11.92-2.14 15.9-5.82l-7.56-5.86c-2.1 1.42-4.78 2.26-8.34 2.26-6.42 0-11.86-4.34-13.8-10.18l-7.36 5.68C6.6 41.24 14.6 47 24 47z" fill="#34A853"/></svg>) },
+    { key: "phonepe", label: "PhonePe",     package: "com.phonepe.app", logo: (<svg width="24" height="24" viewBox="0 0 28 28"><rect width="28" height="28" rx="7" fill="#5f259f"/><path d="M9 21V7h6a5 5 0 0 1 0 10h-3v4H9z" fill="white"/><path d="M12 10v4h3a2 2 0 1 0 0-4h-3z" fill="#5f259f"/></svg>) },
+    { key: "paytm",   label: "Paytm",       package: "net.one97.paytm", logo: (<svg width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="24" rx="6" fill="#00BAF2"/><circle cx="12" cy="12" r="8.5" stroke="white" strokeWidth="1.2" fill="none"/><text x="12" y="13.8" textAnchor="middle" fill="white" fontSize="6" fontWeight="bold" fontFamily="Arial,sans-serif">paytm</text></svg>) },
+    { key: "generic", label: "Other UPI",   package: null, logo: (<svg width="24" height="24" viewBox="0 0 28 28"><rect width="28" height="28" rx="7" fill="#6b7280"/><text x="14" y="19" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">U</text></svg>) },
   ];
 
   const [formData, setFormData] = useState({
@@ -88,6 +93,17 @@ export default function ScanReceipt({
       } catch { /* ignore */ }
     })();
     return () => { cancelled = true; };
+  }, []);
+
+  // Fetch groups internally when the groups prop is empty (e.g. opened from desktop sidebar)
+  useEffect(() => {
+    if ((!groups || groups.length === 0) && userId) {
+      apiFetch(`${API_URL}/groups?userId=${userId}`)
+        .then(res => res.ok ? res.json() : null)
+        .then(data => { if (data?.groups) setLocalGroups(data.groups); })
+        .catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const videoRef = useRef(null);
@@ -127,12 +143,12 @@ export default function ScanReceipt({
 
   useEffect(() => {
     if (selectedGroupId) {
-      const group = groups.find((g) => String(g.id) === String(selectedGroupId));
+      const group = effectiveGroups.find((g) => String(g.id) === String(selectedGroupId));
       setSelectedGroup(group || null);
     } else {
       setSelectedGroup(null);
     }
-  }, [selectedGroupId, groups]);
+  }, [selectedGroupId, effectiveGroups]);
 
   useEffect(() => {
     return () => {
@@ -306,7 +322,7 @@ export default function ScanReceipt({
     try {
       // Fetch settlements for every group the user belongs to
       const all = [];
-      for (const g of groups) {
+      for (const g of effectiveGroups) {
         try {
           const res = await apiFetch(`${API_URL}/expenses/group/${g.id}/settlements`);
           if (res.ok) {
@@ -370,18 +386,28 @@ export default function ScanReceipt({
     const clipText = `Pay ₹${amt} to ${name}\nUPI: ${upiId}`;
     try { navigator.clipboard.writeText(clipText); } catch {}
 
-    if (!app.scheme) {
+    if (!app.package) {
       // "Other" — just copy & show toast
       setSettleToast(`₹${amt} copied! Open your UPI app and pay.`);
       setTimeout(() => setSettleToast(null), 4000);
       return;
     }
 
-    // Open app homepage (not payment screen) using app-specific scheme
+    const pa = encodeURIComponent(upiId);
+    const pn = encodeURIComponent(name);
+    const tn = encodeURIComponent("SmartSplit");
     const isAndroid = /android/i.test(navigator.userAgent);
-    const schemeUrl = (isAndroid && app.intentUrl) ? app.intentUrl : app.scheme;
+
+    let upiUrl;
+    if (isAndroid) {
+      const fb = encodeURIComponent(`https://play.google.com/store/apps/details?id=${app.package}`);
+      upiUrl = `intent://pay?pa=${pa}&pn=${pn}&am=${amt}&cu=INR&tn=${tn}#Intent;scheme=upi;package=${app.package};S.browser_fallback_url=${fb};end`;
+    } else {
+      upiUrl = `upi://pay?pa=${pa}&pn=${pn}&am=${amt}&cu=INR&tn=${tn}`;
+    }
+
     const openedAt = Date.now();
-    openUpiApp(schemeUrl);
+    openUpiApp(upiUrl);
 
     // Fallback: if page is still visible after 2s, app likely didn't open
     setTimeout(() => {
@@ -992,7 +1018,7 @@ export default function ScanReceipt({
       )}
       </AnimatePresence>
 
-    <motion.div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 overflow-y-auto"
+    <motion.div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[9995] overflow-y-auto"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
       <motion.div className="bg-white dark:bg-gray-900 rounded-t-[22px] sm:rounded-[22px] shadow-2xl max-w-3xl w-full p-4 sm:p-6 pb-8 max-h-[90dvh] sm:max-h-[95dvh] overflow-y-auto"
         initial={{ opacity: 0, y: 40, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 340, damping: 28 }}>
@@ -1313,7 +1339,7 @@ export default function ScanReceipt({
               onChange={handleFileUpload}
               className="hidden"
             />
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => cameraInputRef.current?.click()}
                 className="p-3 sm:p-5 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-2"
@@ -1337,26 +1363,6 @@ export default function ScanReceipt({
                   className="hidden"
                 />
               </label>
-
-              <button
-                onClick={startQRScan}
-                className="p-3 sm:p-5 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-2"
-                style={{ borderColor: "#8b5cf6" }}
-              >
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
-                <span className="font-semibold text-gray-800 dark:text-white text-sm">Scan QR</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400 text-center">UPI / Friend QR</span>
-              </button>
-
-              <button
-                onClick={startSettleFlow}
-                className="p-3 sm:p-5 border-2 border-dashed rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition flex flex-col items-center justify-center gap-2"
-                style={{ borderColor: "#22c55e" }}
-              >
-                <FiCreditCard className="text-2xl sm:text-3xl" style={{ color: "#22c55e" }} />
-                <span className="font-semibold text-gray-800 dark:text-white text-sm">Settle Payment</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400 text-center">Pay via UPI</span>
-              </button>
             </div>
 
             {/* OCR usage info for free users */}
@@ -1424,7 +1430,7 @@ export default function ScanReceipt({
                         style={{ "--tw-ring-color": theme.gradFrom }}
                       >
                         <option value="">Select a group...</option>
-                        {groups.map((group) => (
+                        {effectiveGroups.map((group) => (
                           <option key={group.id} value={group.id}>
                             {group.name}
                           </option>
@@ -1543,7 +1549,7 @@ export default function ScanReceipt({
                         required
                       >
                         <option value="">Select a group...</option>
-                        {groups.map((group) => (
+                        {effectiveGroups.map((group) => (
                           <option key={group.id} value={group.id}>
                             {group.name}
                           </option>

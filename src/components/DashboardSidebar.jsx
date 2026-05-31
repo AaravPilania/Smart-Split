@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   FiHome, FiUsers, FiBarChart2, FiHeart,
   FiSun, FiMoon, FiBell, FiX, FiCamera, FiLogOut,
-  FiMail, FiHeart as FiSupportHeart,
+  FiMail, FiHeart as FiSupportHeart, FiZap,
 } from "react-icons/fi";
 import { useTheme, getGradientStyle, toggleDarkMode } from "../utils/theme";
 import { API_URL, apiFetch, clearAuth, getUserId, getUser } from "../utils/api";
@@ -154,6 +154,25 @@ export default function DashboardSidebar({ goals = [], onGoalsNeeded }) {
               <div className="absolute inset-0 opacity-0 group-hover/tool:opacity-100 transition-opacity rounded-xl"
                 style={{ background: `radial-gradient(circle at 50% 0%, ${theme.gradFrom}30 0%, transparent 70%)` }} />
               <FiCamera size={16} className="relative z-10" style={{ color: theme.gradFrom }} />
+            </button>
+          </motion.div>
+
+          {/* Aaru AI button */}
+          <motion.div
+            className="w-full px-2 pb-1"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.52 + 6 * 0.06, type: "spring", stiffness: 340, damping: 28 }}
+          >
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent("aaru-open"))}
+              title="Ask Aaru AI"
+              className="w-full flex flex-col items-center gap-0.5 py-2.5 rounded-xl relative overflow-hidden group/tool"
+              style={glass}
+            >
+              <div className="absolute inset-0 opacity-0 group-hover/tool:opacity-100 transition-opacity rounded-xl"
+                style={{ background: `radial-gradient(circle at 50% 0%, ${theme.gradTo}30 0%, transparent 70%)` }} />
+              <FiZap size={16} className="relative z-10" style={{ color: theme.gradTo }} />
             </button>
           </motion.div>
         </motion.div>
