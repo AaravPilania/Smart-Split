@@ -352,7 +352,7 @@ export default function Groups() {
   if (loading) {
     return (
       <DesktopLayout>
-        <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-28 space-y-4">
+        <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 pb-40 space-y-4">
           <div className="flex justify-between items-center mb-2">
             <div className="space-y-2">
               <div className="h-6 w-36 rounded-xl animate-pulse" style={{ background: "rgba(128,128,128,0.12)" }} />
@@ -390,7 +390,7 @@ export default function Groups() {
         onChange={handlePfpChange}
       />
 
-      <div className="max-w-6xl mx-auto py-8 px-6 pb-28 md:pb-8">
+      <div className="max-w-6xl mx-auto py-8 px-6 pb-40 md:pb-8">
         <DesktopPageHeader
           label="Manage"
           title="Your"

@@ -479,7 +479,7 @@ export default function Profile() {
   if (loading || !user) {
     return (
       <DesktopLayout>
-        <div className="max-w-lg mx-auto px-4 pt-4 pb-28 space-y-4">
+        <div className="max-w-lg mx-auto px-4 pt-4 pb-40 space-y-4">
           {/* Hero card skeleton */}
           <div className="rounded-3xl p-6 animate-pulse flex flex-col items-center gap-3"
             style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", border: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(0,0,0,0.06)" }}>
@@ -564,7 +564,7 @@ export default function Profile() {
           </button>
         </div>
 
-        <div className="max-w-lg mx-auto px-4 pt-5 pb-28">
+        <div className="max-w-lg mx-auto px-4 pt-5 pb-40">
           {/* Avatar editor */}
           <div className="flex flex-col items-center mb-7">
             <div className="relative mb-3">
@@ -707,7 +707,7 @@ export default function Profile() {
       transition={{ duration: 0.35, ease: "easeInOut" }}
     >
     <DesktopLayout>
-      <div className="max-w-lg mx-auto px-4 pt-4 pb-28 md:pb-6 md:max-w-3xl">
+      <div className="max-w-lg mx-auto px-4 pt-4 pb-40 md:pb-6 md:max-w-3xl">
 
         {/* ── HERO CARD ─────────────────────────────────────── */}
         <div className="rounded-3xl overflow-hidden mb-6 relative" style={ss}>

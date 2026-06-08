@@ -300,7 +300,7 @@ export default function Balances() {
   return (
     <DesktopLayout>
 
-      <div className="max-w-2xl mx-auto py-8 px-6 pb-28 md:pb-8 md:max-w-5xl">
+      <div className="max-w-2xl mx-auto py-8 px-6 pb-40 md:pb-8 md:max-w-5xl">
         <DesktopPageHeader
           label="Finance"
           title="Split"

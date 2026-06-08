@@ -988,7 +988,7 @@ export default function Dashboard() {
       <div style={{ height: "calc(4rem + env(safe-area-inset-top, 0px))" }} />
 
       {/* ── Scrollable content — pb accounts for bottom nav ── */}
-      <div className="max-w-lg mx-auto px-4 pt-5 pb-28">
+      <div className="max-w-lg mx-auto px-4 pt-5 pb-40">
 
         {/* ── Greeting ──────────────────────────────────────── */}
         <div className="mb-5 flex items-center justify-between">

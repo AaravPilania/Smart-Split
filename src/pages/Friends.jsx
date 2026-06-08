@@ -167,7 +167,7 @@ export default function Friends() {
   return (
     <DesktopLayout>
 
-      <div className="max-w-2xl mx-auto px-6 py-8 pb-28 md:pb-8 md:max-w-4xl">
+      <div className="max-w-2xl mx-auto px-6 py-8 pb-40 md:pb-8 md:max-w-4xl">
         <DesktopPageHeader
           label="Connect"
           title="Your"
