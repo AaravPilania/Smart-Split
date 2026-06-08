@@ -17,7 +17,7 @@ export default function DesktopPageHeader({ label, title, gradWord, subtitle, ac
 
   return (
     <motion.div
-      className="flex items-start justify-between mb-8"
+      className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8"
       initial={false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 340, damping: 28 }}
@@ -60,7 +60,7 @@ export default function DesktopPageHeader({ label, title, gradWord, subtitle, ac
       </div>
 
       {actions && (
-        <div className="flex items-center gap-2.5 flex-shrink-0">
+        <div className="flex flex-wrap items-center gap-2.5 flex-shrink-0">
           {actions}
         </div>
       )}
